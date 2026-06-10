@@ -1,10 +1,13 @@
 import type {
   Alumnus,
   Badge,
+  Course,
   Deadline,
   LeaderboardEntry,
   ProofOfWorkItem,
+  Project,
   ResearchPaper,
+  Resource,
   SkillNode,
 } from '../types'
 
@@ -59,4 +62,25 @@ export const deadlines: Deadline[] = [
   { event: 'ISEF Registration', date: '2026-02-15', daysLeft: 29 },
   { event: 'MIT Early Action', date: '2026-11-01', daysLeft: 288 },
   { event: 'AI Hackathon', date: '2026-03-20', daysLeft: 62 },
+]
+
+export const courses: Course[] = [
+  {
+    title: 'Harvard CS50 AI',
+    instructor: 'David J. Malan',
+    duration: '12 Weeks',
+    level: 'Intermediate',
+    progress: 60,
+  },
+]
+
+export const projects: Project[] = [
+  { title: 'Sample Project Title', progress: 75 },
+  { title: 'Sample Project Title', progress: 40 },
+]
+
+export const resources: Resource[] = [
+  { title: 'Cloud Credits', description: 'Google Colab Pro, AWS Credits', icon: 'zap' },
+  { title: 'Templates', description: 'LaTeX, Notion Dashboards', icon: 'file-text' },
+  { title: 'Datasets', description: 'Verified Research Data', icon: 'database' },
 ]

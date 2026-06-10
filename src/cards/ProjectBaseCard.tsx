@@ -1,7 +1,12 @@
 import { Folder } from 'lucide-react'
 import { GlassCard } from '../components/GlassCard'
+import { useProjects } from '../hooks/useProjects'
+import { useAuth } from '../context/authContext'
 
 export function ProjectBaseCard() {
+  const { profile } = useAuth()
+  const { data: projects = [] } = useProjects(profile?.id)
+
   return (
     <div className="relative">
       <GlassCard className="shadow-[0_8px_32px_0_rgba(31,38,135,0.2)] transition-all duration-300 ease-out">
@@ -10,20 +15,23 @@ export function ProjectBaseCard() {
           <Folder className="w-6 h-6" />
         </div>
 
-        <div className="space-y-4">
-          <div>
-            <p className="font-normal mb-2">Sample Project Title</p>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div className="bg-[#750014] h-1.5 rounded-full" style={{ width: '75%' }}></div>
-            </div>
+        {projects.length === 0 ? (
+          <p className="text-sm text-gray-600">No projects yet.</p>
+        ) : (
+          <div className="space-y-4">
+            {projects.map((project, idx) => (
+              <div key={idx}>
+                <p className="font-normal mb-2">{project.title}</p>
+                <div className="w-full bg-gray-200 rounded-full h-2">
+                  <div
+                    className="bg-[#750014] h-1.5 rounded-full"
+                    style={{ width: `${project.progress}%` }}
+                  ></div>
+                </div>
+              </div>
+            ))}
           </div>
-          <div>
-            <p className="font-normal mb-2">Sample Project Title</p>
-            <div className="w-full bg-gray-200 rounded-full h-2">
-              <div className="bg-[#750014] h-1.5 rounded-full" style={{ width: '40%' }}></div>
-            </div>
-          </div>
-        </div>
+        )}
       </GlassCard>
     </div>
   )

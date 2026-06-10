@@ -58,3 +58,28 @@ export interface Deadline {
   date: string
   daysLeft: number
 }
+
+export interface Course {
+  title: string
+  instructor: string | null
+  duration: string | null
+  level: string | null
+  progress: number
+}
+
+export interface Project {
+  title: string
+  progress: number
+}
+
+export interface Resource {
+  title: string
+  description: string
+  icon: string
+}
+
+export interface ProfileLinks {
+  github_url: string | null
+  leetcode_url: string | null
+  linkedin_url: string | null
+}
