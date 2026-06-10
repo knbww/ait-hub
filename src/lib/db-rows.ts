@@ -45,3 +45,42 @@ export interface ProofOfWorkRow {
   task: string
   status: 'completed' | 'pending'
 }
+
+export interface CourseEnrollmentRow {
+  progress: number
+  courses: {
+    title: string
+    instructor: string | null
+    duration: string | null
+    level: string | null
+  } | null
+}
+
+export interface ProjectRow {
+  id: string
+  title: string
+  progress: number
+}
+
+export interface MentorRow {
+  id: string
+  full_name: string
+  university: string | null
+  grad_year: string | null
+  title: string | null
+}
+
+export interface ResourceRow {
+  id: string
+  title: string
+  description: string | null
+  category: string | null
+  url: string | null
+  icon: string | null
+}
+
+export interface ProfileLinksRow {
+  github_url: string | null
+  leetcode_url: string | null
+  linkedin_url: string | null
+}

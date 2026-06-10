@@ -1,9 +1,11 @@
 import { motion } from 'framer-motion'
 import { Users } from 'lucide-react'
 import { cardVariants, pageVariants } from '../lib/animations'
-import { alumni } from '../data/mock'
+import { useMentors } from '../hooks/useMentors'
 
 export function NetworkPage() {
+  const { data: alumni = [] } = useMentors()
+
   return (
     <motion.div
       variants={pageVariants}
