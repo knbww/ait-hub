@@ -91,3 +91,9 @@ export interface Mentor {
   year: string
   role: string
 }
+
+export interface GithubStats {
+  openPrs: number
+  lastCommitAt: string | null
+  series: number[]
+}
