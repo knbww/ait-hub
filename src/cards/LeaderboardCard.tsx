@@ -1,8 +1,10 @@
 import { Crown } from 'lucide-react'
 import { GlassCard } from '../components/GlassCard'
-import { leaderboardData } from '../data/mock'
+import { useLeaderboard } from '../hooks/useLeaderboard'
 
 export function LeaderboardCard() {
+  const { data: leaderboardData = [] } = useLeaderboard()
+
   return (
     <div className="relative">
       <GlassCard className="shadow-[0_8px_32px_0_rgba(31,38,135,0.2)] transition-all duration-300 ease-out">
