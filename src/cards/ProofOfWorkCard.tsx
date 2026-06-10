@@ -1,9 +1,11 @@
 import { TrendingUp } from 'lucide-react'
 import { GlassCard } from '../components/GlassCard'
 import { useProofOfWork } from '../hooks/useProofOfWork'
+import { useAuth } from '../context/authContext'
 
 export function ProofOfWorkCard() {
-  const { data: proofOfWork = [] } = useProofOfWork()
+  const { profile } = useAuth()
+  const { data: proofOfWork = [] } = useProofOfWork(profile?.id)
 
   return (
     <GlassCard className="shadow-lg">
