@@ -1,12 +1,16 @@
+import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Users } from 'lucide-react'
 import { cardVariants, pageVariants } from '../lib/animations'
 import { useMentors } from '../hooks/useMentors'
+import { BookMeetingModal } from '../components/BookMeetingModal'
 
 export function NetworkPage() {
   const { data: alumni = [] } = useMentors()
+  const [selected, setSelected] = useState<{ id?: string; name: string } | null>(null)
 
   return (
+    <>
     <motion.div
       variants={pageVariants}
       initial="initial"
@@ -40,7 +44,10 @@ export function NetworkPage() {
                   </div>
                   <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-300 to-purple-400"></div>
                 </div>
-                <button className="w-full px-4 py-2 border-2 border-gray-900 rounded-lg font-normal hover:bg-gray-900 hover:text-white hover:scale-105 transition-all duration-300 text-sm">
+                <button
+                  onClick={() => setSelected({ id: person.id, name: person.name })}
+                  className="w-full px-4 py-2 border-2 border-gray-900 rounded-lg font-normal hover:bg-gray-900 hover:text-white hover:scale-105 transition-all duration-300 text-sm"
+                >
                   Book 15-min Meeting
                 </button>
               </div>
@@ -49,5 +56,7 @@ export function NetworkPage() {
         </motion.div>
       </div>
     </motion.div>
+    {selected && <BookMeetingModal mentor={selected} onClose={() => setSelected(null)} />}
+    </>
   )
 }
