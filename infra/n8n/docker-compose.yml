@@ -1,0 +1,92 @@
+# Self-hosted n8n — queue mode (main + worker), Postgres state, Redis queue,
+# Caddy for automatic HTTPS. Deploy on a VPS; see README.md.
+
+x-n8n-shared: &n8n-shared
+  image: docker.n8n.io/n8nio/n8n:latest
+  restart: unless-stopped
+  environment: &n8n-env
+    DB_TYPE: postgresdb
+    DB_POSTGRESDB_HOST: postgres
+    DB_POSTGRESDB_PORT: 5432
+    DB_POSTGRESDB_DATABASE: ${POSTGRES_DB}
+    DB_POSTGRESDB_USER: ${POSTGRES_USER}
+    DB_POSTGRESDB_PASSWORD: ${POSTGRES_PASSWORD}
+    EXECUTIONS_MODE: queue
+    QUEUE_BULL_REDIS_HOST: redis
+    QUEUE_BULL_REDIS_PORT: 6379
+    N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY}
+    GENERIC_TIMEZONE: ${GENERIC_TIMEZONE}
+    TZ: ${GENERIC_TIMEZONE}
+  volumes:
+    - n8n_data:/home/node/.n8n
+  depends_on:
+    postgres:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+
+services:
+  postgres:
+    image: postgres:17-alpine
+    restart: unless-stopped
+    environment:
+      POSTGRES_USER: ${POSTGRES_USER}
+      POSTGRES_PASSWORD: ${POSTGRES_PASSWORD}
+      POSTGRES_DB: ${POSTGRES_DB}
+    volumes:
+      - n8n_db:/var/lib/postgresql/data
+    healthcheck:
+      test: ['CMD-SHELL', 'pg_isready -U ${POSTGRES_USER} -d ${POSTGRES_DB}']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  redis:
+    image: redis:7-alpine
+    restart: unless-stopped
+    volumes:
+      - n8n_redis:/data
+    healthcheck:
+      test: ['CMD', 'redis-cli', 'ping']
+      interval: 10s
+      timeout: 5s
+      retries: 5
+
+  n8n:
+    <<: *n8n-shared
+    environment:
+      <<: *n8n-env
+      N8N_HOST: ${N8N_HOST}
+      N8N_PROTOCOL: https
+      N8N_PORT: 5678
+      WEBHOOK_URL: https://${N8N_HOST}/
+      N8N_EDITOR_BASE_URL: https://${N8N_HOST}/
+      N8N_SECURE_COOKIE: 'true'
+    expose:
+      - 5678
+
+  n8n-worker:
+    <<: *n8n-shared
+    command: worker
+
+  caddy:
+    image: caddy:2-alpine
+    restart: unless-stopped
+    depends_on:
+      - n8n
+    ports:
+      - '80:80'
+      - '443:443'
+    environment:
+      N8N_HOST: ${N8N_HOST}
+    volumes:
+      - ./Caddyfile:/etc/caddy/Caddyfile:ro
+      - caddy_data:/data
+      - caddy_config:/config
+
+volumes:
+  n8n_db:
+  n8n_redis:
+  n8n_data:
+  caddy_data:
+  caddy_config:
