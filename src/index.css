@@ -1,0 +1,37 @@
+/* SF Pro Rounded - add licensed font files to public/fonts (woff2 preferred) */
+@import "tailwindcss";
+@import 'overlayscrollbars/overlayscrollbars.css';
+
+/* SF Pro Rounded - add licensed font files placed in public/fonts */
+@font-face {
+	font-family: 'SF Pro Rounded';
+	src: local('SF Pro Rounded Regular'), local('SFProRounded-Regular'),
+			 url('/fonts/SF-Pro-Rounded-Regular.otf') format('opentype');
+	font-weight: 400;
+	font-style: normal;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'SF Pro Rounded';
+	src: local('SF Pro Rounded Semibold'), local('SFProRounded-Semibold'),
+			 url('/fonts/SF-Compact-Rounded-Semibold.otf') format('opentype');
+	font-weight: 600;
+	font-style: normal;
+	font-display: swap;
+}
+
+@font-face {
+	font-family: 'SF Pro Rounded';
+	src: local('SF Pro Rounded Bold'), local('SFProRounded-Bold'),
+			 url('/fonts/SF-Pro-Display-Bold.otf') format('opentype');
+	font-weight: 700;
+	font-style: normal;
+	font-display: swap;
+}
+
+@layer base {
+	html, body {
+		font-family: 'SF Pro Rounded', ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
+	}
+}
