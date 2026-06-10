@@ -101,3 +101,14 @@ export interface BookingRow {
   status: string
   created_at: string
 }
+
+export interface GithubStatsRow {
+  open_prs: number
+  last_commit_at: string | null
+  commit_series: number[]
+}
+
+export interface ActivityRow {
+  day: string
+  count: number
+}
