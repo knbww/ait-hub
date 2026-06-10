@@ -1,14 +1,14 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
 import { alumni } from '../data/mock'
-import type { Alumnus } from '../types'
+import type { Mentor } from '../types'
 import type { MentorRow } from '../lib/db-rows'
 
 /** Community mentors (profiles with role 'mentor'). Global; falls back to the
  * mock roster if Supabase isn't configured or the query fails (e.g. migration
  * not yet applied), so the page never looks broken. */
 export function useMentors() {
-  return useQuery<Alumnus[]>({
+  return useQuery<Mentor[]>({
     queryKey: ['mentors'],
     queryFn: async () => {
       if (!supabase) return alumni
@@ -21,6 +21,7 @@ export function useMentors() {
           .returns<MentorRow[]>()
         if (error) throw error
         return data.map((r) => ({
+          id: r.id,
           name: r.full_name,
           university: r.university ?? '',
           year: r.grad_year ?? '',

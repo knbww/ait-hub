@@ -83,3 +83,11 @@ export interface ProfileLinks {
   leetcode_url: string | null
   linkedin_url: string | null
 }
+
+export interface Mentor {
+  id?: string
+  name: string
+  university: string
+  year: string
+  role: string
+}

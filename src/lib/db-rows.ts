@@ -84,3 +84,20 @@ export interface ProfileLinksRow {
   leetcode_url: string | null
   linkedin_url: string | null
 }
+
+export interface ApplicationRow {
+  id: string
+  full_name: string | null
+  email: string
+  status: string
+  created_at: string
+}
+
+export interface BookingRow {
+  id: string
+  mentor_name: string | null
+  requester_name: string
+  requester_email: string
+  status: string
+  created_at: string
+}
