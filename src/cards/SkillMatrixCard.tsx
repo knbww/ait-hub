@@ -1,9 +1,11 @@
 import { TrendingUp } from 'lucide-react'
 import { GlassCard } from '../components/GlassCard'
 import { useSkills } from '../hooks/useSkills'
+import { useAuth } from '../context/authContext'
 
 export function SkillMatrixCard() {
-  const { data: skillNodes = [] } = useSkills()
+  const { profile } = useAuth()
+  const { data: skillNodes = [] } = useSkills(profile?.id)
 
   return (
     <div className="relative">

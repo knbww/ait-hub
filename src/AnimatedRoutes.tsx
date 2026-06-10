@@ -6,7 +6,9 @@ import { NetworkPage } from './pages/NetworkPage'
 import { ResourcesPage } from './pages/ResourcesPage'
 import { LoginPage } from './pages/LoginPage'
 import { ProfilePage } from './pages/ProfilePage'
+import { AdminPage } from './pages/AdminPage'
 import { RequireAuth } from './components/RequireAuth'
+import { RequireRole } from './components/RequireRole'
 
 export function AnimatedRoutes() {
   const location = useLocation()
@@ -25,6 +27,14 @@ export function AnimatedRoutes() {
             <RequireAuth>
               <ProfilePage />
             </RequireAuth>
+          }
+        />
+        <Route
+          path="/admin"
+          element={
+            <RequireRole role="admin">
+              <AdminPage />
+            </RequireRole>
           }
         />
       </Routes>
