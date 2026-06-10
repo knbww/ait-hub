@@ -1,5 +1,6 @@
 import { Component } from 'react'
 import type { ErrorInfo, ReactNode } from 'react'
+import { captureError } from '../lib/sentry'
 
 interface Props {
   children: ReactNode
@@ -19,8 +20,8 @@ export class ErrorBoundary extends Component<Props, State> {
   }
 
   componentDidCatch(error: unknown, info: ErrorInfo) {
-    // TODO(Phase 1): forward to Sentry with the request correlation id.
     console.error('Render error:', error, info)
+    captureError(error)
   }
 
   render() {
