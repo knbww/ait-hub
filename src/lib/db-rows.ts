@@ -1,6 +1,15 @@
 // Hand-written row shapes for the columns the UI reads. Phase-1 convenience —
 // replace with `npm run db:types` generated types once the project is linked.
 
+export type UserRole = 'member' | 'mentor' | 'admin'
+
+export interface ProfileRow {
+  id: string
+  full_name: string
+  role: UserRole
+  avatar_url: string | null
+}
+
 export interface LeaderboardRow {
   profile_id: string
   full_name: string
