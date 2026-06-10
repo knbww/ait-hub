@@ -1,8 +1,10 @@
 import { useNavigate } from 'react-router-dom'
 import { BookOpen, Database, Home, Menu, Network, Search, User } from 'lucide-react'
+import { useAuth } from '../context/authContext'
 
 export function Navbar() {
   const navigate = useNavigate()
+  const { session } = useAuth()
 
   return (
     <div className="max-w-7xl mx-auto mb-8 relative">
@@ -38,7 +40,11 @@ export function Navbar() {
             </button>
           </div>
           <div className="flex items-center gap-4">
-            <button className="hover:scale-110 hover:rotate-12 transition-all duration-300">
+            <button
+              onClick={() => navigate(session ? '/profile' : '/login')}
+              title={session ? 'Your profile' : 'Sign in'}
+              className="hover:scale-110 hover:rotate-12 transition-all duration-300"
+            >
               <User className="w-6 h-6" />
             </button>
             <button className="px-6 py-2 border-2 border-gray-900 rounded-full font-normal hover:bg-gray-900 hover:text-white hover:scale-105 hover:shadow-[0_4px_16px_0_rgba(0,0,0,0.25)] transition-all duration-300">

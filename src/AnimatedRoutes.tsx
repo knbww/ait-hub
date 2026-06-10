@@ -4,6 +4,9 @@ import { DashboardPage } from './pages/DashboardPage'
 import { ResearchPage } from './pages/ResearchPage'
 import { NetworkPage } from './pages/NetworkPage'
 import { ResourcesPage } from './pages/ResourcesPage'
+import { LoginPage } from './pages/LoginPage'
+import { ProfilePage } from './pages/ProfilePage'
+import { RequireAuth } from './components/RequireAuth'
 
 export function AnimatedRoutes() {
   const location = useLocation()
@@ -15,6 +18,15 @@ export function AnimatedRoutes() {
         <Route path="/research" element={<ResearchPage />} />
         <Route path="/network" element={<NetworkPage />} />
         <Route path="/resources" element={<ResourcesPage />} />
+        <Route path="/login" element={<LoginPage />} />
+        <Route
+          path="/profile"
+          element={
+            <RequireAuth>
+              <ProfilePage />
+            </RequireAuth>
+          }
+        />
       </Routes>
     </AnimatePresence>
   )
