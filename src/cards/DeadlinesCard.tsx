@@ -1,8 +1,10 @@
 import { Calendar } from 'lucide-react'
 import { GlassCard } from '../components/GlassCard'
-import { deadlines } from '../data/mock'
+import { useDeadlines } from '../hooks/useDeadlines'
 
 export function DeadlinesCard() {
+  const { data: deadlines = [] } = useDeadlines()
+
   return (
     <div className="relative">
       <GlassCard className="shadow-[0_8px_32px_0_rgba(31,38,135,0.2)]">

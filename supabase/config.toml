@@ -1,0 +1,46 @@
+# Supabase project config — https://supabase.com/docs/guides/local-development/cli/config
+# Used by the CLI for `supabase db push`, `supabase config push`, type generation,
+# and (with Docker) `supabase start`. Auth provider/hook settings here mirror what
+# must also be enabled in the cloud dashboard.
+project_id = "ait-hub"
+
+[api]
+enabled = true
+port = 54321
+schemas = ["public"]
+extra_search_path = ["public", "extensions"]
+max_rows = 1000
+
+[db]
+port = 54322
+shadow_port = 54320
+major_version = 17
+
+[studio]
+enabled = true
+port = 54323
+
+[auth]
+enabled = true
+site_url = "http://localhost:5173"
+additional_redirect_urls = ["http://localhost:5173", "https://ait-hub.pages.dev"]
+jwt_expiry = 3600
+enable_signup = true
+
+[auth.email]
+enable_signup = true
+# Dev convenience — turn confirmations ON before production.
+enable_confirmations = false
+
+# Sign in with GitHub. Provide secrets via env for `supabase config push`,
+# or configure the provider in the cloud dashboard (Authentication > Providers).
+[auth.external.github]
+enabled = true
+client_id = "env(SUPABASE_AUTH_GITHUB_CLIENT_ID)"
+secret = "env(SUPABASE_AUTH_GITHUB_SECRET)"
+
+# Injects the member's role as a JWT claim (function in migration 0002).
+# In the cloud dashboard this is Authentication > Hooks > Custom Access Token.
+[auth.hook.custom_access_token]
+enabled = true
+uri = "pg-functions://postgres/public/custom_access_token_hook"

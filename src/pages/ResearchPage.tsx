@@ -1,9 +1,11 @@
 import { motion } from 'framer-motion'
 import { FileText, Target } from 'lucide-react'
 import { cardVariants, pageVariants } from '../lib/animations'
-import { researchPapers } from '../data/mock'
+import { useResearchPapers } from '../hooks/useResearchPapers'
 
 export function ResearchPage() {
+  const { data: researchPapers = [] } = useResearchPapers()
+
   return (
     <motion.div
       variants={pageVariants}

@@ -1,8 +1,10 @@
 import { TrendingUp } from 'lucide-react'
 import { GlassCard } from '../components/GlassCard'
-import { skillNodes } from '../data/mock'
+import { useSkills } from '../hooks/useSkills'
 
 export function SkillMatrixCard() {
+  const { data: skillNodes = [] } = useSkills()
+
   return (
     <div className="relative">
       <GlassCard className="shadow-[0_8px_32px_0_rgba(31,38,135,0.2)]">

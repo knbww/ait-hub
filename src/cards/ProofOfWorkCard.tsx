@@ -1,8 +1,10 @@
 import { TrendingUp } from 'lucide-react'
 import { GlassCard } from '../components/GlassCard'
-import { proofOfWork } from '../data/mock'
+import { useProofOfWork } from '../hooks/useProofOfWork'
 
 export function ProofOfWorkCard() {
+  const { data: proofOfWork = [] } = useProofOfWork()
+
   return (
     <GlassCard className="shadow-lg">
       <div className="flex items-center gap-2 mb-6">
