@@ -2,8 +2,10 @@ import { motion } from 'framer-motion'
 import { FileText, Target } from 'lucide-react'
 import { cardVariants, pageVariants } from '../lib/animations'
 import { useResearchPapers } from '../hooks/useResearchPapers'
+import { useI18n } from '../context/i18nContext'
 
 export function ResearchPage() {
+  const { t } = useI18n()
   const { data: researchPapers = [] } = useResearchPapers()
 
   return (
@@ -21,23 +23,23 @@ export function ResearchPage() {
         >
           <div className="flex items-center gap-3 mb-6">
             <FileText className="w-7 h-7" />
-            <h2 className="text-3xl font-light">Research &amp; Paper Repository</h2>
+            <h2 className="text-3xl font-light">{t('research.title')}</h2>
           </div>
 
           <div className="space-y-4">
             {researchPapers.map((paper, idx) => (
               <div
                 key={idx}
-                className="p-5 rounded-2xl border-2 border-white/60 bg-white/10 hover:bg-white/20 transition-all duration-300 cursor-pointer"
+                className="p-5 rounded-2xl border-2 border-white/60 bg-white/10 hover:bg-white/20 transition-all duration-300"
               >
                 <div className="flex justify-between items-start mb-3">
                   <div>
                     <h3 className="text-lg font-normal mb-1">{paper.title}</h3>
-                    <p className="text-sm text-gray-600">By {paper.author}</p>
+                    <p className="text-sm text-gray-600">{t('research.author', { name: paper.author })}</p>
                   </div>
                   <div className="flex items-center gap-1 px-3 py-1 rounded-full bg-[#750014]/10 text-[#750014] text-sm">
                     <Target className="w-4 h-4" />
-                    <span>{paper.citations} citations</span>
+                    <span>{t('research.citations', { n: paper.citations })}</span>
                   </div>
                 </div>
                 <div className="flex gap-2">

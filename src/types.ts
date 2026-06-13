@@ -1,14 +1,14 @@
 export type CardId =
   | 'courses'
-  | 'pow'
-  | 'pulse'
   | 'leaderboard'
   | 'profile'
   | 'projectBase'
-  | 'skills'
-  | 'wallOfProof'
   | 'deadlines'
   | 'heatmap'
+  | 'season'
+  | 'referral'
+  | 'challenge'
+  | 'help'
 
 export interface CardConfig {
   id: CardId
@@ -16,21 +16,22 @@ export interface CardConfig {
   visible: boolean
 }
 
-export interface ProofOfWorkItem {
-  date: string
-  task: string
-  status: 'completed' | 'pending'
-}
-
 export interface LeaderboardEntry {
   name: string
-  xp: number
+  aip: number
   avatar: string
+  profileId?: string
 }
 
-export interface Badge {
-  icon: string
-  label: string
+export interface AipJournalEntry {
+  id: string
+  profileId: string
+  memberName: string
+  source: string
+  delta: number
+  note: string | null
+  awarderName: string | null
+  createdAt: string
 }
 
 export interface ResearchPaper {
@@ -40,19 +41,6 @@ export interface ResearchPaper {
   citations: number
 }
 
-export interface SkillNode {
-  skill: string
-  level: number
-  category: string
-}
-
-export interface Alumnus {
-  name: string
-  university: string
-  year: string
-  role: string
-}
-
 export interface Deadline {
   event: string
   date: string
@@ -60,10 +48,12 @@ export interface Deadline {
 }
 
 export interface Course {
+  courseId: string
   title: string
   instructor: string | null
   duration: string | null
   level: string | null
+  syllabusUrl: string | null
   progress: number
 }
 
@@ -76,12 +66,7 @@ export interface Resource {
   title: string
   description: string
   icon: string
-}
-
-export interface ProfileLinks {
-  github_url: string | null
-  leetcode_url: string | null
-  linkedin_url: string | null
+  url: string
 }
 
 export interface Mentor {
@@ -92,8 +77,92 @@ export interface Mentor {
   role: string
 }
 
-export interface GithubStats {
-  openPrs: number
-  lastCommitAt: string | null
-  series: number[]
+/** Per-week progress through the season's submission lifecycle. */
+export type WeekStatus = 'not_started' | 'submitted' | 'reviewed'
+
+export interface SeasonWeek {
+  id: string
+  weekNumber: number
+  topic: string
+  description: string | null
+  links: { label: string; url: string }[]
+  assignmentBrief: string | null
+  dueDate: string | null
+}
+
+export interface Season {
+  id: string
+  title: string
+  description: string | null
+  status: string
+  weekCount: number
+  weeks: SeasonWeek[]
+}
+
+export interface Submission {
+  id: string
+  weekId: string
+  link: string
+  comment: string | null
+  status: 'submitted' | 'reviewed'
+  passed: boolean | null
+  feedback: string | null
+}
+
+export interface Challenge {
+  id: string
+  title: string
+  description: string | null
+  rules: string | null
+  starterUrl: string | null
+  startsAt: string | null
+  deadline: string | null
+  status: string
+}
+
+export interface ChallengeEntry {
+  id: string
+  profileId: string
+  memberName: string
+  link: string
+  comment: string | null
+  score: number | null
+  place: number | null
+  prizeAwarded: boolean
+}
+
+export interface TeamMemberLite {
+  profileId: string
+  name: string
+  role: string
+}
+
+export interface Team {
+  id: string
+  name: string
+  goal: string | null
+  founderId: string
+  neededRoles: string[]
+  status: string
+  members: TeamMemberLite[]
+}
+
+export interface TeamRequest {
+  id: string
+  teamId: string
+  profileId: string
+  name: string
+  role: string
+  note: string | null
+}
+
+export interface HelpRequest {
+  id: string
+  requesterId: string
+  requesterName: string
+  title: string
+  description: string | null
+  status: 'open' | 'claimed' | 'done'
+  helperId: string | null
+  helperName: string | null
 }

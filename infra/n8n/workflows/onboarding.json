@@ -1,0 +1,109 @@
+{
+  "name": "AIT Hub — Onboarding screening",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "onboarding",
+        "responseMode": "onReceived",
+        "options": { "responseCode": 202 }
+      },
+      "id": "node-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "ait-onboarding"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Verify the HMAC the trigger-workflow Edge Function attached, then reject replays.\n// Same HMAC-SHA256 as supabase/functions/_shared/hmac.ts. Needs NODE_FUNCTION_ALLOW_BUILTIN=crypto\n// (set on the n8n container) and env access (N8N_BLOCK_ENV_ACCESS_IN_NODE=false).\nconst crypto = require('crypto');\nconst item = $input.first().json;\nconst headers = item.headers || {};\nconst sig = headers['x-signature'];\nconst ts = headers['x-timestamp'];\nconst secret = $env.N8N_WEBHOOK_SECRET;\nif (!sig || !ts || !secret) { throw new Error('missing signature/timestamp/secret'); }\nif (Math.abs(Date.now() - Number(ts)) > 5 * 60 * 1000) { throw new Error('stale timestamp (replay?)'); }\n// The Edge Function signed `${ts}.${JSON.stringify(body)}`; re-stringify the parsed body.\nconst raw = ts + '.' + JSON.stringify(item.body);\nconst expected = crypto.createHmac('sha256', secret).update(raw).digest('hex');\nif (expected !== sig) { throw new Error('bad signature'); }\n// Pass the application row downstream.\nreturn [{ json: item.body.data }];"
+      },
+      "id": "node-verify",
+      "name": "Verify signature",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.groq.com/openai/v1/chat/completions",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $env.GROQ_API_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ model: $env.GROQ_MODEL || 'llama-3.3-70b-versatile', temperature: 0.2, response_format: { type: 'json_object' }, messages: [ { role: 'system', content: 'You screen applications to an AI student club. Respond with strict JSON only.' }, { role: 'user', content: 'Applicant: ' + ($json.full_name || '') + '\\nEmail: ' + ($json.email || '') + '\\nMotivation: ' + (($json.payload && $json.payload.motivation) || '') + '\\n\\nReturn JSON: {\"score\": 0-100, \"recommended_role\": \"member\" | \"mentor\", \"reasons\": [string], \"flags\": [string]}.' } ] }) }}",
+        "options": {}
+      },
+      "id": "node-groq",
+      "name": "Groq pre-screen",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Parse the model's JSON and shape the row update.\nconst application = $('Verify signature').first().json;\nconst content = ($input.first().json.choices && $input.first().json.choices[0] && $input.first().json.choices[0].message.content) || '{}';\nlet screening = {};\ntry { screening = JSON.parse(content); } catch (e) { screening = { score: null, error: 'unparseable' }; }\nreturn [{ json: { id: application.id, email: application.email, full_name: application.full_name, ai_score: screening.score ?? null, status: 'screened', screening } }];"
+      },
+      "id": "node-parse",
+      "name": "Parse screening",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [660, 0]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/applications?id=eq.{{ $json.id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "return=minimal" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ ai_score: $json.ai_score, status: $json.status, ai_screening: $json.screening }) }}",
+        "options": {}
+      },
+      "id": "node-update",
+      "name": "Update application",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [880, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: $env.TELEGRAM_ADMIN_CHAT_ID, parse_mode: 'HTML', text: '🆕 <b>New application</b>\\n' + ($('Parse screening').first().json.full_name || '') + ' &lt;' + ($('Parse screening').first().json.email || '') + '&gt;\\nAI score: <b>' + ($('Parse screening').first().json.ai_score) + '</b> · suggested: ' + (($('Parse screening').first().json.screening || {}).recommended_role || '—') + '\\nReasons: ' + ((($('Parse screening').first().json.screening || {}).reasons || []).join('; ')) }) }}",
+        "options": {}
+      },
+      "id": "node-telegram",
+      "name": "Notify admins",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1100, 0]
+    }
+  ],
+  "connections": {
+    "Webhook": { "main": [[{ "node": "Verify signature", "type": "main", "index": 0 }]] },
+    "Verify signature": { "main": [[{ "node": "Groq pre-screen", "type": "main", "index": 0 }]] },
+    "Groq pre-screen": { "main": [[{ "node": "Parse screening", "type": "main", "index": 0 }]] },
+    "Parse screening": { "main": [[{ "node": "Update application", "type": "main", "index": 0 }]] },
+    "Update application": { "main": [[{ "node": "Notify admins", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "active": false
+}

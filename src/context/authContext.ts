@@ -15,6 +15,8 @@ export interface AuthValue {
   ) => Promise<{ error: string | null }>
   signInWithGitHub: () => Promise<{ error: string | null }>
   signOut: () => Promise<void>
+  /** Re-fetch the signed-in member's profile (after editing name/avatar). */
+  refreshProfile: () => Promise<void>
 }
 
 export const AuthContext = createContext<AuthValue | undefined>(undefined)

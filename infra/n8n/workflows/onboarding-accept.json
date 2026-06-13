@@ -1,0 +1,184 @@
+{
+  "name": "AIT Hub — Onboarding accept (provision)",
+  "nodes": [
+    {
+      "parameters": {
+        "httpMethod": "POST",
+        "path": "onboarding-accept",
+        "responseMode": "onReceived",
+        "options": { "responseCode": 202 }
+      },
+      "id": "node-webhook",
+      "name": "Webhook",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
+      "position": [0, 0],
+      "webhookId": "ait-onboarding-accept"
+    },
+    {
+      "parameters": {
+        "jsCode": "// Verify HMAC + reject replays. Needs NODE_FUNCTION_ALLOW_BUILTIN=crypto on the container.\nconst crypto = require('crypto');\nconst item = $input.first().json;\nconst headers = item.headers || {};\nconst sig = headers['x-signature'];\nconst ts = headers['x-timestamp'];\nconst secret = $env.N8N_WEBHOOK_SECRET;\nif (!sig || !ts || !secret) { throw new Error('missing signature/timestamp/secret'); }\nif (Math.abs(Date.now() - Number(ts)) > 5 * 60 * 1000) { throw new Error('stale timestamp (replay?)'); }\nconst raw = ts + '.' + JSON.stringify(item.body);\nconst expected = crypto.createHmac('sha256', secret).update(raw).digest('hex');\nif (expected !== sig) { throw new Error('bad signature'); }\nreturn [{ json: item.body.data }];"
+      },
+      "id": "node-verify",
+      "name": "Verify signature",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/auth/v1/admin/users",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ email: $json.email, email_confirm: true, user_metadata: { full_name: $json.full_name } }) }}",
+        "options": {}
+      },
+      "id": "node-create-user",
+      "name": "Create auth user",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/auth/v1/admin/generate_link",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ type: 'magiclink', email: $('Verify signature').first().json.email }) }}",
+        "options": {}
+      },
+      "id": "node-genlink",
+      "name": "Generate invite link",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Pull the invite link (GoTrue returns it top-level or under .properties) + carry context.\nconst j = $input.first().json || {};\nconst link = j.action_link || (j.properties && j.properties.action_link) || null;\nconst ctx = $('Verify signature').first().json;\nreturn [{ json: { action_link: link, email: ctx.email, full_name: ctx.full_name, application_id: ctx.id } }];"
+      },
+      "id": "node-build-invite",
+      "name": "Build invite",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [880, 0]
+    },
+    {
+      "parameters": {
+        "conditions": {
+          "options": { "caseSensitive": true, "typeValidation": "loose" },
+          "combinator": "and",
+          "conditions": [
+            {
+              "leftValue": "={{ $env.RESEND_API_KEY }}",
+              "rightValue": "",
+              "operator": { "type": "string", "operation": "notEmpty", "singleValue": true }
+            }
+          ]
+        },
+        "options": {}
+      },
+      "id": "node-if-resend",
+      "name": "Resend configured?",
+      "type": "n8n-nodes-base.if",
+      "typeVersion": 2,
+      "position": [1100, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "https://api.resend.com/emails",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "Authorization", "value": "=Bearer {{ $env.RESEND_API_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ from: $env.RESEND_FROM, to: [$json.email], subject: 'Добро пожаловать в AIT Hub', html: '<p>Привет, ' + ($json.full_name || '') + '!</p><p>Твоя заявка принята. Войти: <a href=\"' + $json.action_link + '\">открыть AIT Hub</a></p>' }) }}",
+        "options": {}
+      },
+      "id": "node-resend",
+      "name": "Send welcome (Resend)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1320, -120]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: $env.TELEGRAM_ADMIN_CHAT_ID, disable_web_page_preview: true, text: '✅ Accepted: ' + ($json.full_name || '') + ' <' + $json.email + '>\\nNo email domain configured — forward this invite link:\\n' + ($json.action_link || '(link generation failed)') }) }}",
+        "options": {}
+      },
+      "id": "node-telegram",
+      "name": "Relay invite (Telegram)",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1320, 120]
+    },
+    {
+      "parameters": {
+        "method": "PATCH",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/applications?id=eq.{{ $('Build invite').first().json.application_id }}",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "return=minimal" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ status: 'provisioned' }) }}",
+        "options": {}
+      },
+      "id": "node-mark",
+      "name": "Mark provisioned",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [1540, 0]
+    }
+  ],
+  "connections": {
+    "Webhook": { "main": [[{ "node": "Verify signature", "type": "main", "index": 0 }]] },
+    "Verify signature": { "main": [[{ "node": "Create auth user", "type": "main", "index": 0 }]] },
+    "Create auth user": { "main": [[{ "node": "Generate invite link", "type": "main", "index": 0 }]] },
+    "Generate invite link": { "main": [[{ "node": "Build invite", "type": "main", "index": 0 }]] },
+    "Build invite": { "main": [[{ "node": "Resend configured?", "type": "main", "index": 0 }]] },
+    "Resend configured?": {
+      "main": [
+        [{ "node": "Send welcome (Resend)", "type": "main", "index": 0 }],
+        [{ "node": "Relay invite (Telegram)", "type": "main", "index": 0 }]
+      ]
+    },
+    "Send welcome (Resend)": { "main": [[{ "node": "Mark provisioned", "type": "main", "index": 0 }]] },
+    "Relay invite (Telegram)": { "main": [[{ "node": "Mark provisioned", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "active": false
+}

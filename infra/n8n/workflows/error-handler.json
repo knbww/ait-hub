@@ -1,0 +1,69 @@
+{
+  "name": "AIT Hub — Error handler (dead-letter)",
+  "nodes": [
+    {
+      "parameters": {},
+      "id": "node-error-trigger",
+      "name": "Error Trigger",
+      "type": "n8n-nodes-base.errorTrigger",
+      "typeVersion": 1,
+      "position": [0, 0]
+    },
+    {
+      "parameters": {
+        "jsCode": "// Shape the failed-execution payload n8n hands the Error Trigger into an automation_errors row.\nconst j = $input.first().json || {};\nconst ex = j.execution || {};\nconst wf = j.workflow || {};\n// correlation_id is best-effort: present only if the failed run exposed it.\nconst corr = (j.correlation_id) || (ex.correlation_id) || null;\nreturn [{ json: {\n  workflow: wf.name || null,\n  execution_id: ex.id ? String(ex.id) : null,\n  last_node: ex.lastNodeExecuted || null,\n  correlation_id: corr,\n  message: (ex.error && ex.error.message) || 'unknown error',\n  detail: { error: ex.error || null, mode: ex.mode || null, url: ex.url || null }\n}}];"
+      },
+      "id": "node-shape",
+      "name": "Shape error",
+      "type": "n8n-nodes-base.code",
+      "typeVersion": 2,
+      "position": [220, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "={{ $env.SUPABASE_URL }}/rest/v1/automation_errors",
+        "sendHeaders": true,
+        "headerParameters": {
+          "parameters": [
+            { "name": "apikey", "value": "={{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Authorization", "value": "=Bearer {{ $env.SUPABASE_SERVICE_ROLE_KEY }}" },
+            { "name": "Content-Type", "value": "application/json" },
+            { "name": "Prefer", "value": "return=minimal" }
+          ]
+        },
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ workflow: $json.workflow, execution_id: $json.execution_id, last_node: $json.last_node, correlation_id: $json.correlation_id, message: $json.message, detail: $json.detail }) }}",
+        "options": {}
+      },
+      "id": "node-log",
+      "name": "Log to Supabase",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [440, 0]
+    },
+    {
+      "parameters": {
+        "method": "POST",
+        "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendMessage",
+        "sendBody": true,
+        "specifyBody": "json",
+        "jsonBody": "={{ JSON.stringify({ chat_id: $env.TELEGRAM_ADMIN_CHAT_ID, parse_mode: 'HTML', text: '🚨 <b>Workflow failed</b>\\n' + ($('Shape error').first().json.workflow || '?') + ' · node: ' + ($('Shape error').first().json.last_node || '?') + '\\n' + ($('Shape error').first().json.message || '') + '\\nexec: ' + ($('Shape error').first().json.execution_id || '?') }) }}",
+        "options": {}
+      },
+      "id": "node-telegram",
+      "name": "Alert admins",
+      "type": "n8n-nodes-base.httpRequest",
+      "typeVersion": 4.2,
+      "position": [660, 0]
+    }
+  ],
+  "connections": {
+    "Error Trigger": { "main": [[{ "node": "Shape error", "type": "main", "index": 0 }]] },
+    "Shape error": { "main": [[{ "node": "Log to Supabase", "type": "main", "index": 0 }]] },
+    "Log to Supabase": { "main": [[{ "node": "Alert admins", "type": "main", "index": 0 }]] }
+  },
+  "settings": { "executionOrder": "v1" },
+  "active": false
+}

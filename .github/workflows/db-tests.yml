@@ -1,0 +1,26 @@
+name: DB tests (pgTAP)
+
+# Runs the anti-cheat AIP suite against a throwaway local Supabase stack. Pull-request only for
+# now — promote to `push: [main]` once it's been green on a few PRs. Skips automatically on PRs
+# that don't touch the database.
+on:
+  pull_request:
+    paths:
+      - 'supabase/migrations/**'
+      - 'supabase/tests/**'
+
+jobs:
+  pgtap:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: supabase/setup-cli@v1
+        with:
+          version: latest
+      - name: Start local Supabase
+        run: supabase start
+      - name: Run pgTAP tests
+        run: supabase test db
+      - name: Stop
+        if: always()
+        run: supabase stop
