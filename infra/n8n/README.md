@@ -40,6 +40,46 @@ docker compose logs -f caddy   # watch the cert get issued
 Open `https://n8n.yourdomain.com`, create the **owner account** (this is the only
 admin login — n8n has no public signup). Done — n8n is live.
 
+## 2b. Run locally on your own machine (home hosting)
+
+The stack above is VPS-tuned (Caddy needs a public domain + ports 80/443). On your own device use
+the local override, which keeps **queue mode + Postgres + Redis** but serves n8n over HTTP on
+`localhost:5678`, disables Caddy, and exposes n8n to the internet through a **Cloudflare Tunnel**
+(no open ports, no domain required) so Supabase can reach the webhooks.
+
+```bash
+cd infra/n8n
+cp .env.example .env
+echo "N8N_ENCRYPTION_KEY=$(openssl rand -hex 32)" >> .env
+echo "POSTGRES_PASSWORD=$(openssl rand -hex 16)"   >> .env
+echo "N8N_WEBHOOK_SECRET=$(openssl rand -hex 32)"  >> .env
+# then edit .env: GROQ_API_KEY, SUPABASE_SERVICE_ROLE_KEY, TELEGRAM_* (the workflow env)
+
+# from the repo root:
+npm run n8n         # starts postgres, redis, n8n (main), n8n-worker, cloudflared
+npm run n8n:logs    # watch logs — the cloudflared line prints your public https URL
+npm run n8n:down    # stop everything (the n8n_data / n8n_db volumes persist)
+```
+
+Open **http://localhost:5678**, create the owner account, and import the workflows from
+[`workflows/`](workflows/). cloudflared runs **in a container**, so you don't install it on the host.
+
+Grab the `https://<random>.trycloudflare.com` URL from `npm run n8n:logs`, then wire it up:
+
+```bash
+# point the Supabase relay at your tunnel
+npx supabase secrets set N8N_WEBHOOK_BASE='https://<random>.trycloudflare.com/webhook'
+# set WEBHOOK_URL in infra/n8n/.env to the same host so n8n registers public webhooks,
+# then: npm run n8n:down && npm run n8n
+```
+
+> The quick-tunnel URL changes every restart. For a stable hostname, create a **named tunnel**
+> in the Cloudflare dashboard, put its token in `TUNNEL_TOKEN` (`.env`), and change the
+> `cloudflared` command in `docker-compose.local.yml` to `tunnel --no-autoupdate run`.
+>
+> `cloudflared` isn't in Fedora's repos. If you ever want it on the host instead of in Docker:
+> `sudo curl -fsSL https://github.com/cloudflare/cloudflared/releases/latest/download/cloudflared-linux-amd64 -o /usr/local/bin/cloudflared && sudo chmod +x /usr/local/bin/cloudflared`
+
 ## 3. Security model
 
 - **Only 80/443 exposed.** Postgres/Redis/n8n are on the internal Docker network.

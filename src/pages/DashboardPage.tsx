@@ -7,6 +7,7 @@ import { cardVariants, pageVariants } from '../lib/animations'
 import { SortableCard } from '../components/SortableCard'
 import { useDevMode } from '../context/devModeContext'
 import { useAuth } from '../context/authContext'
+import { useI18n } from '../context/i18nContext'
 import { supabase } from '../lib/supabase'
 import { CARD_COMPONENTS, CARD_ORDER, CARD_TITLES } from '../cards/registry'
 import type { CardConfig, CardId } from '../types'
@@ -34,6 +35,7 @@ function buildConfig(saved?: SavedLayoutItem[]): CardConfig[] {
 export function DashboardPage() {
   const { isDevMode } = useDevMode()
   const { profile } = useAuth()
+  const { t } = useI18n()
   const profileId = profile?.id
 
   const [cardsConfig, setCardsConfig] = useState<CardConfig[]>(() => buildConfig())
@@ -98,13 +100,13 @@ export function DashboardPage() {
       exit="exit"
       className="max-w-7xl mx-auto"
     >
-      {/* Re-add panel for hidden widgets */}
-      {hiddenCards.length > 0 && (
+      {/* Re-add panel for hidden widgets — layout mode only */}
+      {isDevMode && hiddenCards.length > 0 && (
         <motion.div
           variants={cardVariants}
           className="mb-8 backdrop-blur-[40px] bg-white/15 border-2 border-white/80 rounded-3xl p-6 shadow-lg"
         >
-          <h3 className="text-lg font-light mb-4">Available widgets</h3>
+          <h3 className="text-lg font-light mb-4">{t('dashboard.availableWidgets')}</h3>
           <div className="flex flex-wrap gap-2">
             {hiddenCards.map((card) => (
               <button
@@ -112,7 +114,7 @@ export function DashboardPage() {
                 onClick={() => toggleCard(card.id)}
                 className="px-4 py-2 border border-gray-900 rounded-lg font-normal hover:bg-gray-900 hover:text-white hover:scale-105 transition-all duration-300 text-sm"
               >
-                + {card.title}
+                + {t(card.title)}
               </button>
             ))}
           </div>

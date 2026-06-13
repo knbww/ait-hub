@@ -1,16 +1,16 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
-import { deadlines } from '../data/mock'
 import type { Deadline } from '../types'
 import type { DeadlineRow } from '../lib/db-rows'
 
 const MS_PER_DAY = 86_400_000
 
+/** Upcoming deadlines (DB-only). */
 export function useDeadlines() {
   return useQuery<Deadline[]>({
     queryKey: ['deadlines'],
     queryFn: async () => {
-      if (!supabase) return deadlines
+      if (!supabase) return []
       const { data, error } = await supabase
         .from('deadlines')
         .select('id, title, due_date, scope')

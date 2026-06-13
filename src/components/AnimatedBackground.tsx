@@ -53,6 +53,10 @@ export function AnimatedBackground() {
         transition={{ duration: 12, repeat: Infinity, ease: 'linear' }}
         className="absolute bottom-[5%] left-[5%] w-[30vw] h-[30vw] bg-[#00B5AD]/75 rounded-full blur-[110px] will-change-transform"
       />
+
+      {/* Global frosted layer — softens the blobs uniformly on every page so the
+          backdrop reads the same way it does behind the Academy cards. */}
+      <div className="absolute inset-0 backdrop-blur-[120px] bg-white/30" />
     </div>
   )
 }

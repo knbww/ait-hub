@@ -6,7 +6,10 @@ import tseslint from 'typescript-eslint'
 import { globalIgnores } from 'eslint/config'
 
 export default tseslint.config([
-  globalIgnores(['dist']),
+  // `supabase/functions` is Deno (remote URL / npm: imports, `Deno` global) — not part of the
+  // browser/Vite app and not type-checked by `tsc -b` (tsconfig.app includes only `src`). Linting
+  // it with the Node/browser config would error on every import, so it's excluded here.
+  globalIgnores(['dist', 'supabase/functions']),
   {
     files: ['**/*.{ts,tsx}'],
     extends: [

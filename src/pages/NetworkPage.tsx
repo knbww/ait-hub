@@ -3,9 +3,11 @@ import { motion } from 'framer-motion'
 import { Users } from 'lucide-react'
 import { cardVariants, pageVariants } from '../lib/animations'
 import { useMentors } from '../hooks/useMentors'
+import { useI18n } from '../context/i18nContext'
 import { BookMeetingModal } from '../components/BookMeetingModal'
 
 export function NetworkPage() {
+  const { t } = useI18n()
   const { data: alumni = [] } = useMentors()
   const [selected, setSelected] = useState<{ id?: string; name: string } | null>(null)
 
@@ -25,7 +27,7 @@ export function NetworkPage() {
         >
           <div className="flex items-center gap-3 mb-6">
             <Users className="w-7 h-7" />
-            <h2 className="text-3xl font-light">Alumni &amp; Mentorship</h2>
+            <h2 className="text-3xl font-light">{t('network.title')}</h2>
           </div>
 
           <div className="grid grid-cols-1 md:grid-cols-2 gap-6">
@@ -48,7 +50,7 @@ export function NetworkPage() {
                   onClick={() => setSelected({ id: person.id, name: person.name })}
                   className="w-full px-4 py-2 border-2 border-gray-900 rounded-lg font-normal hover:bg-gray-900 hover:text-white hover:scale-105 transition-all duration-300 text-sm"
                 >
-                  Book 15-min Meeting
+                  {t('network.book')}
                 </button>
               </div>
             ))}

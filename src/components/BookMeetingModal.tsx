@@ -2,6 +2,7 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { Modal } from './Modal'
 import { supabase } from '../lib/supabase'
+import { useI18n } from '../context/i18nContext'
 
 const inputClass =
   'w-full px-4 py-2 rounded-lg border border-white/60 bg-white/50 text-sm outline-none focus:border-gray-900 transition-colors'
@@ -12,6 +13,7 @@ interface BookMeetingModalProps {
 }
 
 export function BookMeetingModal({ mentor, onClose }: BookMeetingModalProps) {
+  const { t } = useI18n()
   const [name, setName] = useState('')
   const [email, setEmail] = useState('')
   const [note, setNote] = useState('')
@@ -24,7 +26,7 @@ export function BookMeetingModal({ mentor, onClose }: BookMeetingModalProps) {
     setBusy(true)
     setError(null)
     if (!supabase) {
-      setError('Supabase is not configured.')
+      setError(t('common.notConfigured'))
       setBusy(false)
       return
     }
@@ -44,24 +46,22 @@ export function BookMeetingModal({ mentor, onClose }: BookMeetingModalProps) {
   }
 
   return (
-    <Modal title={`Book 15 min with ${mentor.name}`} onClose={onClose}>
+    <Modal title={t('book.titlePrefix', { name: mentor.name })} onClose={onClose}>
       {done ? (
         <div className="text-center py-6">
-          <p className="text-sm text-gray-700 mb-4">
-            Request sent to {mentor.name}. You&apos;ll get an email to confirm a time.
-          </p>
+          <p className="text-sm text-gray-700 mb-4">{t('book.sent', { name: mentor.name })}</p>
           <button
             onClick={onClose}
             className="px-4 py-2 rounded-lg bg-gray-900 text-white text-sm hover:scale-[1.02] transition-all duration-300"
           >
-            Close
+            {t('common.close')}
           </button>
         </div>
       ) : (
         <form onSubmit={submit} className="space-y-4">
           <input
             className={inputClass}
-            placeholder="Your name"
+            placeholder={t('book.yourName')}
             value={name}
             onChange={(e) => setName(e.target.value)}
             required
@@ -69,14 +69,14 @@ export function BookMeetingModal({ mentor, onClose }: BookMeetingModalProps) {
           <input
             className={inputClass}
             type="email"
-            placeholder="Your email"
+            placeholder={t('book.yourEmail')}
             value={email}
             onChange={(e) => setEmail(e.target.value)}
             required
           />
           <textarea
             className={inputClass}
-            placeholder="What would you like to discuss?"
+            placeholder={t('book.discuss')}
             value={note}
             onChange={(e) => setNote(e.target.value)}
             rows={3}
@@ -87,7 +87,7 @@ export function BookMeetingModal({ mentor, onClose }: BookMeetingModalProps) {
             disabled={busy}
             className="w-full px-4 py-2 rounded-lg bg-gray-900 text-white text-sm font-normal hover:scale-[1.02] transition-all duration-300 disabled:opacity-60"
           >
-            {busy ? 'Sending…' : 'Send request'}
+            {busy ? t('book.sending') : t('book.send')}
           </button>
         </form>
       )}

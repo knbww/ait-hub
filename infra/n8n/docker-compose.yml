@@ -17,6 +17,8 @@ x-n8n-shared: &n8n-shared
     N8N_ENCRYPTION_KEY: ${N8N_ENCRYPTION_KEY}
     GENERIC_TIMEZONE: ${GENERIC_TIMEZONE}
     TZ: ${GENERIC_TIMEZONE}
+    # Let the Code nodes `require('crypto')` for HMAC verification.
+    NODE_FUNCTION_ALLOW_BUILTIN: crypto
   volumes:
     - n8n_data:/home/node/.n8n
   depends_on:

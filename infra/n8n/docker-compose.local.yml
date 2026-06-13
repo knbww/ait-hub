@@ -1,0 +1,61 @@
+# Local / home-hosting override for the n8n stack. Use it WITH the base file:
+#
+#   docker compose --project-directory infra/n8n \
+#     -f infra/n8n/docker-compose.yml -f infra/n8n/docker-compose.local.yml \
+#     up -d postgres redis n8n n8n-worker cloudflared
+#
+# Or just: `npm run n8n` from the repo root.
+#
+# Keeps the real production topology (queue mode: main + worker + Redis + Postgres) but:
+#   • serves n8n over plain HTTP on localhost:5678 (no Let's Encrypt on a home box)
+#   • disables Caddy (the Cloudflare Tunnel terminates TLS instead — see the `cloudflared` service)
+#   • injects the workflow env vars ($env.* used by the nodes) onto BOTH main and worker
+#     (in queue mode the WORKER executes the nodes, so it needs them too)
+
+services:
+  n8n:
+    environment:
+      N8N_PROTOCOL: http
+      N8N_SECURE_COOKIE: 'false'
+      N8N_HOST: ${N8N_HOST:-localhost}
+      WEBHOOK_URL: ${WEBHOOK_URL:-http://localhost:5678/}
+      N8N_EDITOR_BASE_URL: ${WEBHOOK_URL:-http://localhost:5678/}
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: 'false'
+      # Workflow env — read by $env.* inside the nodes:
+      N8N_WEBHOOK_SECRET: ${N8N_WEBHOOK_SECRET}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      GROQ_MODEL: ${GROQ_MODEL:-llama-3.3-70b-versatile}
+      SUPABASE_URL: ${SUPABASE_URL:-}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_ADMIN_CHAT_ID: ${TELEGRAM_ADMIN_CHAT_ID:-}
+    ports:
+      - '5678:5678'
+
+  n8n-worker:
+    environment:
+      N8N_BLOCK_ENV_ACCESS_IN_NODE: 'false'
+      N8N_WEBHOOK_SECRET: ${N8N_WEBHOOK_SECRET}
+      GROQ_API_KEY: ${GROQ_API_KEY:-}
+      GROQ_MODEL: ${GROQ_MODEL:-llama-3.3-70b-versatile}
+      SUPABASE_URL: ${SUPABASE_URL:-}
+      SUPABASE_SERVICE_ROLE_KEY: ${SUPABASE_SERVICE_ROLE_KEY:-}
+      TELEGRAM_BOT_TOKEN: ${TELEGRAM_BOT_TOKEN:-}
+      TELEGRAM_ADMIN_CHAT_ID: ${TELEGRAM_ADMIN_CHAT_ID:-}
+
+  # Caddy is for the VPS path (public domain + Let's Encrypt). Park it behind a profile so it
+  # never starts in the local stack; the tunnel handles TLS here.
+  caddy:
+    profiles:
+      - vps-only
+
+  # Exposes the internal n8n to the internet over HTTPS with no open ports.
+  # Default: a throwaway "quick tunnel" — its random https URL is printed in the logs
+  # (`npm run n8n:logs`). For a STABLE hostname, set TUNNEL_TOKEN in .env and change the
+  # command below to:  command: tunnel --no-autoupdate run
+  cloudflared:
+    image: cloudflare/cloudflared:latest
+    restart: unless-stopped
+    depends_on:
+      - n8n
+    command: tunnel --no-autoupdate --url http://n8n:5678

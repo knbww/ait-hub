@@ -6,6 +6,7 @@ import { Github } from 'lucide-react'
 import { GlassCard } from '../components/GlassCard'
 import { pageVariants } from '../lib/animations'
 import { useAuth } from '../context/authContext'
+import { useI18n } from '../context/i18nContext'
 import { isSupabaseConfigured } from '../lib/supabase'
 
 const inputClass =
@@ -13,6 +14,7 @@ const inputClass =
 
 export function LoginPage() {
   const navigate = useNavigate()
+  const { t } = useI18n()
   const { signInWithPassword, signUpWithPassword, signInWithGitHub } = useAuth()
 
   const [mode, setMode] = useState<'signin' | 'signup'>('signin')
@@ -38,7 +40,7 @@ export function LoginPage() {
       return
     }
     if (mode === 'signup') {
-      setNotice('Account created. Check your email to confirm (if required), then sign in.')
+      setNotice(t('login.accountCreated'))
       setMode('signin')
       return
     }
@@ -61,13 +63,12 @@ export function LoginPage() {
     >
       <GlassCard className="shadow-[0_8px_32px_0_rgba(31,38,135,0.2)]">
         <h2 className="text-2xl font-light mb-6 text-center">
-          {mode === 'signin' ? 'Sign in' : 'Create account'}
+          {mode === 'signin' ? t('login.signin') : t('login.signup')}
         </h2>
 
         {!isSupabaseConfigured && (
           <p className="mb-4 text-sm text-amber-700 bg-amber-100/60 rounded-lg p-3">
-            Supabase isn&apos;t configured — set VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY in
-            .env.local.
+            {t('login.supabaseWarn')}
           </p>
         )}
 
@@ -76,7 +77,7 @@ export function LoginPage() {
             <input
               className={inputClass}
               type="text"
-              placeholder="Full name"
+              placeholder={t('login.fullName')}
               value={fullName}
               onChange={(e) => setFullName(e.target.value)}
               required
@@ -93,7 +94,7 @@ export function LoginPage() {
           <input
             className={inputClass}
             type="password"
-            placeholder="Password"
+            placeholder={t('login.password')}
             value={password}
             onChange={(e) => setPassword(e.target.value)}
             required
@@ -107,18 +108,18 @@ export function LoginPage() {
             disabled={busy}
             className="w-full px-4 py-2 rounded-lg bg-gray-900 text-white text-sm font-normal hover:scale-[1.02] transition-all duration-300 disabled:opacity-60"
           >
-            {busy ? 'Please wait…' : mode === 'signin' ? 'Sign in' : 'Sign up'}
+            {busy ? t('login.pleaseWait') : mode === 'signin' ? t('login.signinBtn') : t('login.signupBtn')}
           </button>
         </form>
 
-        <div className="my-4 text-center text-xs text-gray-500">or</div>
+        <div className="my-4 text-center text-xs text-gray-500">{t('login.or')}</div>
 
         <button
           onClick={github}
           className="w-full px-4 py-2 rounded-lg border border-gray-900 text-sm font-normal flex items-center justify-center gap-2 hover:bg-gray-900 hover:text-white transition-all duration-300"
         >
           <Github className="w-4 h-4" />
-          Continue with GitHub
+          {t('login.github')}
         </button>
 
         <button
@@ -129,7 +130,7 @@ export function LoginPage() {
           }}
           className="mt-4 w-full text-sm text-gray-600 hover:text-gray-900 transition-colors"
         >
-          {mode === 'signin' ? "No account? Sign up" : 'Have an account? Sign in'}
+          {mode === 'signin' ? t('login.toSignup') : t('login.toSignin')}
         </button>
       </GlassCard>
     </motion.div>
