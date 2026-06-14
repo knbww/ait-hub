@@ -6,7 +6,7 @@ The root [`README.md`](../../README.md) renders these four images from this fold
 |---|---|
 | `dashboard.png` | The member dashboard with its draggable, per-member cards (Season, Courses, Profile, Leaderboard, Projects, Deadlines). |
 | `copilot.png` | The AIT Copilot widget open over the dashboard. |
-| `admin2.png` | The Applications triage list — AI score per applicant, accept / reject. |
+| `admin2.png` | **Re-capture:** the applicant **profile modal** — click an application in the list to open it (big AI score, AI assessment, the candidate's own words, accept / reject). The old shot showed the flat list before this view existed. |
 | `admin1.png` | The Automations panel — screening stats and run history. |
 
 Tips:
