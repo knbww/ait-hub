@@ -7,6 +7,16 @@ Architecture decisions locked in for this roadmap:
 - **Auth model:** multi-role community (`member`, `mentor`, `admin`)
 - **Phase 1 priority:** ship production infrastructure first, then layer automation and AI
 
+> **Implementation note (where the shipped build diverges from this plan).** This roadmap was
+> the original plan; a few decisions changed during build:
+> - **AI provider:** **Groq** (OpenAI-compatible, streaming), not Anthropic/Claude — chosen for
+>   latency/cost at the club's volume. The integration is provider-agnostic (base URL + model),
+>   so the Claude model-selection notes below still apply if swapped back.
+> - **UI state:** **React Context** (dev mode, dashboard layout, i18n), not Zustand.
+> - **Admin notifications:** **Telegram**, not Discord.
+>
+> The Mermaid/ASCII diagrams and model tables below are kept as the design reference.
+
 ---
 
 ## 0. Baseline (where we are today)
