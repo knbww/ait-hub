@@ -12,6 +12,7 @@ import { awardAip } from '../lib/aipActions'
 import { Link } from 'react-router-dom'
 import { acceptApplication, rejectApplication } from '../lib/applicationActions'
 import { AutomationsPanel } from '../components/AutomationsPanel'
+import { ApplicantModal } from '../components/ApplicantModal'
 
 function scoreColor(s: number): string {
   if (s >= 70) return 'bg-green-600/15 text-green-700'
@@ -216,6 +217,7 @@ export function AdminPage() {
   })
 
   const [busyId, setBusyId] = useState<string | null>(null)
+  const [selected, setSelected] = useState<ApplicationRow | null>(null)
   const accept = async (id: string) => {
     setBusyId(id)
     await acceptApplication(id)
@@ -289,66 +291,26 @@ export function AdminPage() {
           <p className="text-sm text-gray-500">{t('admin.noApps')}</p>
         ) : (
           <div className="space-y-1">
-            {applications.map((a) => {
-              const screening = a.ai_screening
-              const pending = a.status === 'pending' || a.status === 'screened'
-              return (
-                <div
-                  key={a.id}
-                  className="py-3 px-3 rounded-xl hover:bg-white/30 transition-colors border-b border-white/30 last:border-0"
-                >
-                  <div className="flex items-start justify-between gap-2">
-                    <div className="min-w-0">
-                      <p className="text-sm font-normal">
-                        {a.full_name ?? '—'} <span className="text-gray-500">&lt;{a.email}&gt;</span>
-                      </p>
-                      {screening?.recommended_role && (
-                        <p className="text-xs text-gray-500">
-                          {t('admin.suggested', { role: screening.recommended_role })}
-                        </p>
-                      )}
-                    </div>
-                    <div className="flex items-center gap-2 shrink-0">
-                      {a.ai_score != null && (
-                        <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${scoreColor(a.ai_score)}`}>
-                          {a.ai_score}
-                        </span>
-                      )}
-                      <span className="text-xs px-2 py-1 rounded-full bg-gray-900/10 capitalize">{a.status}</span>
-                    </div>
-                  </div>
-
-                  {a.payload?.motivation && (
-                    <p className="text-xs text-gray-600 mt-1.5 whitespace-pre-wrap">{a.payload.motivation}</p>
+            {applications.map((a) => (
+              <button
+                key={a.id}
+                onClick={() => setSelected(a)}
+                className="w-full text-left py-3 px-3 rounded-xl hover:bg-white/30 transition-colors border-b border-white/30 last:border-0 flex items-center justify-between gap-2"
+              >
+                <span className="min-w-0">
+                  <span className="block text-sm font-normal truncate">{a.full_name ?? '—'}</span>
+                  <span className="block text-xs text-gray-500 truncate">{a.email}</span>
+                </span>
+                <span className="flex items-center gap-2 shrink-0">
+                  {a.ai_score != null && (
+                    <span className={`text-xs px-2 py-0.5 rounded-full font-medium ${scoreColor(a.ai_score)}`}>
+                      {a.ai_score}
+                    </span>
                   )}
-                  {screening?.reasons?.length ? (
-                    <p className="text-xs text-gray-500 mt-1">✓ {screening.reasons.join(' · ')}</p>
-                  ) : null}
-                  {screening?.flags?.length ? (
-                    <p className="text-xs text-red-600 mt-0.5">⚠ {screening.flags.join(' · ')}</p>
-                  ) : null}
-
-                  {pending && (
-                    <div className="flex gap-2 mt-2">
-                      <button
-                        onClick={() => accept(a.id)}
-                        disabled={busyId === a.id}
-                        className="text-xs px-3 py-1 rounded-lg bg-gray-900 text-white hover:scale-[1.02] transition-all duration-300 disabled:opacity-60"
-                      >
-                        {busyId === a.id ? t('admin.accepting') : t('admin.accept')}
-                      </button>
-                      <button
-                        onClick={() => reject(a.id)}
-                        disabled={busyId === a.id}
-                        className="text-xs px-3 py-1 rounded-lg border border-gray-900 hover:bg-gray-900 hover:text-white transition-all duration-300 disabled:opacity-60"
-                      >
-                        {t('admin.reject')}
-                      </button>
-                    </div>
-                  )}
-                </div>
-              )
-            })}
+                  <span className="text-xs px-2 py-1 rounded-full bg-gray-900/10 capitalize">{a.status}</span>
+                </span>
+              </button>
+            ))}
           </div>
         )}
       </GlassCard>
@@ -376,6 +338,22 @@ export function AdminPage() {
           </div>
         )}
       </GlassCard>
+
+      {selected && (
+        <ApplicantModal
+          application={selected}
+          busy={busyId === selected.id}
+          onAccept={async () => {
+            await accept(selected.id)
+            setSelected(null)
+          }}
+          onReject={async () => {
+            await reject(selected.id)
+            setSelected(null)
+          }}
+          onClose={() => setSelected(null)}
+        />
+      )}
     </motion.div>
   )
 }
