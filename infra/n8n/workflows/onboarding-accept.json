@@ -73,7 +73,7 @@
     },
     {
       "parameters": {
-        "jsCode": "// Pull the invite link (GoTrue returns it top-level or under .properties) + carry context.\nconst j = $input.first().json || {};\nconst link = j.action_link || (j.properties && j.properties.action_link) || null;\nconst ctx = $('Verify signature').first().json;\nreturn [{ json: { action_link: link, email: ctx.email, full_name: ctx.full_name, application_id: ctx.id } }];"
+        "jsCode": "// Pull the invite link (GoTrue returns it top-level or under .properties) + carry context.\nconst j = $input.first().json || {};\nconst link = j.action_link || (j.properties && j.properties.action_link) || null;\nconst ctx = $('Verify signature').first().json;\nreturn [{ json: { action_link: link, email: ctx.email, full_name: ctx.full_name, application_id: ctx.id, telegram_chat_id: ctx.telegram_chat_id || null } }];"
       },
       "id": "node-build-invite",
       "name": "Build invite",
@@ -130,7 +130,7 @@
         "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendMessage",
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ chat_id: $env.TELEGRAM_ADMIN_CHAT_ID, disable_web_page_preview: true, text: '✅ Accepted: ' + ($json.full_name || '') + ' <' + $json.email + '>\\nNo email domain configured — forward this invite link:\\n' + ($json.action_link || '(link generation failed)') }) }}",
+        "jsonBody": "={{ JSON.stringify({ chat_id: ($json.telegram_chat_id || $env.TELEGRAM_ADMIN_CHAT_ID), disable_web_page_preview: true, text: ($json.telegram_chat_id ? ('🎉 ' + ($json.full_name || '') + ', welcome to AIT Hub — your application was accepted!\\nSign in here: ' + ($json.action_link || '')) : ('✅ Accepted: ' + ($json.full_name || '') + ' <' + $json.email + '>\\nNo email domain configured — forward this invite link:\\n' + ($json.action_link || '(link generation failed)'))) }) }}",
         "options": {}
       },
       "id": "node-telegram",
