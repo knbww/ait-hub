@@ -251,6 +251,8 @@ const ru: Record<string, string> = {
   'apply.why': 'Почему хотите вступить?',
   'apply.submitting': 'Отправка…',
   'apply.submit': 'Отправить заявку',
+  'apply.tgPrompt': 'Подключи Telegram — бот напишет тебе о решении и пришлёт приглашение в личку.',
+  'apply.tgConnect': 'Подключить Telegram',
 
   // book modal
   'book.titlePrefix': 'Встреча с {name}',
@@ -643,6 +645,8 @@ const en: Record<string, string> = {
   'apply.why': 'Why do you want to join?',
   'apply.submitting': 'Submitting…',
   'apply.submit': 'Submit application',
+  'apply.tgPrompt': "Connect Telegram — the bot will message you with the decision and your invite.",
+  'apply.tgConnect': 'Connect Telegram',
 
   'book.titlePrefix': 'Meeting with {name}',
   'book.sent': "Request sent ({name}). You'll get an email to confirm a time.",
