@@ -89,7 +89,7 @@ npx supabase secrets set N8N_WEBHOOK_BASE='https://<random>.trycloudflare.com/we
   Each workflow's first node verifies the `x-signature` (HMAC-SHA256 of body, keyed
   with `N8N_WEBHOOK_SECRET`) and rejects stale `x-timestamp`s (replay protection).
 - **Secrets live in n8n's credential store** (encrypted with `N8N_ENCRYPTION_KEY`):
-  the Supabase **service-role** key, a **GitHub token**, the **Anthropic API key**,
+  the Supabase **service-role** key, a **GitHub token**, the **Groq API key**,
   and the **Resend** (email) key. None of these ever touch the client.
 - **Back up** `N8N_ENCRYPTION_KEY` + the `n8n_db` volume; losing the key orphans creds.
 
@@ -102,9 +102,11 @@ npx supabase secrets set N8N_WEBHOOK_BASE='https://<random>.trycloudflare.com/we
 1. **GitHub activity sync** (bucket 3) — Schedule (cron, hourly) → GitHub API (commits
    / events for the configured users) → upsert into Supabase `activity` (heatmap) and
    a `commit_activity` table (Project Pulse).
-2. **Application screening** (bucket 4) — Webhook `/onboarding` → Claude (Haiku) scores
-   the application → update `applications.ai_score`/`status` → notify admins (Discord)
-   → on accept: create the auth user + profile + send a welcome email (Resend).
+2. **Application screening** (bucket 4) — Webhook `/onboarding` → Groq scores the
+   application → update `applications.ai_score`/`status` → notify admins (Telegram)
+   → on accept (`/onboarding-accept`): create the auth user + generate a magic-link
+   invite + send a welcome email (Resend), with a Telegram fallback when no email
+   domain is verified.
 3. **Booking notification** (bucket 4) — Webhook `/booking` → email the mentor + the
    requester via Resend; mark the booking `notified`.
 
