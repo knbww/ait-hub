@@ -62,7 +62,7 @@
         },
         "sendBody": true,
         "specifyBody": "json",
-        "jsonBody": "={{ JSON.stringify({ type: 'magiclink', email: $('Verify signature').first().json.email }) }}",
+        "jsonBody": "={{ JSON.stringify({ type: 'magiclink', email: $('Verify signature').first().json.email, redirect_to: ($env.APP_URL || 'https://ait-hub.pages.dev') }) }}",
         "options": {}
       },
       "id": "node-genlink",
