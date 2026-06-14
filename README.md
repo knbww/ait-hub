@@ -29,11 +29,11 @@ an HMAC-signed relay — so it doubles as a reference implementation for **AI in
 
 ## Screenshots
 
-> Drop captures into [`docs/screenshots/`](docs/screenshots/) — see the [shot list](docs/screenshots/README.md).
-
-| Dashboard (draggable cards) | AIT Copilot (streaming) | Admin triage + automations |
-|---|---|---|
-| ![Dashboard](docs/screenshots/dashboard.png) | ![Copilot](docs/screenshots/copilot.png) | ![Admin](docs/screenshots/admin.png) |
+| Dashboard — draggable, per-member cards | AIT Copilot — streaming, grounded in live data |
+|---|---|
+| ![Dashboard](docs/screenshots/dashboard.png) | ![AIT Copilot](docs/screenshots/copilot.png) |
+| **Application triage — AI score, accept / reject** | **Automations — screening + run history** |
+| ![Application triage](docs/screenshots/admin2.png) | ![Automations panel](docs/screenshots/admin1.png) |
 
 ## Highlights
 
