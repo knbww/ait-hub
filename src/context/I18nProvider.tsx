@@ -6,9 +6,10 @@ import { I18nContext } from './i18nContext'
 
 const STORAGE_KEY = 'ait_lang'
 
+// English by default (the demo / "normal mode" language); a saved 'ru' choice is respected.
 function initialLang(): Lang {
   const saved = typeof localStorage !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null
-  return saved === 'en' ? 'en' : 'ru'
+  return saved === 'ru' ? 'ru' : 'en'
 }
 
 export function I18nProvider({ children }: { children: ReactNode }) {
