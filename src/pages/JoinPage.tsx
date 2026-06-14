@@ -4,6 +4,7 @@ import { GraduationCap, Trophy, Users } from 'lucide-react'
 import { GlassCard } from '../components/GlassCard'
 import { cardVariants, pageVariants } from '../lib/animations'
 import { useI18n } from '../context/i18nContext'
+import type { Lang } from '../lib/messages'
 
 const STEPS = [
   { icon: Users, titleKey: 'join.what.title', textKey: 'join.what.text' },
@@ -13,7 +14,7 @@ const STEPS = [
 
 export function JoinPage() {
   const navigate = useNavigate()
-  const { t } = useI18n()
+  const { t, lang, setLang } = useI18n()
   const [params] = useSearchParams()
   const invited = Boolean(params.get('ref'))
 
@@ -27,6 +28,24 @@ export function JoinPage() {
     >
       <motion.div variants={cardVariants}>
         <GlassCard className="shadow-[0_8px_32px_0_rgba(31,38,135,0.2)] text-center">
+          {/* Language toggle — visitors on /join are logged out, so the in-app
+              settings switch isn't reachable; offer EN/RU right here. */}
+          <div className="flex justify-end mb-2">
+            <div className="inline-flex gap-1 rounded-full border border-white/50 bg-white/20 p-1">
+              {(['en', 'ru'] as Lang[]).map((l) => (
+                <button
+                  key={l}
+                  onClick={() => setLang(l)}
+                  aria-pressed={lang === l}
+                  className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
+                    lang === l ? 'bg-gray-900 text-white' : 'text-gray-700 hover:bg-white/40'
+                  }`}
+                >
+                  {l === 'en' ? 'EN' : 'RU'}
+                </button>
+              ))}
+            </div>
+          </div>
           {invited && (
             <span className="inline-block mb-4 text-xs px-3 py-1 rounded-full bg-[#750014]/10 text-[#750014]">
               {t('join.invited')}
