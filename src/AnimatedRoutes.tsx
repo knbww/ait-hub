@@ -38,6 +38,9 @@ const ProfilePage = lazy(() =>
   import('./pages/ProfilePage').then((m) => ({ default: m.ProfilePage })),
 )
 const AdminPage = lazy(() => import('./pages/AdminPage').then((m) => ({ default: m.AdminPage })))
+const MemberProfilePage = lazy(() =>
+  import('./pages/MemberProfilePage').then((m) => ({ default: m.MemberProfilePage })),
+)
 
 function RouteFallback() {
   const { t } = useI18n()
@@ -133,6 +136,14 @@ export function AnimatedRoutes() {
             element={
               <RequireAuth>
                 <ProfilePage />
+              </RequireAuth>
+            }
+          />
+          <Route
+            path="/members/:id"
+            element={
+              <RequireAuth>
+                <MemberProfilePage />
               </RequireAuth>
             }
           />
