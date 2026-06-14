@@ -58,4 +58,9 @@ services:
     restart: unless-stopped
     depends_on:
       - n8n
-    command: tunnel --no-autoupdate --url http://n8n:5678
+    environment:
+      TUNNEL_TOKEN: ${TUNNEL_TOKEN:-}
+    # If TUNNEL_TOKEN is set → stable NAMED tunnel (map its public hostname to http://n8n:5678 in
+    # the Cloudflare dashboard). Otherwise → throwaway quick tunnel (URL changes on each restart;
+    # re-point Supabase with `npm run n8n:wire`).
+    command: sh -c 'if [ -n "$$TUNNEL_TOKEN" ]; then exec cloudflared tunnel --no-autoupdate run; else exec cloudflared tunnel --no-autoupdate --url http://n8n:5678; fi'
