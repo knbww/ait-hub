@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { useSearchParams } from 'react-router-dom'
+import { Link, useSearchParams } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { History, Trophy } from 'lucide-react'
 import { GlassCard } from '../components/GlassCard'
@@ -76,19 +76,32 @@ export function AipPage() {
             {board.map((user, index) => {
               const selected = user.profileId === memberFilter
               return (
-                <button
+                <div
                   key={user.profileId ?? index}
-                  onClick={() => selectMember(selected ? undefined : user.profileId)}
-                  className={`w-full flex items-center justify-between py-2.5 px-3 rounded-xl text-left transition-all duration-300 ${
+                  className={`w-full flex items-center justify-between py-2.5 px-3 rounded-xl transition-all duration-300 ${
                     selected ? 'bg-[#750014]/10' : 'hover:bg-white/30'
                   }`}
                 >
-                  <div className="flex items-center gap-3">
+                  <div className="flex items-center gap-3 min-w-0">
                     <span className="w-6 text-sm text-gray-500 tabular-nums">{index + 1}</span>
-                    <span className="font-normal">{user.name}</span>
+                    {user.profileId ? (
+                      <Link
+                        to={`/members/${user.profileId}`}
+                        className="font-normal truncate hover:text-[#750014] hover:underline"
+                      >
+                        {user.name}
+                      </Link>
+                    ) : (
+                      <span className="font-normal truncate">{user.name}</span>
+                    )}
                   </div>
-                  <span className="font-medium">{user.aip} AIP</span>
-                </button>
+                  <button
+                    onClick={() => selectMember(selected ? undefined : user.profileId)}
+                    className="font-medium text-sm hover:text-[#750014] transition-colors shrink-0"
+                  >
+                    {user.aip} AIP
+                  </button>
+                </div>
               )
             })}
             {board.length === 0 && <p className="text-sm text-gray-500 py-4">{t('common.empty')}</p>}

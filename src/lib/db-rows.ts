@@ -10,6 +10,28 @@ export interface ProfileRow {
   avatar_url: string | null
 }
 
+/** Editable general-info fields a member can change on their own profile. */
+export interface ProfileInfo {
+  full_name: string
+  bio: string | null
+  title: string | null
+  university: string | null
+  grad_year: string | null
+  github_url: string | null
+  leetcode_url: string | null
+  linkedin_url: string | null
+}
+
+/** The signed-in member's full profile row (general info + server-written AI score). */
+export interface MyProfileRow extends ProfileInfo {
+  id: string
+  role: UserRole
+  avatar_url: string | null
+  ai_profile_score: number | null
+  ai_profile_summary: string | null
+  ai_profile_at: string | null
+}
+
 export interface LeaderboardRow {
   profile_id: string
   full_name: string
@@ -191,6 +213,7 @@ export interface ApplicationRow {
   status: string
   ai_score: number | null
   ai_screening: AiScreening | null
+  payload: { motivation?: string } | null
   created_at: string
 }
 

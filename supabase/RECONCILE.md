@@ -23,6 +23,7 @@ Expected local-only (apply in this order — timestamps already sort correctly):
 20260613110000_automation_errors
 20260613120000_application_accept_webhook
 20260613130000_ai_screening_detail
+20260613140000_profile_ai_score
 ```
 
 ## 2. Check for drift the migrations don't capture

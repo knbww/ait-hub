@@ -17,6 +17,7 @@ applications INSERT ┘   (DB webhook, x-internal-key)
 | `trigger-workflow` | `applications` INSERT trigger (onboarding) | `x-internal-key` header |
 | `trigger-workflow` | logged-in member (future in-app flows) | Supabase JWT (`Authorization: Bearer`) |
 | `ai-chat` | logged-in member (AIT Copilot widget) | Supabase JWT (`Authorization: Bearer`) |
+| `profile-score` | logged-in member (profile page "Score me") | Supabase JWT — scores the member's own profile via Groq, writes `ai_profile_*` with the service role (members can't self-assign; a DB trigger freezes those columns) |
 
 **`ai-chat`** streams a Groq completion (SSE) back to the browser, grounded in live club data
 (active season + course catalogue) plus a curated knowledge base. The `GROQ_API_KEY` stays
@@ -41,6 +42,7 @@ supabase secrets set \
 ```bash
 supabase functions deploy trigger-workflow
 supabase functions deploy ai-chat
+supabase functions deploy profile-score
 ```
 
 ## One-time DB wiring (for the onboarding trigger)

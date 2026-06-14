@@ -1,4 +1,5 @@
 import { useState } from 'react'
+import { Link } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { Users } from 'lucide-react'
 import { cardVariants, pageVariants } from '../lib/animations'
@@ -46,12 +47,22 @@ export function NetworkPage() {
                   </div>
                   <div className="w-14 h-14 rounded-full bg-gradient-to-br from-blue-300 to-purple-400"></div>
                 </div>
-                <button
-                  onClick={() => setSelected({ id: person.id, name: person.name })}
-                  className="w-full px-4 py-2 border-2 border-gray-900 rounded-lg font-normal hover:bg-gray-900 hover:text-white hover:scale-105 transition-all duration-300 text-sm"
-                >
-                  {t('network.book')}
-                </button>
+                <div className="flex gap-2">
+                  {person.id && (
+                    <Link
+                      to={`/members/${person.id}`}
+                      className="flex-1 px-4 py-2 border-2 border-white/60 rounded-lg font-normal text-center hover:bg-white/30 transition-all duration-300 text-sm"
+                    >
+                      {t('member.viewProfile')}
+                    </Link>
+                  )}
+                  <button
+                    onClick={() => setSelected({ id: person.id, name: person.name })}
+                    className="flex-1 px-4 py-2 border-2 border-gray-900 rounded-lg font-normal hover:bg-gray-900 hover:text-white hover:scale-105 transition-all duration-300 text-sm"
+                  >
+                    {t('network.book')}
+                  </button>
+                </div>
               </div>
             ))}
           </div>
