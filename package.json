@@ -16,6 +16,7 @@
     "n8n:logs": "docker compose --project-directory infra/n8n -f infra/n8n/docker-compose.yml -f infra/n8n/docker-compose.local.yml logs -f n8n cloudflared",
     "n8n:down": "docker compose --project-directory infra/n8n -f infra/n8n/docker-compose.yml -f infra/n8n/docker-compose.local.yml down",
     "n8n:wire": "bash infra/n8n/wire-webhook.sh",
+    "n8n:wire-tg": "bash infra/n8n/wire-telegram.sh",
     "preview": "vite preview"
   },
   "dependencies": {

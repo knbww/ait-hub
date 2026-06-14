@@ -7,7 +7,7 @@ Import each via the n8n editor (**⋯ → Import from File**). All external call
 |---|---|---|
 | `onboarding.json` | Webhook `POST /webhook/onboarding` (from the relay, on application INSERT) | HMAC verify → Groq pre-screen → write `ai_score`/`status` → Telegram admin alert (deep-links to `/admin`) |
 | `onboarding-accept.json` | Webhook `POST /webhook/onboarding-accept` (from the relay, when admin sets `status='accepted'`) | HMAC verify → Admin-API create user → magic-link invite (`redirect_to` = live app) → **DM the applicant** if Telegram-connected, else Resend / admin Telegram → mark `provisioned` |
-| `telegram-connect.json` | **Telegram Trigger** (bot receives `/start <token>`) | Parse the deep-link token → write `telegram_chat_id` onto the matching application → confirm to the user |
+| `telegram-connect.json` | **Webhook** `POST /webhook/tg-connect` (Telegram bot updates — no credential) | Parse the deep-link `/start <token>` → write `telegram_chat_id` onto the matching application → confirm to the user |
 | `error-handler.json` | Error Trigger (any failed workflow) | Shape error → insert into `automation_errors` → Telegram alert |
 
 ## Wire the error handler (one step, after import)
@@ -28,8 +28,10 @@ So the bot can message applicants (not just relay links to an admin), wire up `t
    Apply modal then shows a "Connect Telegram" deep link (`t.me/<bot>?start=<token>`).
 3. **DB:** push the `application_telegram` migration (`npm run db:push`) — adds `telegram_token` /
    `telegram_chat_id` to `applications`.
-4. **Import `telegram-connect.json`**, open the **Telegram Trigger** node, and attach your bot
-   credential (the trigger registers the bot webhook on activate — one webhook per bot). Activate it.
+4. **Import `telegram-connect.json` and Activate it** — no credential needed (it's a plain
+   Webhook node; `sendMessage` uses `TELEGRAM_BOT_TOKEN`). Then point the bot at it:
+   `npm run n8n:wire-tg` (calls Telegram `setWebhook` → `<tunnel>/webhook/tg-connect`). **Re-run
+   after a tunnel restart**, since the quick-tunnel URL rotates.
 5. (Optional) set `APP_URL=https://ait-hub.pages.dev` in `.env` so invite links / the admin deep
    link use your domain without editing the workflow JSON.
 

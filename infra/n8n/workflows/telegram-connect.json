@@ -3,19 +3,22 @@
   "nodes": [
     {
       "parameters": {
-        "updates": ["message"],
-        "additionalFields": {}
+        "httpMethod": "POST",
+        "path": "tg-connect",
+        "responseMode": "onReceived",
+        "options": { "responseCode": 200 }
       },
-      "id": "node-tg-trigger",
-      "name": "On bot message",
-      "type": "n8n-nodes-base.telegramTrigger",
-      "typeVersion": 1.1,
+      "id": "node-webhook",
+      "name": "Bot webhook (/start)",
+      "type": "n8n-nodes-base.webhook",
+      "typeVersion": 2,
       "position": [0, 0],
-      "notes": "Attach your Telegram bot credential here. The trigger registers the bot webhook on activate; only one webhook per bot."
+      "webhookId": "ait-tg-connect",
+      "notes": "Telegram posts bot updates here. No credential needed — set the bot webhook to https://<tunnel>/webhook/tg-connect (wire-telegram.sh does this). sendMessage below uses $env.TELEGRAM_BOT_TOKEN."
     },
     {
       "parameters": {
-        "jsCode": "// Parse `/start <token>` (the deep-link payload from the Apply modal) + the chat id.\nconst u = $input.first().json || {};\nconst msg = u.message || u;\nconst text = msg.text || '';\nconst chat_id = msg.chat && msg.chat.id;\nconst name = (msg.from && (msg.from.first_name || msg.from.username)) || '';\nconst m = text.match(/^\\/start\\s+(\\S+)/);\nreturn [{ json: { token: m ? m[1] : null, chat_id, name } }];"
+        "jsCode": "// Parse `/start <token>` (the Apply-modal deep-link payload) + the chat id.\n// Webhook wraps Telegram's update under `.body`; tolerate either shape.\nconst j = $input.first().json || {};\nconst u = j.body || j;\nconst msg = u.message || u;\nconst text = msg.text || '';\nconst chat_id = msg.chat && msg.chat.id;\nconst name = (msg.from && (msg.from.first_name || msg.from.username)) || '';\nconst m = text.match(/^\\/start\\s+(\\S+)/);\nreturn [{ json: { token: m ? m[1] : null, chat_id, name } }];"
       },
       "id": "node-parse",
       "name": "Parse start",
@@ -100,7 +103,7 @@
     }
   ],
   "connections": {
-    "On bot message": { "main": [[{ "node": "Parse start", "type": "main", "index": 0 }]] },
+    "Bot webhook (/start)": { "main": [[{ "node": "Parse start", "type": "main", "index": 0 }]] },
     "Parse start": { "main": [[{ "node": "Has token?", "type": "main", "index": 0 }]] },
     "Has token?": {
       "main": [
