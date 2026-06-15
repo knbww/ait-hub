@@ -1,10 +1,9 @@
-import { Activity, AlertTriangle, CheckCircle2, Sparkles } from 'lucide-react'
+import { Activity, Sparkles } from 'lucide-react'
 import { GlassCard } from './GlassCard'
 import { useI18n } from '../context/i18nContext'
-import { useAutomationErrors } from '../hooks/useAutomationErrors'
 import type { ApplicationRow } from '../lib/db-rows'
 
-// Live view of the n8n + AI onboarding pipeline: the funnel, what the AI decided, and any failures.
+// Live view of the n8n + AI onboarding pipeline: the funnel and what the AI decided.
 
 const PIPELINE: { status: string; key: string }[] = [
   { status: 'pending', key: 'admin.stPending' },
@@ -21,7 +20,6 @@ function scoreColor(score: number): string {
 
 export function AutomationsPanel({ applications }: { applications: ApplicationRow[] }) {
   const { t } = useI18n()
-  const { data: errors = [] } = useAutomationErrors()
 
   const counts = applications.reduce<Record<string, number>>((acc, a) => {
     acc[a.status] = (acc[a.status] ?? 0) + 1
@@ -54,9 +52,9 @@ export function AutomationsPanel({ applications }: { applications: ApplicationRo
         <h3 className="text-sm font-medium">{t('admin.aiScreening')}</h3>
       </div>
       {screened.length === 0 ? (
-        <p className="text-xs text-gray-500 mb-6">{t('admin.noScreening')}</p>
+        <p className="text-xs text-gray-500">{t('admin.noScreening')}</p>
       ) : (
-        <div className="space-y-1 mb-6">
+        <div className="space-y-1">
           {screened.map((a) => {
             const reasons = a.ai_screening?.reasons?.slice(0, 2).join(' · ')
             return (
@@ -76,34 +74,6 @@ export function AutomationsPanel({ applications }: { applications: ApplicationRo
               </div>
             )
           })}
-        </div>
-      )}
-
-      {/* n8n dead-letter feed */}
-      <div className="flex items-center gap-2 mb-2">
-        <AlertTriangle className="w-4 h-4 text-[#750014]" />
-        <h3 className="text-sm font-medium">{t('admin.recentFailures')}</h3>
-      </div>
-      {errors.length === 0 ? (
-        <p className="text-xs text-green-700 inline-flex items-center gap-1">
-          <CheckCircle2 className="w-3.5 h-3.5" /> {t('admin.noFailures')}
-        </p>
-      ) : (
-        <div className="space-y-1">
-          {errors.map((e) => (
-            <div key={e.id} className="py-2 px-3 rounded-xl bg-red-600/5">
-              <div className="flex items-center justify-between gap-2">
-                <span className="text-xs font-medium text-red-700">
-                  {e.workflow ?? '—'}
-                  {e.last_node ? ` · ${e.last_node}` : ''}
-                </span>
-                <span className="text-xs text-gray-400 shrink-0">
-                  {new Date(e.created_at).toLocaleString()}
-                </span>
-              </div>
-              {e.message && <p className="text-xs text-gray-600 mt-0.5 break-words">{e.message}</p>}
-            </div>
-          ))}
         </div>
       )}
     </GlassCard>
