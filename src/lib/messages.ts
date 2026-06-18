@@ -214,19 +214,41 @@ const ru: Record<string, string> = {
   'enter.not_found': 'Челлендж не найден',
   'enter.unauthenticated': 'Войдите в аккаунт',
 
-  // join
+  // join (public landing)
   'join.invited': 'Вас пригласил участник клуба',
-  'join.welcome': 'Добро пожаловать в',
-  'join.intro': 'Операционная система клуба: обучение, проекты, команды и достижения в одном месте.',
-  'join.what.title': 'Что это',
-  'join.what.text':
-    'AIT Club — школьное сообщество, где вместе изучают ИИ, делают проекты и участвуют в челленджах.',
-  'join.how.title': 'Как вступить',
-  'join.how.text':
-    'Заведи профиль за минуту, выбери активный сезон Академии и начни с первой недели.',
-  'join.why.title': 'Зачем',
-  'join.why.text': 'Каждое действие даёт AIP, складывается в портфолио и поднимает тебя в лидерборде клуба.',
-  'join.cta': 'Вступить',
+  'join.tagline': 'Исследовательско-проектная база по ИИ',
+  'join.intro':
+    'Изучай искусственный интеллект с нуля, делай реальные проекты в команде и собери проверяемое портфолио для поступления в сильные университеты.',
+  'join.apply': 'Подать заявку',
+  'join.signin': 'Войти',
+  'join.school': 'НИШ Петропавловск · школьный клуб AI и технологий',
+
+  'join.do.title': 'Чем ты будешь заниматься',
+  'join.do.academy.t': 'Академия',
+  'join.do.academy.d': 'Изучи AI/ML с нуля — до первого работающего продукта.',
+  'join.do.studio.t': 'Проекты',
+  'join.do.studio.d': 'Делай реальные продукты в команде: от идеи до демо.',
+  'join.do.arena.t': 'Челленджи',
+  'join.do.arena.d': 'Выбери задачу, работай над ней неделями, защити вживую.',
+  'join.do.portfolio.t': 'Портфолио',
+  'join.do.portfolio.d': 'Превращай каждый результат в проверяемое доказательство.',
+
+  'join.path.title': 'Твой путь',
+  'join.path.learn.t': 'Учись',
+  'join.path.learn.d': 'Еженедельная Академия: Python и ML на практике.',
+  'join.path.team.t': 'В команду',
+  'join.path.team.d': 'Реальная роль в проекте: build · growth · data.',
+  'join.path.lead.t': 'Веди',
+  'join.path.lead.d': 'Собери свою команду и доведи продукт до результата.',
+
+  'join.aip.title': 'Получай AIP за реальную работу',
+  'join.aip.sub': 'Очки репутации за подтверждённые действия — их не купить и не обменять на деньги.',
+  'join.aip.attendance': 'Посещение',
+  'join.aip.assignment': 'Задание',
+  'join.aip.help': 'Помощь',
+  'join.aip.referral': 'Друг до 3-й недели',
+
+  'join.ctaNote': 'Бесплатно для учеников НИШ. После заявки бот напишет тебе о решении в Telegram.',
 
   // login
   'login.signin': 'Вход',
@@ -610,19 +632,41 @@ const en: Record<string, string> = {
   'enter.not_found': 'Challenge not found',
   'enter.unauthenticated': 'Sign in',
 
+  // join (public landing)
   'join.invited': 'A club member invited you',
-  'join.welcome': 'Welcome to',
+  'join.tagline': 'Research & project base for AI',
   'join.intro':
-    "The club's operating system: learning, projects, teams and achievements in one place.",
-  'join.what.title': 'What it is',
-  'join.what.text':
-    'AIT Club is a school community learning AI together, building projects and competing in challenges.',
-  'join.how.title': 'How to join',
-  'join.how.text':
-    'Create a profile in a minute, pick the active Academy season and start from week one.',
-  'join.why.title': 'Why',
-  'join.why.text': 'Every action earns AIP, builds your portfolio and climbs the club leaderboard.',
-  'join.cta': 'Join',
+    'Learn AI from zero, build real projects in a team, and graduate with a verifiable portfolio for top universities.',
+  'join.apply': 'Apply to join',
+  'join.signin': 'Sign in',
+  'join.school': 'NIS Petropavlovsk · student AI & tech club',
+
+  'join.do.title': "What you'll do",
+  'join.do.academy.t': 'Academy',
+  'join.do.academy.d': 'Learn AI/ML from zero — to your first working product.',
+  'join.do.studio.t': 'Projects',
+  'join.do.studio.d': 'Build real products in a team: from idea to demo.',
+  'join.do.arena.t': 'Challenges',
+  'join.do.arena.d': 'Pick a problem, build for weeks, defend it live.',
+  'join.do.portfolio.t': 'Portfolio',
+  'join.do.portfolio.d': 'Turn every result into verifiable proof.',
+
+  'join.path.title': 'Your path',
+  'join.path.learn.t': 'Learn',
+  'join.path.learn.d': 'Weekly Academy: hands-on Python and ML.',
+  'join.path.team.t': 'Join a team',
+  'join.path.team.d': 'A real role on a project: build · growth · data.',
+  'join.path.lead.t': 'Lead',
+  'join.path.lead.d': 'Found your own team and ship a product.',
+
+  'join.aip.title': 'Earn AIP for real work',
+  'join.aip.sub': 'Reputation points for verified actions — never bought, never traded for money.',
+  'join.aip.attendance': 'Attendance',
+  'join.aip.assignment': 'Assignment',
+  'join.aip.help': 'Help a peer',
+  'join.aip.referral': 'Friend to week 3',
+
+  'join.ctaNote': 'Free for NIS students. After you apply, the bot messages you the decision on Telegram.',
 
   'login.signin': 'Sign in',
   'login.signup': 'Sign up',
