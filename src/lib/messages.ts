@@ -221,7 +221,7 @@ const ru: Record<string, string> = {
     'Изучай искусственный интеллект с нуля, делай реальные проекты в команде и собери проверяемое портфолио для поступления в сильные университеты.',
   'join.apply': 'Подать заявку',
   'join.signin': 'Войти',
-  'join.school': 'НИШ Петропавловск · школьный клуб AI и технологий',
+  'join.school': 'Клуб искусственного интеллекта и технологий',
 
   'join.do.title': 'Чем ты будешь заниматься',
   'join.do.academy.t': 'Академия',
@@ -248,7 +248,7 @@ const ru: Record<string, string> = {
   'join.aip.help': 'Помощь',
   'join.aip.referral': 'Друг до 3-й недели',
 
-  'join.ctaNote': 'Бесплатно для учеников НИШ. После заявки бот напишет тебе о решении в Telegram.',
+  'join.ctaNote': 'Заявка занимает минуту. После неё бот напишет тебе о решении в Telegram.',
 
   // login
   'login.signin': 'Вход',
@@ -639,7 +639,7 @@ const en: Record<string, string> = {
     'Learn AI from zero, build real projects in a team, and graduate with a verifiable portfolio for top universities.',
   'join.apply': 'Apply to join',
   'join.signin': 'Sign in',
-  'join.school': 'NIS Petropavlovsk · student AI & tech club',
+  'join.school': 'A student AI & technology club',
 
   'join.do.title': "What you'll do",
   'join.do.academy.t': 'Academy',
@@ -666,7 +666,7 @@ const en: Record<string, string> = {
   'join.aip.help': 'Help a peer',
   'join.aip.referral': 'Friend to week 3',
 
-  'join.ctaNote': 'Free for NIS students. After you apply, the bot messages you the decision on Telegram.',
+  'join.ctaNote': 'Applying takes a minute. After you apply, the bot messages you the decision on Telegram.',
 
   'login.signin': 'Sign in',
   'login.signup': 'Sign up',
