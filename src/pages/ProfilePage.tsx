@@ -63,10 +63,6 @@ function GeneralInfoForm({
         <input className={inputClass} placeholder={t('settings.name')} value={form.full_name} onChange={set('full_name')} />
         <textarea className={inputClass} rows={3} placeholder={t('settings.bio')} value={form.bio ?? ''} onChange={set('bio')} />
         <input className={inputClass} placeholder={t('settings.titleField')} value={form.title ?? ''} onChange={set('title')} />
-        <div className="flex gap-2">
-          <input className={inputClass} placeholder={t('settings.university')} value={form.university ?? ''} onChange={set('university')} />
-          <input className={`${inputClass} max-w-[110px]`} placeholder={t('settings.gradYear')} value={form.grad_year ?? ''} onChange={set('grad_year')} />
-        </div>
         <input className={inputClass} placeholder={t('settings.github')} value={form.github_url ?? ''} onChange={set('github_url')} />
         <input className={inputClass} placeholder={t('settings.leetcode')} value={form.leetcode_url ?? ''} onChange={set('leetcode_url')} />
         <input className={inputClass} placeholder={t('settings.linkedin')} value={form.linkedin_url ?? ''} onChange={set('linkedin_url')} />

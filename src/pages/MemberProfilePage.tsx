@@ -95,13 +95,6 @@ export function MemberProfilePage() {
 
             {profile.bio && <p className="text-sm text-gray-700 whitespace-pre-wrap">{profile.bio}</p>}
 
-            {(profile.university || profile.grad_year) && (
-              <p className="text-sm text-gray-600">
-                {profile.university}
-                {profile.grad_year ? ` · ${profile.grad_year}` : ''}
-              </p>
-            )}
-
             {links.length > 0 && (
               <div className="flex flex-wrap gap-2">
                 {links.map((l) => (
