@@ -46,7 +46,8 @@
       "name": "Create auth user",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [440, 0]
+      "position": [440, 0],
+      "onError": "continueRegularOutput"
     },
     {
       "parameters": {
@@ -137,7 +138,10 @@
       "name": "Relay invite (Telegram)",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1320, 120]
+      "position": [1320, 120],
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 3000
     },
     {
       "parameters": {

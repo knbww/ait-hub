@@ -84,7 +84,10 @@
       "name": "Confirm connected",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [880, -80]
+      "position": [880, -80],
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 3000
     },
     {
       "parameters": {
@@ -99,7 +102,10 @@
       "name": "Ask to use the app",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [660, 120]
+      "position": [660, 120],
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 3000
     }
   ],
   "connections": {

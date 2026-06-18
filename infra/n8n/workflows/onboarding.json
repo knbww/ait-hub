@@ -94,7 +94,10 @@
       "name": "Notify admins",
       "type": "n8n-nodes-base.httpRequest",
       "typeVersion": 4.2,
-      "position": [1100, 0]
+      "position": [1100, 0],
+      "retryOnFail": true,
+      "maxTries": 5,
+      "waitBetweenTries": 3000
     }
   ],
   "connections": {
