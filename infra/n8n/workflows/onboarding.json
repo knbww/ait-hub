@@ -84,7 +84,7 @@
     {
       "parameters": {
         "method": "POST",
-        "url": "=https://api.telegram.org/bot{{ $env.TELEGRAM_BOT_TOKEN }}/sendMessage",
+        "url": "https://tg-relay.knbww.workers.dev/send",
         "sendBody": true,
         "specifyBody": "json",
         "jsonBody": "={{ JSON.stringify({ chat_id: $env.TELEGRAM_ADMIN_CHAT_ID, parse_mode: 'HTML', disable_web_page_preview: true, text: '🆕 <b>New application</b>\\n' + ($('Parse screening').first().json.full_name || '') + ' &lt;' + ($('Parse screening').first().json.email || '') + '&gt;\\nAI score: <b>' + ($('Parse screening').first().json.ai_score) + '</b> · suggested: ' + (($('Parse screening').first().json.screening || {}).recommended_role || '—') + '\\nReasons: ' + ((($('Parse screening').first().json.screening || {}).reasons || []).join('; ')) + '\\n🔗 <a href=\\\"' + ($env.APP_URL || 'https://ait-hub.pages.dev') + '/admin\\\">Open in admin</a>' }) }}",
