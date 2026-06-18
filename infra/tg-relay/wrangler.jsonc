@@ -1,0 +1,8 @@
+{
+  "name": "tg-relay",
+  "main": "src/index.js",
+  "compatibility_date": "2025-06-01",
+  "vars": {
+    "SUPABASE_URL": "https://gdzbicfulgsawkegpbpx.supabase.co"
+  }
+}
