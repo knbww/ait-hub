@@ -1,0 +1,62 @@
+name: Database backup
+
+# The free Supabase plan keeps no backups and pauses a project after a week without activity.
+# Twice a week this dumps the database, encrypts the dump and keeps it as a workflow artifact
+# for 30 days — and the connection itself keeps the project awake. The repository is public:
+# dumps are never committed, and an artifact is only ciphertext.
+#
+# Repository secrets (Settings → Secrets and variables → Actions):
+#   SUPABASE_DB_URL     Session pooler connection string (Supabase → Connect), with the password
+#   BACKUP_PASSPHRASE   a long random passphrase; keep a copy outside GitHub
+#
+# Restore: gpg -d ait-hub-backup.tar.gz.gpg | tar xz, then load roles.sql, schema.sql, data.sql
+# with psql into a fresh project.
+
+on:
+  schedule:
+    - cron: '0 2 * * 1,4' # Mon and Thu, 07:00 in Kazakhstan
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  backup:
+    runs-on: ubuntu-latest
+    env:
+      SUPABASE_DB_URL: ${{ secrets.SUPABASE_DB_URL }}
+      BACKUP_PASSPHRASE: ${{ secrets.BACKUP_PASSPHRASE }}
+    steps:
+      - name: Check secrets
+        id: check
+        run: |
+          if [ -z "$SUPABASE_DB_URL" ] || [ -z "$BACKUP_PASSPHRASE" ]; then
+            echo "::warning::SUPABASE_DB_URL / BACKUP_PASSPHRASE are not set — backup skipped."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+
+      - uses: supabase/setup-cli@v1
+        if: steps.check.outputs.ready == 'true'
+        with:
+          version: latest
+
+      - name: Dump and encrypt
+        if: steps.check.outputs.ready == 'true'
+        run: |
+          mkdir backup
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f backup/roles.sql --role-only
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f backup/schema.sql
+          supabase db dump --db-url "$SUPABASE_DB_URL" -f backup/data.sql --use-copy --data-only
+          tar czf ait-hub-backup.tar.gz backup
+          gpg --batch --yes --pinentry-mode loopback --passphrase "$BACKUP_PASSPHRASE" \
+            --symmetric --cipher-algo AES256 -o ait-hub-backup.tar.gz.gpg ait-hub-backup.tar.gz
+          rm -rf backup ait-hub-backup.tar.gz
+
+      - uses: actions/upload-artifact@v4
+        if: steps.check.outputs.ready == 'true'
+        with:
+          name: ait-hub-backup-${{ github.run_number }}
+          path: ait-hub-backup.tar.gz.gpg
+          retention-days: 30

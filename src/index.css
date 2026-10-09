@@ -1,37 +1,50 @@
-/* SF Pro Rounded - add licensed font files to public/fonts (woff2 preferred) */
 @import "tailwindcss";
-@import 'overlayscrollbars/overlayscrollbars.css';
 
-/* SF Pro Rounded - add licensed font files placed in public/fonts */
-@font-face {
-	font-family: 'SF Pro Rounded';
-	src: local('SF Pro Rounded Regular'), local('SFProRounded-Regular'),
-			 url('/fonts/SF-Pro-Rounded-Regular.otf') format('opentype');
-	font-weight: 400;
-	font-style: normal;
-	font-display: swap;
-}
-
-@font-face {
-	font-family: 'SF Pro Rounded';
-	src: local('SF Pro Rounded Semibold'), local('SFProRounded-Semibold'),
-			 url('/fonts/SF-Compact-Rounded-Semibold.otf') format('opentype');
-	font-weight: 600;
-	font-style: normal;
-	font-display: swap;
-}
-
-@font-face {
-	font-family: 'SF Pro Rounded';
-	src: local('SF Pro Rounded Bold'), local('SFProRounded-Bold'),
-			 url('/fonts/SF-Pro-Display-Bold.otf') format('opentype');
-	font-weight: 700;
-	font-style: normal;
-	font-display: swap;
-}
-
+/* System fonts only. On Apple devices `ui-rounded` is SF Pro Rounded (the look the design was
+   drawn in); elsewhere the platform's own sans. No font files are shipped: Apple's SF fonts
+   may not be redistributed from a website. */
 @layer base {
-	html, body {
-		font-family: 'SF Pro Rounded', ui-sans-serif, system-ui, -apple-system, "Segoe UI", Roboto, "Helvetica Neue", Arial, sans-serif;
-	}
+  html {
+    -webkit-text-size-adjust: 100%;
+    background-color: #f8f9fa;
+  }
+
+  html, body {
+    font-family: ui-rounded, 'SF Pro Rounded', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+  }
+
+  body {
+    margin: 0;
+    min-height: 100dvh;
+    -webkit-tap-highlight-color: transparent;
+  }
+
+  /* Desktop keeps the original, slightly denser scale; phones get full-size text. */
+  @media (min-width: 1024px) {
+    html {
+      font-size: 93.75%;
+    }
+  }
+
+  :focus-visible {
+    outline: 2px solid #750014;
+    outline-offset: 2px;
+  }
+}
+
+/* Thin accent scrollbar on desktop browsers that support styling it. */
+@supports (scrollbar-color: auto) {
+  html {
+    scrollbar-color: rgba(117, 0, 20, 0.55) transparent;
+    scrollbar-width: thin;
+  }
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *, *::before, *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+    scroll-behavior: auto !important;
+  }
 }

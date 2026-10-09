@@ -1,271 +1,339 @@
 import { useRef, useState } from 'react'
-import type { ChangeEvent } from 'react'
+import type { ChangeEvent, FormEvent } from 'react'
 import { motion } from 'framer-motion'
+import { Camera, Download, LayoutGrid, LogOut } from 'lucide-react'
 import { useNavigate } from 'react-router-dom'
-import { Camera, LayoutGrid, Sparkles } from 'lucide-react'
 import { GlassCard } from '../components/GlassCard'
+import { ErrorText } from '../components/DataState'
+import { Avatar } from '../components/Avatar'
+import { TrackBadge } from '../components/TrackBadge'
 import { pageVariants } from '../lib/animations'
 import { useAuth } from '../context/authContext'
 import { useI18n } from '../context/i18nContext'
 import { useDevMode } from '../context/devModeContext'
-import { useMyAip } from '../hooks/useMyAip'
-import { useMyProfile } from '../hooks/useMyProfile'
-import { ReferralCard } from '../cards/ReferralCard'
-import { uploadAvatar, updateProfileInfo } from '../lib/profileActions'
-import { generateProfileScore } from '../lib/profileScore'
-import { aipRank } from '../lib/aip'
-import type { Lang } from '../lib/messages'
-import type { ProfileInfo } from '../lib/db-rows'
+import { useMemberPrivate } from '../hooks/useManage'
+import {
+  changePassword, claimTrack, exportMemberData, removeAvatar, setPhotoConsent, updateMyProfile, updateMyTelegram, uploadAvatar,
+} from '../lib/memberActions'
+import { downloadJson, stampedName } from '../lib/download'
+import { GRADES } from '../lib/club'
+import type { ProfileRow } from '../lib/db'
+import { btnPrimary, btnSecondary, inputClass, labelClass, pageTitle, sectionTitle } from '../lib/ui'
 
-const inputClass =
-  'w-full px-4 py-2 rounded-lg border border-white/60 bg-white/40 text-sm outline-none focus:border-gray-900 transition-colors'
-
-function scoreColor(score: number): string {
-  if (score >= 70) return 'text-green-700'
-  if (score >= 40) return 'text-amber-700'
-  return 'text-red-700'
+function Saved({ show }: { show: boolean }) {
+  const { t } = useI18n()
+  return show ? <span className="text-sm text-green-800">{t('common.saved')}</span> : null
 }
 
-/** Editable general-info form. Mounted with `key={profileId}` so `useState` hydrates from
- * `initial` once the profile loads — no setState-in-effect. */
-function GeneralInfoForm({
-  initial,
-  userId,
-  profileId,
-}: {
-  initial: ProfileInfo
-  userId: string
-  profileId: string
-}) {
+function TrackSection({ profile }: { profile: ProfileRow }) {
   const { t } = useI18n()
-  const { refreshProfile } = useAuth()
-  const [form, setForm] = useState<ProfileInfo>(initial)
-  const [saving, setSaving] = useState(false)
-  const [msg, setMsg] = useState<string | null>(null)
+  const { refreshProfile, isStaff } = useAuth()
+  const [code, setCode] = useState('')
+  const [error, setError] = useState<unknown>(null)
 
-  const set =
-    (k: keyof ProfileInfo) => (e: ChangeEvent<HTMLInputElement | HTMLTextAreaElement>) =>
-      setForm((f) => ({ ...f, [k]: e.target.value }))
-
-  const save = async () => {
-    setSaving(true)
-    setMsg(null)
-    const { error } = await updateProfileInfo(userId, profileId, form)
+  const submit = async (e: FormEvent) => {
+    e.preventDefault()
+    const res = await claimTrack(code)
+    if (res.error) return setError(res.error)
     await refreshProfile()
-    setSaving(false)
-    setMsg(error ?? t('settings.infoSaved'))
   }
 
   return (
-    <div className="pt-1">
-      <p className="text-sm font-medium mb-2">{t('settings.generalInfo')}</p>
-      <div className="space-y-2">
-        <input className={inputClass} placeholder={t('settings.name')} value={form.full_name} onChange={set('full_name')} />
-        <textarea className={inputClass} rows={3} placeholder={t('settings.bio')} value={form.bio ?? ''} onChange={set('bio')} />
-        <input className={inputClass} placeholder={t('settings.titleField')} value={form.title ?? ''} onChange={set('title')} />
-        <input className={inputClass} placeholder={t('settings.github')} value={form.github_url ?? ''} onChange={set('github_url')} />
-        <input className={inputClass} placeholder={t('settings.leetcode')} value={form.leetcode_url ?? ''} onChange={set('leetcode_url')} />
-        <input className={inputClass} placeholder={t('settings.linkedin')} value={form.linkedin_url ?? ''} onChange={set('linkedin_url')} />
-      </div>
-      <div className="flex items-center gap-3 mt-3">
-        <button
-          onClick={save}
-          disabled={saving}
-          className="px-4 py-2 rounded-lg bg-gray-900 text-white text-sm hover:scale-[1.02] transition-all duration-300 disabled:opacity-60"
-        >
-          {saving ? t('settings.uploading') : t('settings.saveInfo')}
-        </button>
-        {msg && <span className="text-xs text-green-700">{msg}</span>}
-      </div>
-    </div>
+    <GlassCard>
+      <div id="track" className="scroll-mt-24" />
+      <h2 className={sectionTitle}>{t('profile.track')}</h2>
+      {profile.track_id ? (
+        <div className="mt-2 flex flex-wrap items-center gap-2">
+          <TrackBadge track={profile.track_id} short={false} />
+          <span className="text-xs text-gray-600">{t('profile.trackHint')}</span>
+        </div>
+      ) : isStaff ? (
+        <p className="text-sm text-gray-700 mt-2">{t('profile.staffNoTrack')}</p>
+      ) : (
+        <form onSubmit={submit} className="mt-2 space-y-2">
+          <p className="text-sm text-gray-700">{t('prompt.track')}</p>
+          <div className="flex gap-2">
+            <input className={`${inputClass} uppercase tracking-widest`} value={code} onChange={(e) => setCode(e.target.value)}
+              placeholder="ABCD2345" maxLength={12} required />
+            <button type="submit" className={btnPrimary}>{t('profile.join')}</button>
+          </div>
+          <ErrorText error={error} />
+        </form>
+      )}
+    </GlassCard>
   )
 }
 
-export function ProfilePage() {
-  const navigate = useNavigate()
-  const { t, lang, setLang } = useI18n()
-  const { isDevMode, setDevMode } = useDevMode()
-  const { session, profile, role, signOut, refreshProfile } = useAuth()
+function DetailsSection({ profile }: { profile: ProfileRow }) {
+  const { t } = useI18n()
+  const { refreshProfile } = useAuth()
+  const [name, setName] = useState(profile.full_name)
+  const [grade, setGrade] = useState(profile.grade ? String(profile.grade) : '')
+  const [github, setGithub] = useState(profile.github_username ?? '')
+  const [codeforces, setCodeforces] = useState(profile.codeforces_handle ?? '')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<unknown>(null)
+  const [saved, setSaved] = useState(false)
 
-  const { data: aip = 0 } = useMyAip(profile?.id)
-  const { data: myProfile } = useMyProfile(profile?.id)
-  const rank = aipRank(aip, role)
+  const submit = async (e: FormEvent) => {
+    e.preventDefault()
+    if (!profile.user_id) return
+    setBusy(true)
+    setError(null)
+    setSaved(false)
+    const res = await updateMyProfile(profile.user_id, {
+      full_name: name,
+      grade: Number(grade),
+      github_username: github,
+      codeforces_handle: codeforces,
+    })
+    setBusy(false)
+    if (res.error) return setError(res.error)
+    await refreshProfile()
+    setSaved(true)
+  }
 
-  const [tab, setTab] = useState<'profile' | 'appearance'>('profile')
-  const [uploading, setUploading] = useState(false)
+  return (
+    <GlassCard>
+      <h2 className={sectionTitle}>{t('profile.details')}</h2>
+      <form onSubmit={submit} className="space-y-3 mt-3">
+        <div className="grid grid-cols-1 sm:grid-cols-[1fr_9rem] gap-3">
+          <div>
+            <label className={labelClass}>{t('join.form.name')}</label>
+            <input className={inputClass} value={name} onChange={(e) => setName(e.target.value)} required maxLength={120} />
+          </div>
+          <div>
+            <label className={labelClass}>{t('join.form.grade')}</label>
+            <select className={inputClass} value={grade} onChange={(e) => setGrade(e.target.value)} required>
+              <option value="" disabled>{t('join.form.gradePick')}</option>
+              {GRADES.map((g) => <option key={g} value={g}>{t('common.gradeN', { n: g })}</option>)}
+            </select>
+          </div>
+        </div>
+        <p className="text-xs font-medium text-gray-600 pt-1">{t('profile.connected')}</p>
+        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+          <div>
+            <label className={labelClass}>GitHub</label>
+            <input className={inputClass} value={github} onChange={(e) => setGithub(e.target.value)} placeholder="username"
+              autoCapitalize="off" maxLength={39} />
+          </div>
+          <div>
+            <label className={labelClass}>Codeforces</label>
+            <input className={inputClass} value={codeforces} onChange={(e) => setCodeforces(e.target.value)} placeholder="handle"
+              autoCapitalize="off" maxLength={24} />
+          </div>
+        </div>
+        <ErrorText error={error} />
+        <div className="flex items-center gap-3">
+          <button type="submit" disabled={busy} className={btnPrimary}>{t('common.save')}</button>
+          <Saved show={saved} />
+        </div>
+      </form>
+    </GlassCard>
+  )
+}
+
+function ContactsSection({ profile, email }: { profile: ProfileRow; email: string | null | undefined }) {
+  const { t } = useI18n()
+  const priv = useMemberPrivate(profile.id)
+  return (
+    <GlassCard>
+      <h2 className={sectionTitle}>{t('profile.contacts')}</h2>
+      <p className="text-xs text-gray-600 mt-1">{t('profile.contactsHint')}</p>
+      <dl className="mt-3 text-sm">
+        <dt className="text-xs text-gray-600">{t('join.form.email')}</dt>
+        <dd className="mb-3 break-all">{email ?? '—'}</dd>
+      </dl>
+      {priv.data !== undefined && (
+        <TelegramForm key={priv.data?.telegram ?? ''} profileId={profile.id} initial={priv.data?.telegram ?? ''} />
+      )}
+    </GlassCard>
+  )
+}
+
+function TelegramForm({ profileId, initial }: { profileId: string; initial: string }) {
+  const { t } = useI18n()
+  const [value, setValue] = useState(initial ? `@${initial}` : '')
+  const [error, setError] = useState<unknown>(null)
+  const [saved, setSaved] = useState(false)
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault()
+    setSaved(false)
+    const res = await updateMyTelegram(profileId, value)
+    if (res.error) return setError(res.error)
+    setError(null)
+    setSaved(true)
+  }
+
+  return (
+    <form onSubmit={submit} className="space-y-2">
+      <label className={labelClass}>{t('join.form.telegram')}</label>
+      <div className="flex gap-2">
+        <input className={inputClass} value={value} onChange={(e) => setValue(e.target.value)} placeholder="@username" maxLength={64} autoCapitalize="off" />
+        <button type="submit" className={btnSecondary}>{t('common.save')}</button>
+      </div>
+      <ErrorText error={error} />
+      <Saved show={saved} />
+    </form>
+  )
+}
+
+function PhotoSection({ profile }: { profile: ProfileRow }) {
+  const { t } = useI18n()
+  const { refreshProfile } = useAuth()
+  const priv = useMemberPrivate(profile.id)
   const fileRef = useRef<HTMLInputElement>(null)
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<unknown>(null)
 
-  const [scoring, setScoring] = useState(false)
-  const [scoreErr, setScoreErr] = useState(false)
-
-  const handleSignOut = async () => {
-    await signOut()
-    navigate('/')
+  const run = async (fn: () => Promise<{ error: unknown }>) => {
+    setBusy(true)
+    setError(null)
+    const res = await fn()
+    setBusy(false)
+    if (res.error) return setError(res.error)
+    await refreshProfile()
   }
 
   const onFile = async (e: ChangeEvent<HTMLInputElement>) => {
     const file = e.target.files?.[0]
-    if (!file || !session) return
-    setUploading(true)
-    await uploadAvatar(session.user.id, file)
-    await refreshProfile()
-    setUploading(false)
+    e.target.value = ''
+    if (!file || !profile.user_id) return
+    if (file.size > 2 * 1024 * 1024) return setError('file_too_big')
+    await run(() => uploadAvatar(profile.user_id!, file, profile.avatar_path))
   }
 
-  const runScore = async () => {
-    if (!profile?.id) return
-    setScoring(true)
-    setScoreErr(false)
-    const res = await generateProfileScore(profile.id)
-    setScoring(false)
-    if ('error' in res) setScoreErr(true)
+  const consent = priv.data?.photo_consent ?? null
+  return (
+    <GlassCard>
+      <div id="photo" className="scroll-mt-24" />
+      <h2 className={sectionTitle}>{t('profile.photo')}</h2>
+      <p className="text-sm text-gray-700 mt-1 mb-3">{t('join.form.photo')}</p>
+      <div className="grid grid-cols-2 gap-2 mb-3">
+        {[true, false].map((v) => (
+          <button key={String(v)} disabled={busy || !profile.user_id}
+            onClick={() => run(() => setPhotoConsent(profile.id, profile.user_id!, v))}
+            className={`rounded-xl border px-3 py-2.5 text-sm ${consent === v ? 'border-gray-900 bg-white/80' : 'border-white/70 bg-white/40'}`}
+            aria-pressed={consent === v}>
+            {t(`join.form.photo.${v ? 'yes' : 'no'}`)}
+          </button>
+        ))}
+      </div>
+      {consent === false && <p className="text-xs text-gray-600">{t('profile.photoOff')}</p>}
+      {consent && (
+        <div className="flex items-center gap-4">
+          <Avatar path={profile.avatar_path} name={profile.full_name} size="lg" />
+          <div className="flex flex-wrap gap-2">
+            <input ref={fileRef} type="file" accept="image/jpeg,image/png,image/webp" className="hidden" onChange={onFile} />
+            <button onClick={() => fileRef.current?.click()} disabled={busy} className={btnSecondary}>
+              <Camera className="w-4 h-4" /> {profile.avatar_path ? t('profile.photoChange') : t('profile.photoUpload')}
+            </button>
+            {profile.avatar_path && (
+              <button onClick={() => run(() => removeAvatar(profile.user_id!))} disabled={busy} className={btnSecondary}>
+                {t('profile.photoRemove')}
+              </button>
+            )}
+          </div>
+        </div>
+      )}
+      {error === 'file_too_big' ? <p className="text-sm text-red-700 mt-2">{t('profile.photoTooBig')}</p> : <ErrorText error={error} />}
+    </GlassCard>
+  )
+}
+
+function PasswordSection() {
+  const { t } = useI18n()
+  const [password, setPassword] = useState('')
+  const [repeat, setRepeat] = useState('')
+  const [error, setError] = useState<unknown>(null)
+  const [saved, setSaved] = useState(false)
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault()
+    setSaved(false)
+    if (password.length < 8) return setError('weak_password')
+    if (password !== repeat) return setError('mismatch')
+    const res = await changePassword(password)
+    if (res.error) return setError(res.error)
+    setError(null)
+    setPassword('')
+    setRepeat('')
+    setSaved(true)
   }
-
-  const tabClass = (active: boolean) =>
-    `px-4 py-1.5 rounded-lg text-sm transition-colors ${
-      active ? 'bg-gray-900 text-white' : 'border border-white/60 bg-white/30 hover:bg-white/60'
-    }`
-
-  const aiScore = myProfile?.ai_profile_score ?? null
 
   return (
-    <motion.div
-      variants={pageVariants}
-      initial="initial"
-      animate="animate"
-      exit="exit"
-      className="max-w-md mx-auto space-y-6"
-    >
-      <GlassCard className="shadow-[0_8px_32px_0_rgba(31,38,135,0.2)]">
-        <h2 className="text-2xl font-light mb-4">{t('settings.title')}</h2>
-        <div className="flex gap-2 mb-6">
-          <button className={tabClass(tab === 'profile')} onClick={() => setTab('profile')}>
-            {t('settings.tabProfile')}
-          </button>
-          <button className={tabClass(tab === 'appearance')} onClick={() => setTab('appearance')}>
-            {t('settings.tabAppearance')}
-          </button>
+    <GlassCard>
+      <h2 className={sectionTitle}>{t('profile.password')}</h2>
+      <form onSubmit={submit} className="space-y-2 mt-3">
+        <input className={inputClass} type="password" value={password} onChange={(e) => setPassword(e.target.value)}
+          placeholder={t('profile.newPassword')} autoComplete="new-password" minLength={8} required />
+        <input className={inputClass} type="password" value={repeat} onChange={(e) => setRepeat(e.target.value)}
+          placeholder={t('profile.repeatPassword')} autoComplete="new-password" required />
+        {error === 'mismatch' ? <p className="text-sm text-red-700">{t('profile.mismatch')}</p> : <ErrorText error={error} />}
+        <div className="flex items-center gap-3">
+          <button type="submit" className={btnSecondary}>{t('profile.changePassword')}</button>
+          <Saved show={saved} />
         </div>
+      </form>
+    </GlassCard>
+  )
+}
 
-        {tab === 'profile' ? (
-          <div className="space-y-5">
-            {/* Identity */}
-            <div className="flex items-center gap-4">
-              <div className="w-16 h-16 rounded-full bg-gradient-to-br from-gray-300 to-gray-400 overflow-hidden shrink-0">
-                {profile?.avatar_url ? (
-                  <img src={profile.avatar_url} alt="" className="w-full h-full object-cover" />
-                ) : null}
-              </div>
-              <div>
-                <p className="text-lg font-normal leading-tight">{profile?.full_name ?? '—'}</p>
-                <p className="text-xs text-gray-500">{t(`roles.${role}`)}</p>
-                <input ref={fileRef} type="file" accept="image/*" className="hidden" onChange={onFile} />
-                <button
-                  onClick={() => fileRef.current?.click()}
-                  disabled={uploading}
-                  className="mt-1 px-3 py-1 rounded-lg border border-gray-900 text-xs inline-flex items-center gap-1.5 hover:bg-gray-900 hover:text-white transition-all duration-300 disabled:opacity-60"
-                >
-                  <Camera className="w-3.5 h-3.5" />
-                  {uploading ? t('settings.uploading') : t('settings.uploadAvatar')}
-                </button>
-              </div>
-            </div>
+export function ProfilePage() {
+  const { t } = useI18n()
+  const navigate = useNavigate()
+  const { session, profile, signOut } = useAuth()
+  const { isDevMode, setDevMode } = useDevMode()
+  const [exportError, setExportError] = useState<unknown>(null)
 
-            {/* Scores: AIP (reputation) + AI profile score */}
-            <div className="grid grid-cols-2 gap-3">
-              <div className="rounded-2xl border border-white/60 bg-white/30 px-4 py-3">
-                <p className="text-xs text-gray-600">{t('profile.balance')}</p>
-                <p className="text-3xl font-light leading-none">{aip}</p>
-                <p className="text-xs text-[#750014] mt-1">{t(`rank.${rank.current}`)}</p>
-              </div>
-              <div className="rounded-2xl border border-white/60 bg-white/30 px-4 py-3">
-                <p className="text-xs text-gray-600 flex items-center gap-1">
-                  <Sparkles className="w-3.5 h-3.5 text-[#750014]" /> {t('profile.aiScoreTitle')}
-                </p>
-                <p className={`text-3xl font-light leading-none ${aiScore != null ? scoreColor(aiScore) : 'text-gray-400'}`}>
-                  {aiScore != null ? aiScore : '—'}
-                </p>
-                <button
-                  onClick={runScore}
-                  disabled={scoring}
-                  className="text-xs text-[#750014] mt-1 hover:underline disabled:opacity-60"
-                >
-                  {scoring ? t('profile.generating') : aiScore != null ? t('profile.regenerate') : t('profile.generate')}
-                </button>
-              </div>
-            </div>
-            {myProfile?.ai_profile_summary && (
-              <p className="text-xs text-gray-600 italic -mt-2">«{myProfile.ai_profile_summary}»</p>
-            )}
-            {aiScore == null && !scoring && (
-              <p className="text-xs text-gray-500 -mt-2">{t('profile.aiScoreHint')}</p>
-            )}
-            {scoreErr && <p className="text-xs text-red-600 -mt-2">{t('profile.aiError')}</p>}
+  if (!profile) return null
 
-            {/* Editable general info (keyed child hydrates from the loaded profile) */}
-            {session && profile && myProfile ? (
-              <GeneralInfoForm
-                key={myProfile.id}
-                userId={session.user.id}
-                profileId={profile.id}
-                initial={{
-                  full_name: myProfile.full_name ?? '',
-                  bio: myProfile.bio,
-                  title: myProfile.title,
-                  university: myProfile.university,
-                  grad_year: myProfile.grad_year,
-                  github_url: myProfile.github_url,
-                  leetcode_url: myProfile.leetcode_url,
-                  linkedin_url: myProfile.linkedin_url,
-                }}
-              />
-            ) : (
-              <p className="text-xs text-gray-500">{t('common.loading')}</p>
-            )}
+  const download = async () => {
+    const res = await exportMemberData(profile.id)
+    if (res.error) return setExportError(res.error)
+    downloadJson(stampedName('ait-hub-my-data', 'json'), res.data)
+  }
 
-            <dl className="space-y-2 text-sm border-t border-white/40 pt-4">
-              <div className="flex justify-between">
-                <dt className="text-gray-600">{t('settings.email')}</dt>
-                <dd className="font-normal">{session?.user.email ?? '—'}</dd>
-              </div>
-            </dl>
-
-            <button
-              onClick={handleSignOut}
-              className="w-full px-4 py-2 border border-gray-900 rounded-lg text-sm hover:bg-gray-900 hover:text-white transition-all duration-300"
-            >
-              {t('settings.signOut')}
-            </button>
+  return (
+    <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit" className="max-w-2xl mx-auto space-y-4">
+      <GlassCard>
+        <div className="flex items-center gap-4">
+          <Avatar path={profile.avatar_path} name={profile.full_name} size="lg" />
+          <div className="min-w-0">
+            <h1 className={pageTitle}>{profile.full_name}</h1>
+            <p className="text-sm text-gray-700">
+              {t(`role.${profile.role}`)}
+              {profile.grade ? ` · ${t('common.gradeN', { n: profile.grade })}` : ''}
+            </p>
           </div>
-        ) : (
-          <div className="space-y-6">
-            <div>
-              <p className="text-sm font-medium mb-2">{t('settings.language')}</p>
-              <div className="flex gap-2">
-                {(['ru', 'en'] as Lang[]).map((l) => (
-                  <button key={l} onClick={() => setLang(l)} className={tabClass(lang === l)}>
-                    {l === 'ru' ? 'Русский' : 'English'}
-                  </button>
-                ))}
-              </div>
-            </div>
-
-            <div>
-              <p className="text-sm font-medium mb-1">{t('settings.layoutSection')}</p>
-              <p className="text-xs text-gray-500 mb-3">{t('settings.layoutHint')}</p>
-              <button
-                onClick={() => setDevMode(!isDevMode)}
-                className="px-4 py-2 rounded-lg bg-gray-900 text-white text-sm inline-flex items-center gap-2 hover:scale-[1.02] transition-all duration-300"
-              >
-                <LayoutGrid className="w-4 h-4" />
-                {isDevMode ? t('settings.exitLayout') : t('settings.enterLayout')}
-              </button>
-            </div>
-          </div>
-        )}
+        </div>
       </GlassCard>
 
-      {tab === 'profile' && <ReferralCard />}
+      <TrackSection profile={profile} />
+      <DetailsSection key={profile.id} profile={profile} />
+      <ContactsSection profile={profile} email={session?.user.email} />
+      <PhotoSection profile={profile} />
+      <PasswordSection />
+
+      <GlassCard>
+        <h2 className={sectionTitle}>{t('profile.data')}</h2>
+        <p className="text-sm text-gray-700 mt-1 mb-3">{t('profile.dataHint')}</p>
+        <button onClick={download} className={btnSecondary}><Download className="w-4 h-4" /> {t('profile.download')}</button>
+        <ErrorText error={exportError} />
+      </GlassCard>
+
+      <GlassCard>
+        <h2 className={sectionTitle}>{t('profile.layout')}</h2>
+        <p className="text-sm text-gray-700 mt-1 mb-3">{t('profile.layoutHint')}</p>
+        <button onClick={() => { setDevMode(!isDevMode); if (!isDevMode) navigate('/') }} className={btnSecondary}>
+          <LayoutGrid className="w-4 h-4" /> {isDevMode ? t('profile.layoutOff') : t('profile.layoutOn')}
+        </button>
+      </GlassCard>
+
+      <button onClick={async () => { await signOut(); navigate('/join', { replace: true }) }} className={`${btnSecondary} w-full`}>
+        <LogOut className="w-4 h-4" /> {t('common.signOut')}
+      </button>
     </motion.div>
   )
 }

@@ -1,11 +1,10 @@
 import { createContext, useContext } from 'react'
-import type { Lang } from '../lib/messages'
 
 export interface I18nValue {
-  lang: Lang
-  setLang: (lang: Lang) => void
   /** Translate a key, with optional `{name}` interpolation params. */
   t: (key: string, params?: Record<string, string | number>) => string
+  /** Plural form: picks `${key}.one | .few | .many` for `n` and fills `{n}`. */
+  tp: (key: string, n: number, params?: Record<string, string | number>) => string
 }
 
 export const I18nContext = createContext<I18nValue | undefined>(undefined)

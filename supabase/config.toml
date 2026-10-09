@@ -29,18 +29,21 @@ enable_signup = true
 
 [auth.email]
 enable_signup = true
-# Dev convenience — turn confirmations ON before production.
+# The club has no email-sending domain, so confirmation mail wouldn't arrive. A join code is
+# required to sign up anyway. Keep this OFF in the cloud dashboard too.
 enable_confirmations = false
 
-# Sign in with GitHub. Provide secrets via env for `supabase config push`,
-# or configure the provider in the cloud dashboard (Authentication > Providers).
+# Accounts are created only with a club join code (handle_new_user in
+# supabase/migrations/20261008110000_club_model.sql). GitHub is a second way in for members who
+# already joined: Supabase links it to the account with the same email. A GitHub sign-in without
+# such an account is rejected by the same trigger.
 [auth.external.github]
 enabled = true
 client_id = "env(SUPABASE_AUTH_GITHUB_CLIENT_ID)"
 secret = "env(SUPABASE_AUTH_GITHUB_SECRET)"
 
-# Injects the member's role as a JWT claim (function in migration 0002).
-# In the cloud dashboard this is Authentication > Hooks > Custom Access Token.
+# Injects the member's role as a JWT claim. Optional: access rules read roles from the
+# database, not the token. In the cloud dashboard: Authentication > Hooks > Custom Access Token.
 [auth.hook.custom_access_token]
 enabled = true
 uri = "pg-functions://postgres/public/custom_access_token_hook"

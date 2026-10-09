@@ -1,43 +1,25 @@
-import { useCallback, useMemo, useState } from 'react'
+import { useMemo } from 'react'
 import type { ReactNode } from 'react'
 import { messages } from '../lib/messages'
-import type { Lang } from '../lib/messages'
+import { plural } from '../lib/club'
 import { I18nContext } from './i18nContext'
 
-const STORAGE_KEY = 'ait_lang'
-
-// English by default (the demo / "normal mode" language); a saved 'ru' choice is respected.
-function initialLang(): Lang {
-  const saved = typeof localStorage !== 'undefined' ? localStorage.getItem(STORAGE_KEY) : null
-  return saved === 'ru' ? 'ru' : 'en'
+function fill(str: string, params?: Record<string, string | number>) {
+  if (!params) return str
+  return str.replace(/\{(\w+)\}/g, (match, name: string) => (name in params ? String(params[name]) : match))
 }
 
+// The interface is Russian-only; keeping every string in lib/messages.ts makes proofreading
+// one file and leaves room for another language later.
 export function I18nProvider({ children }: { children: ReactNode }) {
-  const [lang, setLangState] = useState<Lang>(initialLang)
-
-  const setLang = useCallback((next: Lang) => {
-    setLangState(next)
-    try {
-      localStorage.setItem(STORAGE_KEY, next)
-    } catch {
-      /* ignore */
+  const value = useMemo(() => {
+    const t = (key: string, params?: Record<string, string | number>) => fill(messages[key] ?? key, params)
+    const tp = (key: string, n: number, params?: Record<string, string | number>) => {
+      const form = plural(n, `${key}.one`, `${key}.few`, `${key}.many`)
+      return fill(messages[form] ?? form, { n, ...params })
     }
+    return { t, tp }
   }, [])
-
-  const t = useCallback(
-    (key: string, params?: Record<string, string | number>) => {
-      let str = messages[lang][key] ?? messages.ru[key] ?? key
-      if (params) {
-        for (const [k, v] of Object.entries(params)) {
-          str = str.replace(new RegExp(`\\{${k}\\}`, 'g'), String(v))
-        }
-      }
-      return str
-    },
-    [lang],
-  )
-
-  const value = useMemo(() => ({ lang, setLang, t }), [lang, setLang, t])
 
   return <I18nContext.Provider value={value}>{children}</I18nContext.Provider>
 }

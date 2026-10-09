@@ -1,361 +1,263 @@
 import { useState } from 'react'
+import type { FormEvent } from 'react'
 import { motion } from 'framer-motion'
-import { Users } from 'lucide-react'
+import { Link } from 'react-router-dom'
+import { Crown, Plus } from 'lucide-react'
 import { GlassCard } from '../components/GlassCard'
-import { cardVariants, pageVariants } from '../lib/animations'
+import { DataState, ErrorText } from '../components/DataState'
+import { Avatar } from '../components/Avatar'
+import { pageVariants } from '../lib/animations'
 import { useAuth } from '../context/authContext'
 import { useI18n } from '../context/i18nContext'
-import { useTeams } from '../hooks/useTeams'
-import { useTeamRequests } from '../hooks/useTeamRequests'
-import { useHelpRequests } from '../hooks/useHelpRequests'
-import { createTeam, requestJoin, respondRequest } from '../lib/teamActions'
-import { postHelp, claimHelp, confirmHelp } from '../lib/helpActions'
-import type { Team, TeamRequest, HelpRequest } from '../types'
+import { useTeamRequests, useTeams } from '../hooks/useTeams'
+import {
+  archiveTeam, createTeam, removeTeamMember, requestJoinTeam, respondJoinRequest, updateTeam,
+} from '../lib/teamActions'
+import { TRACK_IDS } from '../lib/club'
+import type { TeamRequestRow, TeamRow, TrackId } from '../lib/db'
+import { btnPrimary, btnSecondary, btnSmall, inputClass, labelClass, pageTitle, sectionTitle, segment } from '../lib/ui'
 
-const inputClass =
-  'w-full px-4 py-2 rounded-lg border border-white/60 bg-white/40 text-sm outline-none focus:border-gray-900 transition-colors'
+const TEAM_LIMIT = 5
 
-const ROLES = ['build', 'growth', 'data'] as const
-
-function CreateTeamForm() {
-  const { t } = useI18n()
-  const [name, setName] = useState('')
-  const [goal, setGoal] = useState('')
-  const [roles, setRoles] = useState<string[]>([])
+function useAction() {
   const [busy, setBusy] = useState(false)
-
-  const toggle = (r: string) =>
-    setRoles((cur) => (cur.includes(r) ? cur.filter((x) => x !== r) : [...cur, r]))
-
-  const submit = async () => {
-    if (!name.trim()) return
+  const [error, setError] = useState<unknown>(null)
+  const run = async (fn: () => Promise<{ error: unknown }>, confirmText?: string) => {
+    if (confirmText && !window.confirm(confirmText)) return false
     setBusy(true)
-    await createTeam(name.trim(), goal.trim(), roles)
+    setError(null)
+    const res = await fn()
     setBusy(false)
-    setName('')
-    setGoal('')
-    setRoles([])
+    setError(res.error)
+    return !res.error
+  }
+  return { busy, error, run, setError }
+}
+
+function TeamForm({ team, onDone }: { team?: TeamRow; onDone: () => void }) {
+  const { t } = useI18n()
+  const [name, setName] = useState(team?.name ?? '')
+  const [goal, setGoal] = useState(team?.goal ?? '')
+  const { busy, error, run } = useAction()
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault()
+    const ok = await run(() => (team ? updateTeam(team.id, name, goal) : createTeam(name, goal)))
+    if (ok) onDone()
   }
 
   return (
-    <GlassCard className="shadow-[0_8px_32px_0_rgba(31,38,135,0.2)]">
-      <h3 className="text-lg font-light mb-4">{t('teams.create')}</h3>
-      <div className="space-y-3">
-        <input
-          className={inputClass}
-          placeholder={t('teams.namePlaceholder')}
-          value={name}
-          onChange={(e) => setName(e.target.value)}
-        />
-        <input
-          className={inputClass}
-          placeholder={t('teams.goalPlaceholder')}
-          value={goal}
-          onChange={(e) => setGoal(e.target.value)}
-        />
-        <div>
-          <p className="text-xs text-gray-600 mb-2">{t('teams.neededRoles')}</p>
-          <div className="flex gap-2">
-            {ROLES.map((r) => (
-              <button
-                key={r}
-                onClick={() => toggle(r)}
-                className={`px-3 py-1 rounded-full text-xs transition-colors ${
-                  roles.includes(r)
-                    ? 'bg-gray-900 text-white'
-                    : 'border border-white/60 bg-white/30 hover:bg-white/60'
-                }`}
-              >
-                {t(`teamRole.${r}`)}
-              </button>
-            ))}
-          </div>
-        </div>
-        <button
-          onClick={submit}
-          disabled={busy}
-          className="px-4 py-2 rounded-lg bg-gray-900 text-white text-sm hover:scale-[1.02] transition-all duration-300 disabled:opacity-60"
-        >
-          {busy ? t('teams.creating') : t('teams.createBtn')}
-        </button>
+    <form onSubmit={submit} className="space-y-3">
+      <div>
+        <label className={labelClass}>{t('teams.name')}</label>
+        <input className={inputClass} value={name} onChange={(e) => setName(e.target.value)} required maxLength={80} />
       </div>
-    </GlassCard>
+      <div>
+        <label className={labelClass}>{t('teams.goal')}</label>
+        <textarea className={inputClass} rows={2} value={goal} onChange={(e) => setGoal(e.target.value)} maxLength={500} />
+      </div>
+      <ErrorText error={error} />
+      <div className="flex gap-2">
+        <button type="submit" disabled={busy} className={btnPrimary}>{team ? t('common.save') : t('teams.create')}</button>
+        <button type="button" onClick={onDone} className={btnSecondary}>{t('common.cancel')}</button>
+      </div>
+    </form>
   )
 }
 
-function TeamCard({ team, myId, requests }: { team: Team; myId?: string; requests: TeamRequest[] }) {
+function RequestRow({ request }: { request: TeamRequestRow }) {
   const { t } = useI18n()
-  const isMember = team.members.some((m) => m.profileId === myId)
-  const isFounder = team.founderId === myId
-  const teamRequests = requests.filter((r) => r.teamId === team.id)
+  const { busy, error, run } = useAction()
+  return (
+    <li className="py-2">
+      <div className="flex flex-wrap items-center gap-2">
+        <span className="flex-1 text-sm">
+          <Link to={`/members/${request.profile_id}`} className="hover:underline">{request.profile?.full_name}</Link>
+          {request.note && <span className="block text-xs text-gray-600">«{request.note}»</span>}
+        </span>
+        <button disabled={busy} onClick={() => run(() => respondJoinRequest(request.id, true))} className={`${btnSmall} bg-gray-900 text-white`}>
+          {t('teams.accept')}
+        </button>
+        <button disabled={busy} onClick={() => run(() => respondJoinRequest(request.id, false))} className={`${btnSmall} border border-gray-900/30`}>
+          {t('teams.decline')}
+        </button>
+      </div>
+      <ErrorText error={error} />
+    </li>
+  )
+}
 
-  const [role, setRole] = useState('build')
-  const [note, setNote] = useState('')
-  const [msg, setMsg] = useState<string | null>(null)
+function TeamCardFull({ team, manage, mine, requests }: {
+  team: TeamRow
+  manage: boolean
+  mine: boolean
+  requests: TeamRequestRow[]
+}) {
+  const { t } = useI18n()
+  const { profile } = useAuth()
+  const [editing, setEditing] = useState(false)
+  const { busy, error, run } = useAction()
+  const members = team.team_members ?? []
 
-  const join = async () => {
-    const { result, error } = await requestJoin(team.id, role, note.trim())
-    setMsg(
-      error ??
-        (result === 'ok'
-          ? t('teams.requestSent')
-          : result === 'already_member'
-            ? t('teams.alreadyMember')
-            : result),
+  if (editing) {
+    return (
+      <GlassCard>
+        <TeamForm team={team} onDone={() => setEditing(false)} />
+      </GlassCard>
     )
   }
 
   return (
-    <motion.div variants={cardVariants}>
-      <GlassCard className="shadow-[0_8px_32px_0_rgba(31,38,135,0.15)]">
-        <div className="flex items-start justify-between gap-3 mb-2">
-          <h3 className="text-xl font-normal">{team.name}</h3>
-          <span className="text-xs px-2.5 py-1 rounded-full bg-gray-900/10 text-gray-600 shrink-0">
-            {t(`teamStatus.${team.status}`)}
-          </span>
+    <GlassCard>
+      <div className="flex flex-wrap items-start justify-between gap-2 mb-2">
+        <div>
+          <h3 className="text-lg font-normal">{team.name}</h3>
+          {team.goal && <p className="text-sm text-gray-700">{team.goal}</p>}
         </div>
-        {team.goal && <p className="text-sm text-gray-700 mb-3">{team.goal}</p>}
-
-        {team.neededRoles.length > 0 && (
-          <div className="flex flex-wrap gap-2 mb-3">
-            {team.neededRoles.map((r) => (
-              <span
-                key={r}
-                className="px-2.5 py-1 rounded-full bg-white/40 border border-white/60 text-xs"
-              >
-                {t(`teamRole.${r}`)}
-              </span>
-            ))}
-          </div>
-        )}
-
-        <div className="space-y-1 mb-3">
-          {team.members.map((m) => (
-            <div key={m.profileId} className="flex items-center justify-between text-sm">
-              <span>{m.name}</span>
-              <span className="text-xs text-gray-500">{t(`teamRole.${m.role}`)}</span>
-            </div>
-          ))}
-        </div>
-
-        {isFounder && teamRequests.length > 0 && (
-          <div className="pt-3 border-t border-white/40">
-            <p className="text-xs text-gray-600 mb-2">{t('teams.requests')}</p>
-            {teamRequests.map((r) => (
-              <div key={r.id} className="flex items-center justify-between gap-2 py-1.5">
-                <span className="text-sm">
-                  {r.name} <span className="text-xs text-gray-500">· {t(`teamRole.${r.role}`)}</span>
-                </span>
-                <div className="flex gap-2">
-                  <button
-                    onClick={() => respondRequest(r.id, true)}
-                    className="px-2.5 py-1 rounded-lg bg-green-700 text-white text-xs hover:scale-105 transition-all duration-300"
-                  >
-                    {t('teams.accept')}
-                  </button>
-                  <button
-                    onClick={() => respondRequest(r.id, false)}
-                    className="px-2.5 py-1 rounded-lg border border-gray-900 text-xs hover:bg-gray-900 hover:text-white transition-all duration-300"
-                  >
-                    {t('teams.decline')}
-                  </button>
-                </div>
-              </div>
-            ))}
-          </div>
-        )}
-
-        {!isMember && myId && team.status === 'forming' && (
-          <div className="pt-3 border-t border-white/40 space-y-2">
-            <div className="flex gap-2">
-              <select className={inputClass} value={role} onChange={(e) => setRole(e.target.value)}>
-                {ROLES.map((r) => (
-                  <option key={r} value={r}>
-                    {t(`teamRole.${r}`)}
-                  </option>
-                ))}
-              </select>
-              <button
-                onClick={join}
-                className="px-4 py-2 rounded-lg bg-gray-900 text-white text-sm hover:scale-[1.02] transition-all duration-300 whitespace-nowrap"
-              >
-                {t('teams.requestJoin')}
-              </button>
-            </div>
-            <input
-              className={inputClass}
-              placeholder={t('teams.requestNote')}
-              value={note}
-              onChange={(e) => setNote(e.target.value)}
-            />
-            {msg && <p className="text-xs text-gray-600">{msg}</p>}
-          </div>
-        )}
-      </GlassCard>
-    </motion.div>
-  )
-}
-
-function HelpStatusChip({ status }: { status: string }) {
-  const { t } = useI18n()
-  const tone =
-    status === 'open'
-      ? 'bg-green-600/15 text-green-700'
-      : status === 'claimed'
-        ? 'bg-amber-500/20 text-amber-700'
-        : 'bg-gray-900/10 text-gray-600'
-  return <span className={`text-xs px-2.5 py-1 rounded-full ${tone}`}>{t(`help.${status}`)}</span>
-}
-
-function HelpForm() {
-  const { t } = useI18n()
-  const [title, setTitle] = useState('')
-  const [desc, setDesc] = useState('')
-  const [busy, setBusy] = useState(false)
-
-  const submit = async () => {
-    if (!title.trim()) return
-    setBusy(true)
-    await postHelp(title.trim(), desc.trim())
-    setBusy(false)
-    setTitle('')
-    setDesc('')
-  }
-
-  return (
-    <GlassCard className="shadow-[0_8px_32px_0_rgba(31,38,135,0.2)]">
-      <h3 className="text-lg font-light mb-4">{t('help.ask')}</h3>
-      <div className="space-y-3">
-        <input
-          className={inputClass}
-          placeholder={t('help.titlePlaceholder')}
-          value={title}
-          onChange={(e) => setTitle(e.target.value)}
-        />
-        <textarea
-          className={inputClass}
-          rows={2}
-          placeholder={t('help.descPlaceholder')}
-          value={desc}
-          onChange={(e) => setDesc(e.target.value)}
-        />
-        <button
-          onClick={submit}
-          disabled={busy}
-          className="px-4 py-2 rounded-lg bg-gray-900 text-white text-sm hover:scale-[1.02] transition-all duration-300 disabled:opacity-60"
-        >
-          {busy ? t('help.posting') : t('help.post')}
-        </button>
+        <span className="text-xs text-gray-600">{t('teams.count', { n: members.length, max: TEAM_LIMIT })}</span>
       </div>
+      <ul className="space-y-1 mb-3">
+        {members.map((m) => (
+          <li key={m.profile_id} className="flex items-center gap-2 text-sm">
+            <Avatar path={m.profile?.avatar_path} name={m.profile?.full_name ?? ''} size="sm" />
+            <Link to={`/members/${m.profile_id}`} className="flex-1 truncate hover:underline">{m.profile?.full_name}</Link>
+            {m.profile_id === team.captain_id && (
+              <span className="inline-flex items-center gap-1 text-xs text-[#750014]"><Crown className="w-3 h-3" /> {t('teams.captain')}</span>
+            )}
+            {manage && m.profile_id !== profile?.id && (
+              <button disabled={busy} onClick={() => run(() => removeTeamMember(team.id, m.profile_id), t('teams.removeConfirm'))}
+                className="text-xs text-red-700 px-2 py-1">{t('teams.remove')}</button>
+            )}
+          </li>
+        ))}
+      </ul>
+      {manage && requests.length > 0 && (
+        <div className="mb-3">
+          <p className="text-sm font-medium">{t('teams.requests')}</p>
+          <ul className="divide-y divide-white/50">{requests.map((r) => <RequestRow key={r.id} request={r} />)}</ul>
+        </div>
+      )}
+      <div className="flex flex-wrap gap-2">
+        {manage && <button onClick={() => setEditing(true)} className={`${btnSmall} border border-gray-900/30`}>{t('common.edit')}</button>}
+        {mine && (
+          <button disabled={busy} onClick={() => run(() => removeTeamMember(team.id, profile!.id), t('teams.leaveConfirm'))}
+            className={`${btnSmall} border border-gray-900/30`}>{t('teams.leave')}</button>
+        )}
+        {manage && (
+          <button disabled={busy} onClick={() => run(() => archiveTeam(team.id), t('teams.archiveConfirm'))}
+            className={`${btnSmall} border border-red-600/50 text-red-700`}>{t('teams.archive')}</button>
+        )}
+      </div>
+      <ErrorText error={error} />
     </GlassCard>
   )
 }
 
-function HelpCard({ help, myId }: { help: HelpRequest; myId?: string }) {
+function JoinButton({ team, pending }: { team: TeamRow; pending: boolean }) {
   const { t } = useI18n()
-  const isMine = help.requesterId === myId
-  return (
-    <motion.div variants={cardVariants}>
-      <GlassCard className="shadow-[0_8px_32px_0_rgba(31,38,135,0.15)]">
-        <div className="flex items-start justify-between gap-3 mb-1">
-          <h3 className="text-base font-normal">{help.title}</h3>
-          <HelpStatusChip status={help.status} />
-        </div>
-        {help.description && <p className="text-sm text-gray-700 mb-2">{help.description}</p>}
-        <p className="text-xs text-gray-500 mb-3">
-          {t('help.by', { name: help.requesterName })}
-          {help.helperName ? ` · ${t('help.helper', { name: help.helperName })}` : ''}
-        </p>
+  const [note, setNote] = useState('')
+  const [open, setOpen] = useState(false)
+  const { busy, error, run } = useAction()
+  const full = (team.team_members?.length ?? 0) >= TEAM_LIMIT
 
-        {help.status === 'open' && myId && !isMine && (
-          <button
-            onClick={() => claimHelp(help.id)}
-            className="px-4 py-1.5 rounded-lg border border-gray-900 text-sm hover:bg-gray-900 hover:text-white transition-all duration-300"
-          >
-            {t('help.claim')}
-          </button>
-        )}
-        {help.status === 'claimed' && isMine && (
-          <button
-            onClick={() => confirmHelp(help.id)}
-            className="px-4 py-1.5 rounded-lg bg-green-700 text-white text-sm hover:scale-105 transition-all duration-300"
-          >
-            {t('help.confirm')}
-          </button>
-        )}
-      </GlassCard>
-    </motion.div>
+  if (pending) return <span className="text-xs text-gray-600">{t('teams.pending')}</span>
+  if (full) return <span className="text-xs text-gray-600">{t('teams.full')}</span>
+  if (!open) return <button onClick={() => setOpen(true)} className={`${btnSmall} border border-gray-900/30`}>{t('teams.ask')}</button>
+  return (
+    <div className="w-full space-y-2 mt-2">
+      <input className={inputClass} value={note} onChange={(e) => setNote(e.target.value)} placeholder={t('teams.notePlaceholder')} maxLength={300} />
+      <div className="flex gap-2">
+        <button disabled={busy} onClick={async () => { if (await run(() => requestJoinTeam(team.id, note))) setOpen(false) }} className={btnPrimary}>
+          {t('teams.send')}
+        </button>
+        <button onClick={() => setOpen(false)} className={btnSecondary}>{t('common.cancel')}</button>
+      </div>
+      <ErrorText error={error} />
+    </div>
   )
 }
 
 export function TeamsPage() {
   const { t } = useI18n()
-  const { profile } = useAuth()
-  const myId = profile?.id
-  const [tab, setTab] = useState<'teams' | 'help'>('teams')
-  const { data: teams = [] } = useTeams()
-  const { data: requests = [] } = useTeamRequests()
-  const { data: help = [] } = useHelpRequests()
+  const { profile, isStaff, isOversight, role } = useAuth()
+  const teams = useTeams()
+  const requests = useTeamRequests()
+  const [creating, setCreating] = useState(false)
+  const [filter, setFilter] = useState<TrackId>(profile?.track_id ?? 'ai')
+  const track = isOversight ? filter : (profile?.track_id ?? null)
 
-  const tabClass = (active: boolean) =>
-    `px-4 py-1.5 rounded-lg text-sm transition-colors ${
-      active ? 'bg-gray-900 text-white' : 'border border-white/60 bg-white/30 hover:bg-white/60'
-    }`
+  const all = teams.data ?? []
+  const myTeam = all.find((tm) => tm.team_members?.some((m) => m.profile_id === profile?.id))
+  const trackTeams = all.filter((tm) => tm.track_id === track && tm.id !== myTeam?.id)
+  const myPending = new Set((requests.data ?? []).filter((r) => r.profile_id === profile?.id).map((r) => r.team_id))
+  const canManage = (tm: TeamRow) => tm.captain_id === profile?.id || isOversight || (role === 'track_lead' && tm.track_id === profile?.track_id)
+  const requestsFor = (tm: TeamRow) => (requests.data ?? []).filter((r) => r.team_id === tm.id && r.profile_id !== profile?.id)
 
   return (
-    <motion.div
-      variants={pageVariants}
-      initial="initial"
-      animate="animate"
-      exit="exit"
-      className="max-w-3xl mx-auto space-y-6"
-    >
-      <motion.div variants={cardVariants}>
-        <GlassCard className="shadow-[0_8px_32px_0_rgba(31,38,135,0.2)]">
-          <div className="flex items-center gap-3 mb-4">
-            <Users className="w-7 h-7" />
-            <h2 className="text-3xl font-light">{t('teams.title')}</h2>
+    <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit" className="max-w-3xl mx-auto space-y-4">
+      <GlassCard>
+        <div className="flex flex-wrap items-center justify-between gap-3">
+          <h1 className={pageTitle}>{t('teams.title')}</h1>
+          {!myTeam && !isStaff && profile?.track_id && !creating && (
+            <button onClick={() => setCreating(true)} className={btnPrimary}><Plus className="w-4 h-4" /> {t('teams.create')}</button>
+          )}
+        </div>
+        <p className="text-sm text-gray-700 mt-1">{t('teams.intro', { max: TEAM_LIMIT })}</p>
+        {isOversight && (
+          <div className="flex gap-2 mt-3 overflow-x-auto">
+            {TRACK_IDS.map((id) => (
+              <button key={id} className={segment(filter === id)} onClick={() => setFilter(id)}>{t(`track.${id}.short`)}</button>
+            ))}
           </div>
-          <div className="flex gap-2">
-            <button className={tabClass(tab === 'teams')} onClick={() => setTab('teams')}>
-              {t('teams.tabTeams')}
-            </button>
-            <button className={tabClass(tab === 'help')} onClick={() => setTab('help')}>
-              {t('teams.tabHelp')}
-            </button>
-          </div>
-        </GlassCard>
-      </motion.div>
+        )}
+      </GlassCard>
 
-      {tab === 'teams' ? (
-        <>
-          {myId && (
-            <motion.div variants={cardVariants}>
-              <CreateTeamForm />
-            </motion.div>
-          )}
-          {teams.length === 0 ? (
-            <p className="text-center text-gray-500 py-6">{t('teams.noTeams')}</p>
-          ) : (
-            teams.map((team) => (
-              <TeamCard key={team.id} team={team} myId={myId} requests={requests} />
-            ))
-          )}
-        </>
-      ) : (
-        <>
-          {myId && (
-            <motion.div variants={cardVariants}>
-              <HelpForm />
-            </motion.div>
-          )}
-          {help.length === 0 ? (
-            <p className="text-center text-gray-500 py-6">{t('help.noRequests')}</p>
-          ) : (
-            help.map((h) => <HelpCard key={h.id} help={h} myId={myId} />)
-          )}
-        </>
+      {creating && (
+        <GlassCard>
+          <h2 className={`${sectionTitle} mb-3`}>{t('teams.new')}</h2>
+          <TeamForm onDone={() => setCreating(false)} />
+        </GlassCard>
       )}
+
+      <DataState isLoading={teams.isLoading} error={teams.error} onRetry={() => void teams.refetch()}>
+        {myTeam && (
+          <>
+            <h2 className="text-sm uppercase tracking-wider text-gray-600 px-1">{t('teams.mine')}</h2>
+            <TeamCardFull team={myTeam} manage={canManage(myTeam)} mine requests={requestsFor(myTeam)} />
+          </>
+        )}
+        {!track ? (
+          <GlassCard><p className="text-sm text-gray-700">{t('week.noTrack')}</p></GlassCard>
+        ) : (
+          <>
+            <h2 className="text-sm uppercase tracking-wider text-gray-600 px-1 pt-2">
+              {t('teams.ofTrack', { track: t(`track.${track}`) })}
+            </h2>
+            {trackTeams.length === 0 ? (
+              <GlassCard><p className="text-sm text-gray-700">{t('teams.none')}</p></GlassCard>
+            ) : (
+              trackTeams.map((tm) =>
+                canManage(tm) ? (
+                  <TeamCardFull key={tm.id} team={tm} manage mine={false} requests={requestsFor(tm)} />
+                ) : (
+                  <GlassCard key={tm.id}>
+                    <div className="flex flex-wrap items-start justify-between gap-2">
+                      <div className="min-w-0">
+                        <h3 className="text-lg font-normal">{tm.name}</h3>
+                        {tm.goal && <p className="text-sm text-gray-700">{tm.goal}</p>}
+                        <p className="text-xs text-gray-600 mt-1">
+                          {tm.team_members?.map((m) => m.profile?.full_name).join(', ')} · {t('teams.count', { n: tm.team_members?.length ?? 0, max: TEAM_LIMIT })}
+                        </p>
+                      </div>
+                      {!myTeam && !isStaff && <JoinButton team={tm} pending={myPending.has(tm.id)} />}
+                    </div>
+                  </GlassCard>
+                ),
+              )
+            )}
+          </>
+        )}
+      </DataState>
     </motion.div>
   )
 }

@@ -1,160 +1,58 @@
 import { Suspense, lazy } from 'react'
+import type { ComponentType, ReactNode } from 'react'
 import { AnimatePresence } from 'framer-motion'
-import { Route, Routes, useLocation } from 'react-router-dom'
-import { RequireAuth } from './components/RequireAuth'
-import { RequireRole } from './components/RequireRole'
-import { useI18n } from './context/i18nContext'
+import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
+import { PageLoading, RequireAuth, RequireStaff } from './components/RequireAuth'
 
 // Route-level code splitting: each page becomes its own lazily-loaded chunk.
-const DashboardPage = lazy(() =>
-  import('./pages/DashboardPage').then((m) => ({ default: m.DashboardPage })),
-)
-const ResearchPage = lazy(() =>
-  import('./pages/ResearchPage').then((m) => ({ default: m.ResearchPage })),
-)
-const AcademyPage = lazy(() =>
-  import('./pages/AcademyPage').then((m) => ({ default: m.AcademyPage })),
-)
-const AipPage = lazy(() => import('./pages/AipPage').then((m) => ({ default: m.AipPage })))
-const JoinPage = lazy(() => import('./pages/JoinPage').then((m) => ({ default: m.JoinPage })))
-const ChallengesPage = lazy(() =>
-  import('./pages/ChallengesPage').then((m) => ({ default: m.ChallengesPage })),
-)
-const ChallengePage = lazy(() =>
-  import('./pages/ChallengePage').then((m) => ({ default: m.ChallengePage })),
-)
-const TeamsPage = lazy(() => import('./pages/TeamsPage').then((m) => ({ default: m.TeamsPage })))
-const NotFoundPage = lazy(() =>
-  import('./pages/NotFoundPage').then((m) => ({ default: m.NotFoundPage })),
-)
-const NetworkPage = lazy(() =>
-  import('./pages/NetworkPage').then((m) => ({ default: m.NetworkPage })),
-)
-const ResourcesPage = lazy(() =>
-  import('./pages/ResourcesPage').then((m) => ({ default: m.ResourcesPage })),
-)
-const LoginPage = lazy(() => import('./pages/LoginPage').then((m) => ({ default: m.LoginPage })))
-const ProfilePage = lazy(() =>
-  import('./pages/ProfilePage').then((m) => ({ default: m.ProfilePage })),
-)
-const AdminPage = lazy(() => import('./pages/AdminPage').then((m) => ({ default: m.AdminPage })))
-const MemberProfilePage = lazy(() =>
-  import('./pages/MemberProfilePage').then((m) => ({ default: m.MemberProfilePage })),
-)
+const page = <K extends string>(load: () => Promise<Record<K, ComponentType>>, name: K) =>
+  lazy(() => load().then((m) => ({ default: m[name] })))
 
-function RouteFallback() {
-  const { t } = useI18n()
-  return <div className="max-w-7xl mx-auto text-center py-20 text-gray-500">{t('common.loading')}</div>
-}
+const JoinPage = page(() => import('./pages/JoinPage'), 'JoinPage')
+const LoginPage = page(() => import('./pages/LoginPage'), 'LoginPage')
+const DashboardPage = page(() => import('./pages/DashboardPage'), 'DashboardPage')
+const ProgramPage = page(() => import('./pages/ProgramPage'), 'ProgramPage')
+const CalendarPage = page(() => import('./pages/CalendarPage'), 'CalendarPage')
+const PointsPage = page(() => import('./pages/PointsPage'), 'PointsPage')
+const RatingPage = page(() => import('./pages/RatingPage'), 'RatingPage')
+const TeamsPage = page(() => import('./pages/TeamsPage'), 'TeamsPage')
+const ProjectsPage = page(() => import('./pages/ProjectsPage'), 'ProjectsPage')
+const ProjectPage = page(() => import('./pages/ProjectPage'), 'ProjectPage')
+const ProfilePage = page(() => import('./pages/ProfilePage'), 'ProfilePage')
+const MemberPage = page(() => import('./pages/MemberPage'), 'MemberPage')
+const ManagePage = page(() => import('./pages/ManagePage'), 'ManagePage')
+const NotFoundPage = page(() => import('./pages/NotFoundPage'), 'NotFoundPage')
+
+const auth = (node: ReactNode) => <RequireAuth>{node}</RequireAuth>
 
 export function AnimatedRoutes() {
   const location = useLocation()
 
   return (
     <AnimatePresence mode="wait">
-      <Suspense fallback={<RouteFallback />}>
+      <Suspense fallback={<PageLoading />}>
         <Routes location={location} key={location.pathname}>
-          {/* Public */}
           <Route path="/join" element={<JoinPage />} />
           <Route path="/login" element={<LoginPage />} />
 
-          {/* Everything else requires sign-in (guests → /join) */}
-          <Route
-            path="/"
-            element={
-              <RequireAuth>
-                <DashboardPage />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/academy"
-            element={
-              <RequireAuth>
-                <AcademyPage />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/aip"
-            element={
-              <RequireAuth>
-                <AipPage />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/challenges"
-            element={
-              <RequireAuth>
-                <ChallengesPage />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/challenges/:id"
-            element={
-              <RequireAuth>
-                <ChallengePage />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/teams"
-            element={
-              <RequireAuth>
-                <TeamsPage />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/research"
-            element={
-              <RequireAuth>
-                <ResearchPage />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/network"
-            element={
-              <RequireAuth>
-                <NetworkPage />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/resources"
-            element={
-              <RequireAuth>
-                <ResourcesPage />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/profile"
-            element={
-              <RequireAuth>
-                <ProfilePage />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/members/:id"
-            element={
-              <RequireAuth>
-                <MemberProfilePage />
-              </RequireAuth>
-            }
-          />
-          <Route
-            path="/admin"
-            element={
-              <RequireRole role="admin">
-                <AdminPage />
-              </RequireRole>
-            }
-          />
+          <Route path="/" element={auth(<DashboardPage />)} />
+          <Route path="/program" element={auth(<ProgramPage />)} />
+          <Route path="/calendar" element={auth(<CalendarPage />)} />
+          <Route path="/points" element={auth(<PointsPage />)} />
+          <Route path="/rating" element={auth(<RatingPage />)} />
+          <Route path="/teams" element={auth(<TeamsPage />)} />
+          <Route path="/projects" element={auth(<ProjectsPage />)} />
+          <Route path="/projects/:id" element={auth(<ProjectPage />)} />
+          <Route path="/profile" element={auth(<ProfilePage />)} />
+          <Route path="/members/:id" element={auth(<MemberPage />)} />
+          <Route path="/manage" element={<RequireStaff><ManagePage /></RequireStaff>} />
+
+          {/* Old addresses from the June version */}
+          <Route path="/academy" element={<Navigate to="/program" replace />} />
+          <Route path="/aip" element={<Navigate to="/points" replace />} />
+          <Route path="/challenges/*" element={<Navigate to="/rating" replace />} />
+          <Route path="/admin" element={<Navigate to="/manage" replace />} />
+
           <Route path="*" element={<NotFoundPage />} />
         </Routes>
       </Suspense>

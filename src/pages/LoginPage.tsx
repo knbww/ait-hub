@@ -1,137 +1,80 @@
 import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { motion } from 'framer-motion'
-import { useNavigate } from 'react-router-dom'
+import { Link, Navigate, useNavigate } from 'react-router-dom'
 import { Github } from 'lucide-react'
 import { GlassCard } from '../components/GlassCard'
+import { ErrorText } from '../components/DataState'
+import { OauthNotice } from '../components/OauthNotice'
 import { pageVariants } from '../lib/animations'
 import { useAuth } from '../context/authContext'
 import { useI18n } from '../context/i18nContext'
 import { isSupabaseConfigured } from '../lib/supabase'
-
-const inputClass =
-  'w-full px-4 py-2 rounded-lg border border-white/60 bg-white/40 text-sm outline-none focus:border-gray-900 transition-colors'
+import { btnPrimary, btnSecondary, inputClass, labelClass } from '../lib/ui'
 
 export function LoginPage() {
   const navigate = useNavigate()
   const { t } = useI18n()
-  const { signInWithPassword, signUpWithPassword, signInWithGitHub } = useAuth()
-
-  const [mode, setMode] = useState<'signin' | 'signup'>('signin')
-  const [fullName, setFullName] = useState('')
+  const { session, signIn, signInWithGitHub } = useAuth()
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
-  const [error, setError] = useState<string | null>(null)
-  const [notice, setNotice] = useState<string | null>(null)
+  const [error, setError] = useState<unknown>(null)
   const [busy, setBusy] = useState(false)
+
+  if (session) return <Navigate to="/" replace />
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     setBusy(true)
     setError(null)
-    setNotice(null)
-    const result =
-      mode === 'signin'
-        ? await signInWithPassword(email, password)
-        : await signUpWithPassword(email, password, fullName)
+    const res = await signIn(email, password)
     setBusy(false)
-    if (result.error) {
-      setError(result.error)
-      return
-    }
-    if (mode === 'signup') {
-      setNotice(t('login.accountCreated'))
-      setMode('signin')
-      return
-    }
-    navigate('/')
+    if (res.error) return setError(res.error)
+    navigate('/', { replace: true })
   }
 
   const github = async () => {
     setError(null)
-    const { error: oauthError } = await signInWithGitHub()
-    if (oauthError) setError(oauthError)
+    const res = await signInWithGitHub()
+    if (res.error) setError(res.error)
   }
 
   return (
-    <motion.div
-      variants={pageVariants}
-      initial="initial"
-      animate="animate"
-      exit="exit"
-      className="max-w-md mx-auto"
-    >
-      <GlassCard className="shadow-[0_8px_32px_0_rgba(31,38,135,0.2)]">
-        <h2 className="text-2xl font-light mb-6 text-center">
-          {mode === 'signin' ? t('login.signin') : t('login.signup')}
-        </h2>
-
+    <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit" className="max-w-md mx-auto">
+      <GlassCard>
+        <h1 className="text-2xl font-light mb-5 text-center">{t('login.title')}</h1>
+        <OauthNotice />
         {!isSupabaseConfigured && (
-          <p className="mb-4 text-sm text-amber-700 bg-amber-100/60 rounded-lg p-3">
-            {t('login.supabaseWarn')}
-          </p>
+          <p className="mb-4 text-sm text-amber-800 bg-amber-100/70 rounded-xl p-3">{t('login.notConfigured')}</p>
         )}
-
-        <form onSubmit={submit} className="space-y-4">
-          {mode === 'signup' && (
-            <input
-              className={inputClass}
-              type="text"
-              placeholder={t('login.fullName')}
-              value={fullName}
-              onChange={(e) => setFullName(e.target.value)}
-              required
-            />
-          )}
-          <input
-            className={inputClass}
-            type="email"
-            placeholder="Email"
-            value={email}
-            onChange={(e) => setEmail(e.target.value)}
-            required
-          />
-          <input
-            className={inputClass}
-            type="password"
-            placeholder={t('login.password')}
-            value={password}
-            onChange={(e) => setPassword(e.target.value)}
-            required
-          />
-
-          {error && <p className="text-sm text-red-600">{error}</p>}
-          {notice && <p className="text-sm text-green-700">{notice}</p>}
-
-          <button
-            type="submit"
-            disabled={busy}
-            className="w-full px-4 py-2 rounded-lg bg-gray-900 text-white text-sm font-normal hover:scale-[1.02] transition-all duration-300 disabled:opacity-60"
-          >
-            {busy ? t('login.pleaseWait') : mode === 'signin' ? t('login.signinBtn') : t('login.signupBtn')}
+        <form onSubmit={submit} className="space-y-3">
+          <div>
+            <label className={labelClass} htmlFor="l-email">{t('join.form.email')}</label>
+            <input id="l-email" type="email" className={inputClass} value={email}
+              onChange={(e) => setEmail(e.target.value)} autoComplete="email" required />
+          </div>
+          <div>
+            <label className={labelClass} htmlFor="l-pass">{t('join.form.password')}</label>
+            <input id="l-pass" type="password" className={inputClass} value={password}
+              onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" required />
+          </div>
+          <ErrorText error={error} />
+          <button type="submit" disabled={busy} className={`${btnPrimary} w-full`}>
+            {busy ? t('common.wait') : t('login.submit')}
           </button>
         </form>
-
         <div className="my-4 text-center text-xs text-gray-500">{t('login.or')}</div>
-
-        <button
-          onClick={github}
-          className="w-full px-4 py-2 rounded-lg border border-gray-900 text-sm font-normal flex items-center justify-center gap-2 hover:bg-gray-900 hover:text-white transition-all duration-300"
-        >
-          <Github className="w-4 h-4" />
-          {t('login.github')}
+        <button onClick={github} className={`${btnSecondary} w-full`}>
+          <Github className="w-4 h-4" /> {t('login.github')}
         </button>
-
-        <button
-          onClick={() => {
-            setMode(mode === 'signin' ? 'signup' : 'signin')
-            setError(null)
-            setNotice(null)
-          }}
-          className="mt-4 w-full text-sm text-gray-600 hover:text-gray-900 transition-colors"
-        >
-          {mode === 'signin' ? t('login.toSignup') : t('login.toSignin')}
-        </button>
+        <p className="text-xs text-gray-600 text-center mt-2">{t('login.githubHint')}</p>
+        <div className="mt-5 space-y-2 text-sm text-gray-700 text-center">
+          <p>{t('login.forgot')}</p>
+          <p>
+            {t('login.noAccount')}{' '}
+            <Link to="/join" className="underline text-gray-900">{t('nav.join')}</Link>
+          </p>
+        </div>
       </GlassCard>
     </motion.div>
   )

@@ -1,176 +1,321 @@
-import { useState } from 'react'
+import { useEffect, useState } from 'react'
+import type { FormEvent } from 'react'
 import { motion } from 'framer-motion'
-import { useNavigate, useSearchParams } from 'react-router-dom'
-import {
-  GraduationCap, Rocket, Trophy, BadgeCheck, BookOpen, Users, Crown, Sparkles, ArrowRight,
-} from 'lucide-react'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
+import { ArrowRight, BrainCircuit, CalendarCheck, Code2, Rocket, Trophy } from 'lucide-react'
 import { GlassCard } from '../components/GlassCard'
-import { ApplyModal } from '../components/ApplyModal'
+import { ErrorText } from '../components/DataState'
+import { OauthNotice } from '../components/OauthNotice'
 import { cardVariants, pageVariants } from '../lib/animations'
+import { useAuth } from '../context/authContext'
 import { useI18n } from '../context/i18nContext'
-import type { Lang } from '../lib/messages'
+import { supabase } from '../lib/supabase'
+import { claimTrack } from '../lib/memberActions'
+import { GRADES } from '../lib/club'
+import { btnPrimary, btnSecondary, inputClass, labelClass } from '../lib/ui'
 import logo from '../assets/aitlogo.png'
 
-const ACTIVITIES = [
-  { icon: GraduationCap, t: 'join.do.academy.t', d: 'join.do.academy.d' },
-  { icon: Rocket, t: 'join.do.studio.t', d: 'join.do.studio.d' },
-  { icon: Trophy, t: 'join.do.arena.t', d: 'join.do.arena.d' },
-  { icon: BadgeCheck, t: 'join.do.portfolio.t', d: 'join.do.portfolio.d' },
-]
+interface CodeCheck {
+  code: string
+  trackTitle: string | null
+}
 
-const PATH = [
-  { icon: BookOpen, t: 'join.path.learn.t', d: 'join.path.learn.d' },
-  { icon: Users, t: 'join.path.team.t', d: 'join.path.team.d' },
-  { icon: Crown, t: 'join.path.lead.t', d: 'join.path.lead.d' },
-]
+async function lookupCode(code: string): Promise<string | null> {
+  if (!supabase) return null
+  const { data, error } = await supabase.rpc('check_join_code', { p_code: code.trim().toUpperCase() })
+  if (error) throw error
+  const row = (data as { track_title: string }[] | null)?.[0]
+  return row?.track_title ?? null
+}
 
-const AIP = [
-  { k: 'join.aip.attendance', v: '+10' },
-  { k: 'join.aip.assignment', v: '+20' },
-  { k: 'join.aip.help', v: '+15' },
-  { k: 'join.aip.referral', v: '+40' },
-]
-
-const sectionCard = 'shadow-[0_8px_32px_0_rgba(31,38,135,0.2)]'
-
-export function JoinPage() {
-  const navigate = useNavigate()
-  const { t, lang, setLang } = useI18n()
+/** Pick up a code from the QR link and say which track it belongs to. */
+function useCodeFromUrl() {
   const [params] = useSearchParams()
-  const invited = Boolean(params.get('ref'))
-  const [applyOpen, setApplyOpen] = useState(false)
+  const urlCode = (params.get('code') ?? '').trim().toUpperCase()
+  const [check, setCheck] = useState<CodeCheck | null>(null)
 
-  const applyBtn = (
-    <button
-      onClick={() => setApplyOpen(true)}
-      className="inline-flex items-center gap-2 px-7 py-3 rounded-full bg-gray-900 text-white font-normal hover:scale-105 hover:shadow-lg transition-all duration-300"
-    >
-      {t('join.apply')} <ArrowRight className="w-4 h-4" />
-    </button>
-  )
+  useEffect(() => {
+    if (!urlCode) return
+    let active = true
+    lookupCode(urlCode)
+      .then((title) => active && setCheck({ code: urlCode, trackTitle: title }))
+      .catch(() => active && setCheck({ code: urlCode, trackTitle: null }))
+    return () => {
+      active = false
+    }
+  }, [urlCode])
+
+  return { urlCode, check: check?.code === urlCode ? check : null, setCheck }
+}
+
+function SignUpForm({ code, trackTitle, onReset }: { code: string; trackTitle: string; onReset: () => void }) {
+  const { t } = useI18n()
+  const { signUp } = useAuth()
+  const navigate = useNavigate()
+  const [fullName, setFullName] = useState('')
+  const [grade, setGrade] = useState('')
+  const [email, setEmail] = useState('')
+  const [password, setPassword] = useState('')
+  const [telegram, setTelegram] = useState('')
+  const [photo, setPhoto] = useState<'yes' | 'no' | ''>('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<unknown>(null)
+  const [notice, setNotice] = useState<string | null>(null)
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault()
+    if (password.length < 8) return setError('weak_password')
+    if (!photo) return setError('photo_choice')
+    setBusy(true)
+    setError(null)
+    const res = await signUp({
+      email,
+      password,
+      fullName,
+      grade: Number(grade),
+      joinCode: code,
+      telegram,
+      photoConsent: photo === 'yes',
+    })
+    setBusy(false)
+    if (res.error) return setError(res.error)
+    if (res.needsConfirmation) return setNotice(t('join.form.confirmEmail'))
+    navigate('/', { replace: true })
+  }
+
+  if (notice) return <p className="text-sm text-green-800 bg-green-600/10 rounded-xl p-4">{notice}</p>
 
   return (
-    <motion.div
-      variants={pageVariants}
-      initial="initial"
-      animate="animate"
-      exit="exit"
-      className="max-w-3xl mx-auto space-y-6"
-    >
-      {/* Hero */}
-      <motion.div variants={cardVariants}>
-        <GlassCard className={`${sectionCard} text-center relative`}>
-          {/* Language toggle — visitors here are logged out, so the in-app settings switch
-              isn't reachable; offer EN/RU right on the landing. */}
-          <div className="absolute right-6 top-6 inline-flex gap-1 rounded-full border border-white/50 bg-white/20 p-1">
-            {(['en', 'ru'] as Lang[]).map((l) => (
-              <button
-                key={l}
-                onClick={() => setLang(l)}
-                aria-pressed={lang === l}
-                className={`px-3 py-1 rounded-full text-xs font-medium transition-colors ${
-                  lang === l ? 'bg-gray-900 text-white' : 'text-gray-700 hover:bg-white/40'
-                }`}
-              >
-                {l === 'en' ? 'EN' : 'RU'}
-              </button>
+    <form onSubmit={submit} className="space-y-3 text-left">
+      <div className="flex flex-wrap items-center justify-between gap-2 rounded-2xl bg-[#750014]/10 px-4 py-3">
+        <span className="text-sm">
+          {t('join.form.track')} <strong className="font-medium">{trackTitle}</strong>
+        </span>
+        <button type="button" onClick={onReset} className="text-xs text-gray-600 underline">
+          {t('join.form.otherCode')}
+        </button>
+      </div>
+      <div>
+        <label className={labelClass} htmlFor="j-name">{t('join.form.name')}</label>
+        <input id="j-name" className={inputClass} value={fullName} onChange={(e) => setFullName(e.target.value)}
+          autoComplete="name" required maxLength={120} />
+      </div>
+      <div className="grid grid-cols-2 gap-3">
+        <div>
+          <label className={labelClass} htmlFor="j-grade">{t('join.form.grade')}</label>
+          <select id="j-grade" className={inputClass} value={grade} onChange={(e) => setGrade(e.target.value)} required>
+            <option value="" disabled>{t('join.form.gradePick')}</option>
+            {GRADES.map((g) => (
+              <option key={g} value={g}>{t('common.gradeN', { n: g })}</option>
             ))}
+          </select>
+        </div>
+        <div>
+          <label className={labelClass} htmlFor="j-tg">{t('join.form.telegram')}</label>
+          <input id="j-tg" className={inputClass} value={telegram} onChange={(e) => setTelegram(e.target.value)}
+            placeholder="@username" autoCapitalize="off" maxLength={64} />
+        </div>
+      </div>
+      <div>
+        <label className={labelClass} htmlFor="j-email">{t('join.form.email')}</label>
+        <input id="j-email" type="email" className={inputClass} value={email} onChange={(e) => setEmail(e.target.value)}
+          autoComplete="email" required />
+      </div>
+      <div>
+        <label className={labelClass} htmlFor="j-pass">{t('join.form.password')}</label>
+        <input id="j-pass" type="password" className={inputClass} value={password}
+          onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" minLength={8} required />
+        <p className="text-xs text-gray-500 mt-1">{t('join.form.passwordHint')}</p>
+      </div>
+      <fieldset>
+        <legend className={labelClass}>{t('join.form.photo')}</legend>
+        <div className="grid grid-cols-2 gap-2">
+          {(['yes', 'no'] as const).map((v) => (
+            <label key={v}
+              className={`flex items-center gap-2 rounded-xl border px-3 py-2.5 text-sm cursor-pointer ${
+                photo === v ? 'border-gray-900 bg-white/80' : 'border-white/70 bg-white/40'
+              }`}>
+              <input type="radio" name="photo" value={v} checked={photo === v} onChange={() => setPhoto(v)} />
+              {t(`join.form.photo.${v}`)}
+            </label>
+          ))}
+        </div>
+      </fieldset>
+      {error === 'photo_choice' ? (
+        <p className="text-sm text-red-700" role="alert">{t('join.form.photoRequired')}</p>
+      ) : (
+        <ErrorText error={error} />
+      )}
+      <button type="submit" disabled={busy} className={`${btnPrimary} w-full`}>
+        {busy ? t('common.wait') : t('join.form.submit')}
+      </button>
+    </form>
+  )
+}
+
+function CodeEntry({ onFound }: { onFound: (check: CodeCheck) => void }) {
+  const { t } = useI18n()
+  const [code, setCode] = useState('')
+  const [busy, setBusy] = useState(false)
+  const [error, setError] = useState<unknown>(null)
+
+  const submit = async (e: FormEvent) => {
+    e.preventDefault()
+    setBusy(true)
+    setError(null)
+    try {
+      const title = await lookupCode(code)
+      if (title) onFound({ code: code.trim().toUpperCase(), trackTitle: title })
+      else setError('invalid_join_code')
+    } catch (err) {
+      setError(err)
+    } finally {
+      setBusy(false)
+    }
+  }
+
+  return (
+    <form onSubmit={submit} className="space-y-3 text-left">
+      <label className={labelClass} htmlFor="j-code">{t('join.code.label')}</label>
+      <div className="flex gap-2">
+        <input id="j-code" className={`${inputClass} uppercase tracking-widest`} value={code}
+          onChange={(e) => setCode(e.target.value)} placeholder="ABCD2345" autoCapitalize="characters"
+          autoComplete="off" required maxLength={12} />
+        <button type="submit" disabled={busy || !code.trim()} className={btnPrimary}>
+          <ArrowRight className="w-4 h-4" />
+          <span className="sr-only">{t('join.code.next')}</span>
+        </button>
+      </div>
+      <ErrorText error={error} />
+      <p className="text-xs text-gray-600">{t('join.code.hint')}</p>
+    </form>
+  )
+}
+
+/** Already signed in: join a track with a code (accounts from before tracks), or go in. */
+function SignedIn({ urlCode }: { urlCode: string }) {
+  const { t } = useI18n()
+  const { profile, refreshProfile } = useAuth()
+  const navigate = useNavigate()
+  const [error, setError] = useState<unknown>(null)
+  const [busy, setBusy] = useState(false)
+  const canClaim = Boolean(urlCode && profile && !profile.track_id)
+
+  const claim = async () => {
+    setBusy(true)
+    const res = await claimTrack(urlCode)
+    setBusy(false)
+    if (res.error) return setError(res.error)
+    await refreshProfile()
+    navigate('/', { replace: true })
+  }
+
+  return (
+    <div className="space-y-3">
+      <p className="text-sm text-gray-700">{canClaim ? t('join.signedIn.claim') : t('join.signedIn.text')}</p>
+      <ErrorText error={error} />
+      <div className="flex flex-wrap justify-center gap-2">
+        {canClaim && (
+          <button onClick={claim} disabled={busy} className={btnPrimary}>
+            {t('join.signedIn.claimButton')}
+          </button>
+        )}
+        <Link to="/" className={canClaim ? btnSecondary : btnPrimary}>
+          {t('join.signedIn.open')}
+        </Link>
+      </div>
+    </div>
+  )
+}
+
+const TRACK_CARDS = [
+  { id: 'ai', icon: BrainCircuit },
+  { id: 'algo', icon: Code2 },
+  { id: 'startup', icon: Rocket },
+] as const
+
+export function JoinPage() {
+  const { t } = useI18n()
+  const { session, loading } = useAuth()
+  const { urlCode, check, setCheck } = useCodeFromUrl()
+  const [manual, setManual] = useState<CodeCheck | null>(null)
+  const active = manual ?? (check?.trackTitle ? check : null)
+
+  let joinBlock
+  if (loading) joinBlock = <p className="text-sm text-gray-600">{t('common.loading')}</p>
+  else if (session) joinBlock = <SignedIn urlCode={urlCode} />
+  else if (active?.trackTitle) {
+    joinBlock = (
+      <SignUpForm code={active.code} trackTitle={active.trackTitle}
+        onReset={() => { setManual(null); setCheck(null) }} />
+    )
+  } else {
+    joinBlock = (
+      <>
+        {check && !check.trackTitle && (
+          <p className="text-sm text-red-700 mb-3" role="alert">{t('errors.invalid_join_code')}</p>
+        )}
+        <CodeEntry onFound={setManual} />
+      </>
+    )
+  }
+
+  return (
+    <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit" className="max-w-3xl mx-auto space-y-4 sm:space-y-6">
+      <motion.div variants={cardVariants}>
+        <GlassCard className="text-center">
+          <img src={logo} alt="" className="h-14 w-auto mx-auto mb-3" style={{ mixBlendMode: 'multiply' }} />
+          <h1 className="text-3xl sm:text-4xl font-bold mb-2">AIT Club</h1>
+          <p className="text-[#750014] font-medium mb-2">{t('join.tagline')}</p>
+          <p className="text-gray-700 max-w-xl mx-auto mb-5 text-sm sm:text-base">{t('join.intro')}</p>
+          <div className="max-w-md mx-auto">
+            <OauthNotice />
+            {joinBlock}
           </div>
-
-          <img
-            src={logo}
-            alt="AIT Club"
-            className="h-16 w-auto mx-auto mb-4"
-            style={{ mixBlendMode: 'multiply' }}
-          />
-
-          {invited && (
-            <span className="inline-block mb-3 text-xs px-3 py-1 rounded-full bg-[#750014]/10 text-[#750014]">
-              {t('join.invited')}
-            </span>
+          {!session && (
+            <p className="text-sm text-gray-600 mt-5">
+              {t('join.haveAccount')}{' '}
+              <Link to="/login" className="underline text-gray-900">{t('nav.signIn')}</Link>
+            </p>
           )}
-
-          <h1 className="text-4xl sm:text-5xl font-bold mb-2">AIT&nbsp;Club</h1>
-          <p className="text-[#750014] font-medium mb-3">{t('join.tagline')}</p>
-          <p className="text-gray-700 max-w-xl mx-auto mb-6">{t('join.intro')}</p>
-
-          <div className="flex flex-wrap items-center justify-center gap-3">
-            {applyBtn}
-            <button
-              onClick={() => navigate('/login')}
-              className="px-7 py-3 rounded-full border border-gray-900 font-normal hover:bg-gray-900 hover:text-white transition-all duration-300"
-            >
-              {t('join.signin')}
-            </button>
-          </div>
-          <p className="text-xs text-gray-500 mt-4">{t('join.school')}</p>
         </GlassCard>
       </motion.div>
 
-      {/* What you'll do */}
       <motion.div variants={cardVariants}>
-        <GlassCard className={sectionCard}>
-          <h2 className="text-lg font-light mb-4">{t('join.do.title')}</h2>
-          <div className="grid sm:grid-cols-2 gap-3">
-            {ACTIVITIES.map((a) => (
-              <div key={a.t} className="flex gap-3 p-4 rounded-2xl border border-white/50 bg-white/20">
-                <a.icon className="w-6 h-6 text-[#750014] shrink-0" />
-                <div>
-                  <h3 className="font-normal mb-0.5">{t(a.t)}</h3>
-                  <p className="text-xs text-gray-600">{t(a.d)}</p>
-                </div>
+        <GlassCard>
+          <h2 className="text-lg font-light mb-3">{t('join.tracks.title')}</h2>
+          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
+            {TRACK_CARDS.map(({ id, icon: Icon }) => (
+              <div key={id} className="p-4 rounded-2xl border border-white/60 bg-white/30">
+                <Icon className="w-6 h-6 text-[#750014] mb-2" />
+                <h3 className="font-normal mb-1">{t(`track.${id}`)}</h3>
+                <p className="text-xs text-gray-700">{t(`join.tracks.${id}`)}</p>
               </div>
             ))}
           </div>
         </GlassCard>
       </motion.div>
 
-      {/* Your path */}
       <motion.div variants={cardVariants}>
-        <GlassCard className={sectionCard}>
-          <h2 className="text-lg font-light mb-4">{t('join.path.title')}</h2>
-          <div className="grid sm:grid-cols-3 gap-3">
-            {PATH.map((p, i) => (
-              <div key={p.t} className="p-4 rounded-2xl border border-white/50 bg-white/20 text-center">
-                <div className="w-10 h-10 mx-auto mb-2 rounded-full bg-gray-900 text-white flex items-center justify-center">
-                  <p.icon className="w-5 h-5" />
-                </div>
-                <h3 className="font-normal mb-0.5">
-                  {i + 1}. {t(p.t)}
-                </h3>
-                <p className="text-xs text-gray-600">{t(p.d)}</p>
+        <GlassCard>
+          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+            <div className="flex gap-3">
+              <CalendarCheck className="w-6 h-6 text-[#750014] shrink-0" />
+              <div>
+                <h3 className="font-normal mb-1">{t('join.year.title')}</h3>
+                <p className="text-sm text-gray-700">{t('join.year.text')}</p>
               </div>
-            ))}
+            </div>
+            <div className="flex gap-3">
+              <Trophy className="w-6 h-6 text-[#750014] shrink-0" />
+              <div>
+                <h3 className="font-normal mb-1">{t('join.points.title')}</h3>
+                <p className="text-sm text-gray-700">{t('join.points.text')}</p>
+              </div>
+            </div>
           </div>
         </GlassCard>
       </motion.div>
-
-      {/* AIP */}
-      <motion.div variants={cardVariants}>
-        <GlassCard className={sectionCard}>
-          <div className="flex items-center gap-2 mb-1">
-            <Sparkles className="w-5 h-5 text-[#750014]" />
-            <h2 className="text-lg font-light">{t('join.aip.title')}</h2>
-          </div>
-          <p className="text-sm text-gray-600 mb-4">{t('join.aip.sub')}</p>
-          <div className="grid grid-cols-2 sm:grid-cols-4 gap-2">
-            {AIP.map((a) => (
-              <div key={a.k} className="rounded-2xl border border-white/50 bg-white/20 px-3 py-3 text-center">
-                <div className="text-xl font-light text-[#750014]">{a.v}</div>
-                <div className="text-xs text-gray-500">{t(a.k)}</div>
-              </div>
-            ))}
-          </div>
-        </GlassCard>
-      </motion.div>
-
-      {/* Footer CTA */}
-      <motion.div variants={cardVariants} className="text-center pb-4">
-        {applyBtn}
-        <p className="text-xs text-gray-500 mt-3">{t('join.ctaNote')}</p>
-      </motion.div>
-
-      {applyOpen && <ApplyModal onClose={() => setApplyOpen(false)} />}
     </motion.div>
   )
 }

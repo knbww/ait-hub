@@ -1,54 +1,40 @@
 import type { ComponentType } from 'react'
 import type { CardId } from '../types'
-import { SeasonProgressCard } from './SeasonProgressCard'
-import { ChallengeCard } from './ChallengeCard'
-import { HelpBoardCard } from './HelpBoardCard'
-import { ReferralCard } from './ReferralCard'
-import { CoursesCard } from './CoursesCard'
-import { LeaderboardCard } from './LeaderboardCard'
-import { ProfileCard } from './ProfileCard'
-import { ProjectBaseCard } from './ProjectBaseCard'
+import { WeekCard } from './WeekCard'
 import { DeadlinesCard } from './DeadlinesCard'
-import { ActivityHeatmapCard } from './ActivityHeatmapCard'
+import { EventsCard } from './EventsCard'
+import { LeaderboardCard, MyPointsCard } from './PointsCards'
+import { RatingCard } from './RatingCard'
+import { ProjectsCard, TeamCard } from './TeamProjectCards'
+import { JoinCodeCard, ReviewCard } from './StaffCards'
 
-/** Default render order for the dashboard grid. */
-export const CARD_ORDER: CardId[] = [
-  'season',
-  'challenge',
-  'help',
-  'referral',
-  'courses',
-  'leaderboard',
-  'profile',
-  'projectBase',
-  'deadlines',
-  'heatmap',
-]
+/** Default order for members; staff get their tools first and no personal-progress cards. */
+export const MEMBER_CARDS: CardId[] = ['week', 'deadlines', 'events', 'points', 'leaderboard', 'rating', 'team', 'projects']
+export const STAFF_CARDS: CardId[] = ['joinCode', 'review', 'events', 'week', 'leaderboard', 'rating', 'projects']
 
-/** i18n keys for card titles, shown in the "Available widgets" re-add panel. */
+/** i18n keys for card titles, shown in the "hidden cards" panel of layout mode. */
 export const CARD_TITLES: Record<CardId, string> = {
-  season: 'card.season',
-  challenge: 'card.challenge',
-  help: 'card.help',
-  referral: 'card.referral',
-  courses: 'card.courses',
-  leaderboard: 'card.leaderboard',
-  profile: 'card.profile',
-  projectBase: 'card.projectBase',
+  week: 'card.week',
   deadlines: 'card.deadlines',
-  heatmap: 'card.heatmap',
+  events: 'card.events',
+  points: 'card.points',
+  leaderboard: 'card.leaderboard',
+  rating: 'card.ratingShort',
+  team: 'card.team',
+  projects: 'card.projects',
+  joinCode: 'card.joinCode',
+  review: 'card.review',
 }
 
-/** Maps each card id to the component that renders its body. */
 export const CARD_COMPONENTS: Record<CardId, ComponentType> = {
-  season: SeasonProgressCard,
-  challenge: ChallengeCard,
-  help: HelpBoardCard,
-  referral: ReferralCard,
-  courses: CoursesCard,
-  leaderboard: LeaderboardCard,
-  profile: ProfileCard,
-  projectBase: ProjectBaseCard,
+  week: WeekCard,
   deadlines: DeadlinesCard,
-  heatmap: ActivityHeatmapCard,
+  events: EventsCard,
+  points: MyPointsCard,
+  leaderboard: LeaderboardCard,
+  rating: RatingCard,
+  team: TeamCard,
+  projects: ProjectsCard,
+  joinCode: JoinCodeCard,
+  review: ReviewCard,
 }

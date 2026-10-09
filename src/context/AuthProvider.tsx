@@ -1,132 +1,158 @@
-import { useCallback, useEffect, useState } from 'react'
+import { useCallback, useEffect, useMemo, useState } from 'react'
 import type { ReactNode } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { isSupabaseConfigured, supabase } from '../lib/supabase'
-import { REFERRAL_STORAGE_KEY } from '../lib/referral'
+import { queryClient } from '../lib/queryClient'
+import type { ProfileRow } from '../lib/db'
 import { AuthContext } from './authContext'
-import type { AuthValue } from './authContext'
-import type { ProfileRow } from '../lib/db-rows'
+import type { AuthValue, SignUpInput } from './authContext'
+
+const PROFILE_COLUMNS =
+  'id, user_id, full_name, role, grade, track_id, cohort_id, avatar_path, ' +
+  'github_username, codeforces_handle, status, course_completed_at, created_at'
+
+async function fetchProfile(userId: string): Promise<ProfileRow | null> {
+  if (!supabase) return null
+  const { data, error } = await supabase
+    .from('profiles')
+    .select(PROFILE_COLUMNS)
+    .eq('user_id', userId)
+    .maybeSingle()
+  if (error) throw error
+  return (data as unknown as ProfileRow | null) ?? null
+}
+
+/** Supabase reports a failed OAuth sign-in as `error_description` in the URL (query or hash). */
+function readOauthError(): string | null {
+  const query = new URLSearchParams(window.location.search)
+  const hash = new URLSearchParams(window.location.hash.replace(/^#/, ''))
+  return query.get('error_description') ?? hash.get('error_description')
+}
 
 export function AuthProvider({ children }: { children: ReactNode }) {
   const [session, setSession] = useState<Session | null>(null)
+  const [sessionLoading, setSessionLoading] = useState(isSupabaseConfigured)
   const [profile, setProfile] = useState<ProfileRow | null>(null)
-  // Only "loading" while a configured client resolves its initial session.
-  const [loading, setLoading] = useState(isSupabaseConfigured)
+  // The user id the current `profile` belongs to — lets `loading` stay true while it catches up.
+  const [profileFor, setProfileFor] = useState<string | null>(null)
+  const [profileError, setProfileError] = useState<unknown>(null)
+  const [oauthError] = useState<string | null>(readOauthError)
 
-  // Track the auth session.
   useEffect(() => {
     if (!supabase) return
-    const sb = supabase
     let active = true
-    void sb.auth.getSession().then(({ data }) => {
+    void supabase.auth.getSession().then(({ data }) => {
       if (!active) return
       setSession(data.session)
-      setLoading(false)
+      setSessionLoading(false)
     })
-    const { data: sub } = sb.auth.onAuthStateChange((_event, next) => {
-      setSession(next)
-    })
+    const { data: sub } = supabase.auth.onAuthStateChange((_event, next) => setSession(next))
     return () => {
       active = false
       sub.subscription.unsubscribe()
     }
   }, [])
 
-  // Load the linked profile (and role) whenever the session changes.
+  const userId = session?.user.id ?? null
+
   useEffect(() => {
-    if (!supabase) return
-    const sb = supabase
+    if (!userId) return
     let active = true
-    void (async () => {
-      if (!session) {
-        if (active) setProfile(null)
-        return
-      }
-      const { data } = await sb
-        .from('profiles')
-        .select('id, full_name, role, avatar_url')
-        .eq('user_id', session.user.id)
-        .maybeSingle()
-      if (active) setProfile((data as ProfileRow | null) ?? null)
-    })()
+    fetchProfile(userId)
+      .then((row) => {
+        if (!active) return
+        setProfile(row)
+        setProfileError(null)
+        setProfileFor(userId)
+      })
+      .catch((e) => {
+        console.error('profile load failed', e)
+        if (!active) return
+        setProfile(null)
+        setProfileError(e)
+        setProfileFor(userId)
+      })
     return () => {
       active = false
     }
-  }, [session])
+  }, [userId])
 
-  // Claim a captured referral once the member is signed in (idempotent — the
-  // RPC no-ops if they're already attributed). Keeps the code on a transient
-  // 'unauthenticated' result so it can retry on the next session.
-  useEffect(() => {
-    if (!supabase || !session) return
-    const code = localStorage.getItem(REFERRAL_STORAGE_KEY)
-    if (!code) return
-    const sb = supabase
-    void (async () => {
-      const { data } = await sb.rpc('claim_referral', { p_code: code })
-      if (data !== 'unauthenticated') localStorage.removeItem(REFERRAL_STORAGE_KEY)
-    })()
-  }, [session])
+  const refreshProfile = useCallback(async () => {
+    if (!userId) return
+    try {
+      setProfile(await fetchProfile(userId))
+      setProfileError(null)
+    } catch (e) {
+      setProfileError(e)
+    }
+    setProfileFor(userId)
+  }, [userId])
 
-  const signInWithPassword = useCallback<AuthValue['signInWithPassword']>(async (email, password) => {
-    if (!supabase) return { error: 'Supabase is not configured.' }
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    return { error: error?.message ?? null }
+  const signIn = useCallback<AuthValue['signIn']>(async (email, password) => {
+    if (!supabase) return { error: new Error('not_configured') }
+    const { error } = await supabase.auth.signInWithPassword({ email: email.trim(), password })
+    return { error }
   }, [])
 
-  const signUpWithPassword = useCallback<AuthValue['signUpWithPassword']>(
-    async (email, password, fullName) => {
-      if (!supabase) return { error: 'Supabase is not configured.' }
-      const { error } = await supabase.auth.signUp({
-        email,
-        password,
-        options: { data: { full_name: fullName } },
-      })
-      return { error: error?.message ?? null }
-    },
-    [],
-  )
-
   const signInWithGitHub = useCallback<AuthValue['signInWithGitHub']>(async () => {
-    if (!supabase) return { error: 'Supabase is not configured.' }
+    if (!supabase) return { error: new Error('not_configured') }
     const { error } = await supabase.auth.signInWithOAuth({
       provider: 'github',
       options: { redirectTo: window.location.origin },
     })
-    return { error: error?.message ?? null }
+    return { error }
   }, [])
 
-  const refreshProfile = useCallback(async () => {
-    if (!supabase || !session) return
-    const { data } = await supabase
-      .from('profiles')
-      .select('id, full_name, role, avatar_url')
-      .eq('user_id', session.user.id)
-      .maybeSingle()
-    setProfile((data as ProfileRow | null) ?? null)
-  }, [session])
+  const signUp = useCallback(async (input: SignUpInput) => {
+    if (!supabase) return { error: new Error('not_configured') }
+    const { data, error } = await supabase.auth.signUp({
+      email: input.email.trim(),
+      password: input.password,
+      options: {
+        data: {
+          full_name: input.fullName.trim(),
+          grade: input.grade,
+          join_code: input.joinCode.trim().toUpperCase(),
+          telegram: input.telegram.trim(),
+          photo_consent: input.photoConsent,
+        },
+      },
+    })
+    if (error) return { error }
+    return { error: null, needsConfirmation: !data.session }
+  }, [])
 
   const signOut = useCallback(async () => {
-    // Clear local UI state first so sign-out is instant and deterministic.
     setSession(null)
     setProfile(null)
+    setProfileFor(null)
+    queryClient.clear()
     if (!supabase) return
-    // scope: 'local' drops the stored session without the global server revoke,
-    // which can 403 on an already-expired token and leave the user "stuck" in.
+    // 'local' drops the stored session without a server round-trip that can 403 on an
+    // already-expired token and leave the user stuck signed in.
     await supabase.auth.signOut({ scope: 'local' })
   }, [])
 
-  const value: AuthValue = {
-    session,
-    profile,
-    role: profile?.role ?? 'member',
-    loading,
-    signInWithPassword,
-    signUpWithPassword,
-    signInWithGitHub,
-    signOut,
-    refreshProfile,
-  }
+  const value = useMemo<AuthValue>(() => {
+    const current = userId && profileFor === userId ? profile : null
+    const role = current && current.status === 'active' ? current.role : null
+    return {
+      session,
+      profile: current,
+      loading: sessionLoading || (!!userId && profileFor !== userId),
+      profileError: userId && profileFor === userId ? profileError : null,
+      role,
+      isStaff: role === 'track_lead' || role === 'director' || role === 'curator',
+      isOversight: role === 'director' || role === 'curator',
+      isDirector: role === 'director',
+      signIn,
+      signInWithGitHub,
+      oauthError,
+      signUp,
+      signOut,
+      refreshProfile,
+    }
+  }, [session, sessionLoading, userId, profile, profileFor, profileError, signIn, signInWithGitHub, oauthError, signUp, signOut, refreshProfile])
 
   return <AuthContext.Provider value={value}>{children}</AuthContext.Provider>
 }

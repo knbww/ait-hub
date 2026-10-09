@@ -17,4 +17,6 @@ jobs:
       - run: npm ci
       - run: npm run lint
       - run: npm run typecheck
+      # Every migration + the access rules, on Postgres-in-WASM (no Docker needed).
+      - run: npm run test:db
       - run: npm run build
