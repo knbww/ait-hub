@@ -1,5 +1,0 @@
-# Automatic HTTPS (Let's Encrypt) + reverse proxy to n8n.
-# {$N8N_HOST} is read from the caddy service environment.
-{$N8N_HOST} {
-	reverse_proxy n8n:5678
-}
