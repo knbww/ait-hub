@@ -88,7 +88,8 @@ update public.profiles set role = 'director', track_id = null where user_id = '<
   [`ci.yml`](.github/workflows/ci.yml) собирает и выкладывает `main`. Для него нужны секреты
   репозитория `CLOUDFLARE_API_TOKEN` (права Pages: Edit) и `CLOUDFLARE_ACCOUNT_ID` и переменные
   `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_PUBLIC_ORIGIN` (по желанию `VITE_SENTRY_DSN`).
-  Вручную: `npm run build && npx wrangler pages deploy dist --project-name ait-hub --branch main`.
+  Вручную с этого компьютера: впишите `CLOUDFLARE_API_TOKEN` и `CLOUDFLARE_ACCOUNT_ID` в
+  `.env.local` (шаблон — [`.env.example`](.env.example)) и выполните `npm run deploy`.
   Заголовки безопасности и запрет индексации — в [`public/_headers`](public/_headers).
 - **База** — `npm run db:push` (Supabase CLI, проект привязан через `supabase link`).
 - **Настройки входа в Supabase** (Authentication): регистрация по почте включена, подтверждение

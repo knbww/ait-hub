@@ -6,6 +6,7 @@
   "scripts": {
     "dev": "vite",
     "build": "tsc -b && vite build",
+    "deploy": "node scripts/deploy.mjs",
     "typecheck": "tsc -b",
     "lint": "eslint .",
     "test:db": "node scripts/db-test.mjs",
