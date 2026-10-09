@@ -1,21 +1,64 @@
-MIT License
+AIT Hub
+Copyright (c) 2026 Ilyas Nigmatov (Ильяс Нигматов). All rights reserved.
+Все права защищены.
 
-Copyright (c) 2026 knbww
+────────────────────────────────────────────────────────────────────────────
+РУССКИЙ
+────────────────────────────────────────────────────────────────────────────
 
-Permission is hereby granted, free of charge, to any person obtaining a copy
-of this software and associated documentation files (the "Software"), to deal
-in the Software without restriction, including without limitation the rights
-to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
-copies of the Software, and to permit persons to whom the Software is
-furnished to do so, subject to the following conditions:
+Исходный код AIT Hub опубликован только для просмотра.
 
-The above copyright notice and this permission notice shall be included in all
-copies or substantial portions of the Software.
+1. Правообладатель. Все права на AIT Hub — исходный код, дизайн, тексты,
+   название «AIT Hub» и логотип — принадлежат правообладателю, указанному выше.
+   Правообладатель вправе передать эти права другому лицу, в том числе
+   некоммерческой организации, без согласия лиц, просматривающих репозиторий.
 
-THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
-IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
-FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
-AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
-LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
-OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN THE
-SOFTWARE.
+2. Разрешено: просматривать и изучать код в этом репозитории и ссылаться на него.
+   Условия использования GitHub позволяют пользователям GitHub просматривать
+   публичные репозитории и делать их форки внутри GitHub; эта лицензия не даёт
+   никаких прав сверх этого.
+
+3. Запрещено без письменного разрешения правообладателя: копировать код или его
+   части в другие проекты; изменять и распространять код; разворачивать
+   собственные копии сервиса; использовать код в коммерческих целях;
+   использовать название, логотип и дизайн AIT Hub.
+
+4. Вклад. Отправляя изменения в этот репозиторий (pull request, патч и т. п.),
+   вы передаёте правообладателю исключительное право на них и подтверждаете,
+   что вправе это сделать.
+
+5. Без гарантий. Код предоставляется «как есть», без каких-либо гарантий;
+   правообладатель не отвечает за последствия его использования.
+
+Версии, опубликованные до появления этого файла, распространялись по лицензии
+MIT. Эта лицензия действует для кода начиная с коммита, в котором она появилась.
+
+────────────────────────────────────────────────────────────────────────────
+ENGLISH
+────────────────────────────────────────────────────────────────────────────
+
+The source code of AIT Hub is published for viewing only.
+
+1. Rights holder. All rights in AIT Hub — the source code, design, texts, the
+   name "AIT Hub" and the logo — belong to the rights holder named above, who
+   may transfer them to another party, including a non-profit organisation,
+   without the consent of anyone viewing this repository.
+
+2. Permitted: viewing and studying the code in this repository and linking to it.
+   GitHub's Terms of Service let GitHub users view public repositories and fork
+   them within GitHub; this license grants nothing beyond that.
+
+3. Not permitted without the rights holder's written permission: copying the
+   code or parts of it into other projects; modifying or distributing it;
+   running your own instance of the service; any commercial use; using the
+   AIT Hub name, logo or design.
+
+4. Contributions. By submitting changes to this repository (pull request, patch,
+   etc.) you assign the exclusive rights in them to the rights holder and confirm
+   that you are entitled to do so.
+
+5. No warranty. The code is provided "as is", without warranty of any kind; the
+   rights holder is not liable for any consequences of its use.
+
+Versions published before this file was added were released under the MIT
+License. This license applies to the code from the commit that introduced it.
