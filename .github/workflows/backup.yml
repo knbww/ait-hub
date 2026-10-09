@@ -54,7 +54,7 @@ jobs:
             --symmetric --cipher-algo AES256 -o ait-hub-backup.tar.gz.gpg ait-hub-backup.tar.gz
           rm -rf backup ait-hub-backup.tar.gz
 
-      - uses: actions/upload-artifact@v4
+      - uses: actions/upload-artifact@v5
         if: steps.check.outputs.ready == 'true'
         with:
           name: ait-hub-backup-${{ github.run_number }}
