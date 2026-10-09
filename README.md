@@ -81,17 +81,21 @@ update public.profiles set role = 'director', track_id = null where user_id = '<
 
 ## Выкатка
 
+- **Адрес** — `https://hub.aitclub.org` (домен `aitclub.org`, DNS в Cloudflare; корень домена
+  перенаправляет на `hub.aitclub.org/join`). Переменная сборки `VITE_PUBLIC_ORIGIN` задаёт адрес
+  для QR-кодов и перенаправляет со старого `ait-hub.pages.dev`.
 - **Фронтенд** — Cloudflare Pages, проект `ait-hub`. После зелёного CI задание `deploy` в
   [`ci.yml`](.github/workflows/ci.yml) собирает и выкладывает `main`. Для него нужны секреты
   репозитория `CLOUDFLARE_API_TOKEN` (права Pages: Edit) и `CLOUDFLARE_ACCOUNT_ID` и переменные
-  `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY` (по желанию `VITE_SENTRY_DSN`). Вручную:
-  `npm run build && npx wrangler pages deploy dist --project-name ait-hub --branch main`.
+  `VITE_SUPABASE_URL`, `VITE_SUPABASE_ANON_KEY`, `VITE_PUBLIC_ORIGIN` (по желанию `VITE_SENTRY_DSN`).
+  Вручную: `npm run build && npx wrangler pages deploy dist --project-name ait-hub --branch main`.
   Заголовки безопасности и запрет индексации — в [`public/_headers`](public/_headers).
 - **База** — `npm run db:push` (Supabase CLI, проект привязан через `supabase link`).
 - **Настройки входа в Supabase** (Authentication): регистрация по почте включена, подтверждение
-  почты выключено (почтового домена нет; без кода вступления аккаунт всё равно не создаётся),
-  Site URL — адрес сайта. Вход через GitHub работает для тех, кто уже вступил по коду с той же
-  почтой (Supabase связывает аккаунты); новый аккаунт через GitHub не создаётся.
+  почты выключено (без кода вступления аккаунт всё равно не создаётся), Site URL —
+  `https://hub.aitclub.org`, в Redirect URLs — `https://hub.aitclub.org/**`. Вход через GitHub
+  работает для тех, кто уже вступил по коду с той же почтой (Supabase связывает аккаунты);
+  новый аккаунт через GitHub не создаётся.
 - **Бэкапы.** Бесплатный тариф Supabase не делает бэкапов и засыпает после недели простоя.
   Workflow [`backup.yml`](.github/workflows/backup.yml) дважды в неделю снимает дамп базы,
   шифрует его и сохраняет артефактом в GitHub Actions (это же не даёт проекту уснуть). Нужны

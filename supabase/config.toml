@@ -23,7 +23,7 @@ port = 54323
 [auth]
 enabled = true
 site_url = "http://localhost:5173"
-additional_redirect_urls = ["http://localhost:5173", "https://ait-hub.pages.dev"]
+additional_redirect_urls = ["http://localhost:5173", "https://hub.aitclub.org", "https://ait-hub.pages.dev"]
 jwt_expiry = 3600
 enable_signup = true
 

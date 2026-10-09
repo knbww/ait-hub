@@ -6,11 +6,12 @@ import { useI18n } from '../context/i18nContext'
 import { rotateJoinCode } from '../lib/memberActions'
 import type { JoinCodeRow } from '../lib/db'
 import { btnSmall } from '../lib/ui'
+import { publicOrigin } from '../lib/origin'
 
 // Keep the QR generator out of the main bundle.
 const QRCodeSVG = lazy(() => import('qrcode.react').then((m) => ({ default: m.QRCodeSVG })))
 
-const joinLink = (code: string) => `${window.location.origin}/join?code=${code}`
+const joinLink = (code: string) => `${publicOrigin}/join?code=${code}`
 
 /** A track's join code as a QR to show at the meeting: scan → sign-up form → profile. */
 export function JoinCodePanel({ code, allowRotate = true }: { code: JoinCodeRow; allowRotate?: boolean }) {

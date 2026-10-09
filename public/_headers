@@ -2,6 +2,7 @@
 # The Hub holds minors' data: no indexing, no framing, a strict content policy. If something stops
 # loading after a change of services (e.g. a new error tracker), extend connect-src / img-src here.
 /*
+  Strict-Transport-Security: max-age=31536000
   X-Robots-Tag: noindex, nofollow
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
