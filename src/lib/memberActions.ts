@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
 import { notConfigured, refresh, rpc } from './mutate'
+import { clearWorkFolder } from './workFiles'
 import type { Result } from './mutate'
 import type { Role, TrackId } from './db'
 
@@ -107,9 +108,11 @@ export const setMemberStatus = (profileId: string, status: 'active' | 'inactive'
 export const adminSetPassword = (profileId: string, password: string) =>
   rpc('admin_set_password', { p_profile: profileId, p_password: password })
 
-/** Full deletion on request: photos first (Storage API), then everything else in one call. */
+/** Full deletion on request: photos and work files first (Storage API), then everything else
+ * in one call. */
 export async function deleteMember(profileId: string, userId: string | null): Promise<Result<{ auth_deleted: boolean }>> {
   if (userId) await clearAvatarFolder(userId)
+  await clearWorkFolder(profileId)
   return rpc<{ auth_deleted: boolean }>('delete_member', { p_profile: profileId }, MEMBER_KEYS)
 }
 

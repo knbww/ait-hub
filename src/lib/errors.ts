@@ -38,6 +38,12 @@ const DB_CODES = [
   'photo_too_big',
   'too_many_photos',
   'photo_consent_needed',
+  'invalid_file',
+  'too_many_files',
+  'link_or_file',
+  'file_type',
+  'file_too_big',
+  'file_empty',
 ] as const
 
 function rawMessage(error: unknown): string {
@@ -73,6 +79,8 @@ export function errorKey(error: unknown): string {
   if (lower.includes('rate limit') || lower.includes('too many')) return 'errors.rateLimit'
   if (lower.includes('email not confirmed')) return 'errors.emailNotConfirmed'
   if (lower.includes('signups not allowed')) return 'errors.signupsClosed'
+  if (lower.includes('mime type') || lower.includes('invalid_mime_type')) return 'errors.file_type'
+  if (lower.includes('maximum allowed size') || lower.includes('payload too large')) return 'errors.file_too_big'
   if (lower.includes('row-level security') || lower.includes('permission denied')) return 'errors.forbidden'
   if (lower.includes('violates check constraint') || lower.includes('invalid input')) return 'errors.invalidInput'
   if (lower.includes('duplicate key')) return 'errors.duplicate'

@@ -1,13 +1,14 @@
 import { useEffect, useState } from 'react'
-import type { FormEvent } from 'react'
+import type { ChangeEvent, FormEvent } from 'react'
 import { motion } from 'framer-motion'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
-import { Check, ChevronDown, ExternalLink, FolderOpen, Pencil } from 'lucide-react'
+import { Check, ChevronDown, ExternalLink, FolderOpen, Paperclip, Pencil } from 'lucide-react'
 import { GlassCard } from '../components/GlassCard'
 import { LinkifiedText } from '../components/LinkifiedText'
 import { DataState, ErrorText } from '../components/DataState'
 import { SubmissionBadge } from '../components/SubmissionBadge'
 import { Avatar } from '../components/Avatar'
+import { WorkFileChip, WorkFileList } from '../components/WorkFiles'
 import { pageVariants } from '../lib/animations'
 import { useAuth } from '../context/authContext'
 import { useI18n } from '../context/i18nContext'
@@ -17,37 +18,73 @@ import { reviewWork, setAttendance, submitWork, updateTrackDrive, updateWeek } f
 import {
   MEETING_KINDS, PROGRAM_WEEKS, TRACK_IDS, currentWeekNumber, daysUntil, formatShortDay, isHttpUrl, weekDeadline,
 } from '../lib/club'
-import type { MeetingKind, ProfileRow, ProgramWeekRow, SubmissionRow, TrackId } from '../lib/db'
+import { MAX_WORK_FILES, WORK_FILE_ACCEPT, checkWorkFile } from '../lib/workFiles'
+import type { MeetingKind, ProfileRow, ProgramWeekRow, SubmissionRow, TrackId, WorkFile } from '../lib/db'
 import { btnPrimary, btnSecondary, btnSmall, inputClass, labelClass, pageTitle, segment } from '../lib/ui'
 
 // ── Member: hand in a week's work ───────────────────────────────────────────
 function SubmitWork({ week, submission }: { week: ProgramWeekRow; submission: SubmissionRow | undefined }) {
   const { t } = useI18n()
+  const { profile } = useAuth()
   const [editing, setEditing] = useState(!submission || submission.status === 'needs_work')
   const [link, setLink] = useState(submission?.link ?? '')
   const [comment, setComment] = useState(submission?.comment ?? '')
+  const [keep, setKeep] = useState<WorkFile[]>(submission?.files ?? [])
+  const [added, setAdded] = useState<File[]>([])
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<unknown>(null)
+  const room = MAX_WORK_FILES - keep.length - added.length
+
+  const pick = (e: ChangeEvent<HTMLInputElement>) => {
+    const files = Array.from(e.target.files ?? [])
+    e.target.value = ''
+    setError(files.length > room ? 'too_many_files' : null)
+    const ok: File[] = []
+    for (const file of files.slice(0, Math.max(0, room))) {
+      try {
+        checkWorkFile(file)
+        ok.push(file)
+      } catch (err) {
+        setError(err)
+      }
+    }
+    setAdded((list) => [...list, ...ok])
+  }
+
+  const cancel = () => {
+    setLink(submission?.link ?? '')
+    setComment(submission?.comment ?? '')
+    setKeep(submission?.files ?? [])
+    setAdded([])
+    setError(null)
+    setEditing(false)
+  }
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
-    if (!isHttpUrl(link)) return setError('invalid_link')
+    if (!profile) return
+    if (link.trim() && !isHttpUrl(link)) return setError('invalid_link')
+    if (!link.trim() && keep.length + added.length === 0) return setError('link_or_file')
     setBusy(true)
     setError(null)
-    const res = await submitWork(week.id, link, comment)
+    const res = await submitWork(week.id, profile.id, { link, comment }, { keep, add: added }, submission?.files ?? [])
     setBusy(false)
     if (res.error) return setError(res.error)
+    setAdded([])
     setEditing(false)
   }
 
   return (
     <div className="space-y-3">
       {submission && (
-        <div className="rounded-2xl border border-white/60 bg-white/30 p-3 text-sm space-y-1">
+        <div className="rounded-2xl border border-white/60 bg-white/30 p-3 text-sm space-y-2">
           <div className="flex flex-wrap items-center gap-2">
             <SubmissionBadge status={submission.status} />
-            <a href={submission.link} target="_blank" rel="noreferrer" className="underline break-all">{t('work.yourLink')}</a>
+            {submission.link && (
+              <a href={submission.link} target="_blank" rel="noreferrer" className="underline break-all">{t('work.yourLink')}</a>
+            )}
           </div>
+          <WorkFileList files={submission.files} />
           {submission.feedback && (
             <p className="text-gray-800"><span className="text-gray-500">{t('work.feedback')}</span> {submission.feedback}</p>
           )}
@@ -56,16 +93,32 @@ function SubmitWork({ week, submission }: { week: ProgramWeekRow; submission: Su
       {editing ? (
         <form onSubmit={submit} className="space-y-2">
           <input className={inputClass} type="url" inputMode="url" value={link} onChange={(e) => setLink(e.target.value)}
-            placeholder={t('work.linkPlaceholder')} required />
+            placeholder={t('work.linkPlaceholder')} aria-label={t('work.linkPlaceholder')} />
+          <div className="flex flex-wrap items-center gap-2">
+            {keep.map((f) => (
+              <WorkFileChip key={f.path} name={f.name} size={f.size}
+                onRemove={() => setKeep((list) => list.filter((x) => x.path !== f.path))} />
+            ))}
+            {added.map((f, i) => (
+              <WorkFileChip key={`${f.name}-${f.lastModified}-${i}`} name={f.name} size={f.size}
+                onRemove={() => setAdded((list) => list.filter((x) => x !== f))} />
+            ))}
+            {room > 0 && (
+              <label className={`${btnSmall} border border-dashed border-gray-900/30 bg-white/40 hover:bg-white/70 cursor-pointer`}>
+                <Paperclip className="w-3.5 h-3.5" /> {t('work.addFile')}
+                <input type="file" multiple accept={WORK_FILE_ACCEPT} className="sr-only" onChange={pick} />
+              </label>
+            )}
+          </div>
           <textarea className={inputClass} rows={2} value={comment} onChange={(e) => setComment(e.target.value)}
-            placeholder={t('work.commentPlaceholder')} maxLength={1000} />
+            placeholder={t('work.commentPlaceholder')} aria-label={t('work.commentPlaceholder')} maxLength={1000} />
           <ErrorText error={error} />
           <div className="flex gap-2">
             <button type="submit" disabled={busy} className={btnPrimary}>
               {busy ? t('common.wait') : submission ? t('work.resubmit') : t('work.submit')}
             </button>
             {submission && (
-              <button type="button" onClick={() => setEditing(false)} className={btnSecondary}>{t('common.cancel')}</button>
+              <button type="button" onClick={cancel} className={btnSecondary}>{t('common.cancel')}</button>
             )}
           </div>
           <p className="text-xs text-gray-600">{t('work.hint')}</p>
@@ -168,9 +221,11 @@ function ReviewRow({ member, weekId, submission, present }: {
           <SubmissionBadge status={submission?.status} />
           {submission && (
             <>
-              <a href={submission.link} target="_blank" rel="noreferrer" className={`${btnSmall} border border-gray-900/20 bg-white/40`}>
-                <ExternalLink className="w-3 h-3" /> {t('work.open')}
-              </a>
+              {submission.link && (
+                <a href={submission.link} target="_blank" rel="noreferrer" className={`${btnSmall} border border-gray-900/20 bg-white/40`}>
+                  <ExternalLink className="w-3 h-3" /> {t('work.open')}
+                </a>
+              )}
               <button onClick={() => setOpen((v) => !v)} className={`${btnSmall} border border-gray-900/20 bg-white/40`}>
                 {t('work.review')}
               </button>
@@ -178,6 +233,7 @@ function ReviewRow({ member, weekId, submission, present }: {
           )}
         </div>
       </div>
+      {submission && submission.files.length > 0 && <div className="mt-2"><WorkFileList files={submission.files} /></div>}
       {submission?.comment && <p className="text-xs text-gray-600 mt-1">«{submission.comment}»</p>}
       {open && submission && (
         <div className="mt-2 space-y-2">

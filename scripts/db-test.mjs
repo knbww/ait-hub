@@ -611,6 +611,49 @@ async function freshScenario() {
   await expectEqual('comments: only the moderator\'s removal was logged', db, pg,
     `select count(*)::int from public.audit_log where action = 'comment_removed'`, [], 1)
 
+  // ── Files with a work ─────────────────────────────────────────────────────
+  const workFile = `insert into storage.objects (bucket_id, name) values ('works', $1)`
+  const countWorkFiles = `select count(*)::int from storage.objects where bucket_id = 'works'`
+  const handIn = 'select public.submit_work($1, null, null, $2::jsonb)'
+  const report = `${P.ai1}/k2f9-report.pdf`
+  await expectOk('work files: a member uploads into own folder', db, m, workFile, [report])
+  await expectError('work files: not into someone else\'s folder', db, m, workFile, [`${P.ai2}/x.pdf`], RLS)
+  await expectError('work files: no programs', db, m, workFile, [`${P.ai1}/setup.exe`], RLS)
+  await expectError('work files: no subfolders', db, m, workFile, [`${P.ai1}/a/b.pdf`], RLS)
+  await expectError('work files: deactivated members cannot upload', db, U.inactive, workFile, [`${P.inactive}/x.pdf`], RLS)
+  await run(db, U.ai2, workFile, [`${P.ai2}/notes.txt`])
+  await expectEqual('work files: members see their own', db, m, countWorkFiles, [], 1)
+  await expectEqual('work files: their lead sees the track\'s', db, l, countWorkFiles, [], 2)
+  await expectEqual('work files: another track\'s lead sees none', db, U.leadAlgo, countWorkFiles, [], 0)
+  await expectEqual('work files: the curator sees all', db, U.cur, countWorkFiles, [], 2)
+  await expectOk('work files: handed in with a file and no link', db, m, handIn,
+    [aiWeek1, JSON.stringify([{ path: report, name: ' Отчёт.pdf ', size: 120000 }])])
+  await expectEqual('work files: kept on the work', db, pg,
+    `select link is null and files -> 0 ->> 'name' = 'Отчёт.pdf' and status = 'submitted' from public.submissions where id = $1`,
+    [sub1], true)
+  await expectError('work files: only own files', db, m, handIn,
+    [aiWeek1, JSON.stringify([{ path: `${P.ai2}/notes.txt`, name: 'n.txt', size: 10 }])], /invalid_file/)
+  await expectError('work files: only uploaded files', db, m, handIn,
+    [aiWeek1, JSON.stringify([{ path: `${P.ai1}/ghost.pdf`, name: 'g.pdf', size: 10 }])], /invalid_file/)
+  await expectError('work files: at most three', db, m, handIn,
+    [aiWeek1, JSON.stringify(Array(4).fill({ path: report, name: 'a.pdf', size: 1 }))], /too_many_files/)
+  await expectError('work files: at most 5 MB', db, m, handIn,
+    [aiWeek1, JSON.stringify([{ path: report, name: 'big.pdf', size: 6 * 1024 * 1024 }])], /invalid_file/)
+  await expectError('work files: a link or a file', db, m, handIn, [aiWeek1, '[]'], /link_or_file/)
+  await expectError('work files: no direct writes', db, m,
+    `update public.submissions set files = '[]' where id = $1`, [sub1], DENIED)
+  await expectNoEffect('work files: members cannot delete others\'', db, m,
+    `delete from storage.objects where bucket_id = 'works' and name = $1`, [`${P.ai2}/notes.txt`])
+  await expectNoEffect('work files: nor can their lead', db, l,
+    `delete from storage.objects where bucket_id = 'works' and name = $1`, [`${P.ai2}/notes.txt`])
+  await expectOk('work files: the director can (deleting a member\'s data)', db, U.dir,
+    `delete from storage.objects where bucket_id = 'works' and name = $1`, [`${P.ai2}/notes.txt`])
+  await expectEqual('work files: listed in the member\'s data download', db, m,
+    `select public.export_member_data($1) -> 'works' -> 0 -> 'files' ->> 0`, [P.ai1], 'Отчёт.pdf')
+  await run(db, U.ai1, `select public.submit_work($1, 'https://colab.research.google.com/y')`, [aiWeek1])
+  await expectEqual('work files: a link-only resubmission clears them', db, pg,
+    `select jsonb_array_length(files) from public.submissions where id = $1`, [sub1], 0)
+
   // ── Teams ─────────────────────────────────────────────────────────────────
   const team = await value(db, U.ai1, `select public.create_team('Нейроны', 'турнир')`)
   await expectError('teams: one team per member', db, U.ai1, `select public.create_team('Вторая')`, [], /already_in_team/)

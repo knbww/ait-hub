@@ -20,7 +20,7 @@ export function useProgramWeeks(trackId: TrackId | null | undefined) {
   })
 }
 
-const SUBMISSION_COLUMNS = 'id, profile_id, week_id, link, comment, status, feedback, submitted_at, reviewed_at'
+const SUBMISSION_COLUMNS = 'id, profile_id, week_id, link, files, comment, status, feedback, submitted_at, reviewed_at'
 
 /** The member's own works, keyed by week id. */
 export function useMySubmissions(profileId: string | undefined) {

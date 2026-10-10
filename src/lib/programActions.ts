@@ -1,13 +1,41 @@
 import { supabase } from './supabase'
 import { notConfigured, refresh, rpc } from './mutate'
 import { notify } from './push'
+import { removeWorkFiles, uploadWorkFiles } from './workFiles'
 import type { Result } from './mutate'
-import type { MeetingKind, SubmissionStatus, TrackId } from './db'
+import type { MeetingKind, SubmissionStatus, TrackId, WorkFile } from './db'
 
-export const submitWork = (weekId: string, link: string, comment: string) =>
-  rpc('submit_work', { p_week: weekId, p_link: link.trim(), p_comment: comment.trim() || null }, [
-    ['submissions'],
-  ])
+/** New files go up first; the work then lists the kept and new ones. Files dropped from the
+ * work are deleted after it is saved, new uploads if it isn't. */
+export async function submitWork(
+  weekId: string,
+  profileId: string,
+  fields: { link: string; comment: string },
+  files: { keep: WorkFile[]; add: File[] },
+  previous: WorkFile[],
+): Promise<Result> {
+  if (!supabase) return notConfigured()
+  let uploaded: WorkFile[]
+  try {
+    uploaded = await uploadWorkFiles(profileId, files.add)
+  } catch (error) {
+    return { data: null, error }
+  }
+  const all = [...files.keep, ...uploaded]
+  const res = await rpc('submit_work', {
+    p_week: weekId,
+    p_link: fields.link.trim() || null,
+    p_comment: fields.comment.trim() || null,
+    p_files: all,
+  }, [['submissions'], ['week-work']])
+  if (res.error) {
+    await removeWorkFiles(uploaded.map((f) => f.path))
+    return res
+  }
+  const kept = new Set(all.map((f) => f.path))
+  await removeWorkFiles(previous.filter((f) => !kept.has(f.path)).map((f) => f.path))
+  return res
+}
 
 export async function reviewWork(submissionId: string, status: Exclude<SubmissionStatus, 'submitted'>, feedback: string) {
   const res = await rpc('review_work', { p_submission: submissionId, p_status: status, p_feedback: feedback.trim() || null }, [

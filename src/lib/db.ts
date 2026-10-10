@@ -55,11 +55,20 @@ export interface CohortWeekRow {
 
 export type SubmissionStatus = 'submitted' | 'accepted' | 'needs_work'
 
+/** A file handed in with a work: `path` in the private `works` bucket, the original name. */
+export interface WorkFile {
+  path: string
+  name: string
+  size: number
+}
+
 export interface SubmissionRow {
   id: string
   profile_id: string
   week_id: string
-  link: string
+  /** A link, files, or both. */
+  link: string | null
+  files: WorkFile[]
   comment: string | null
   status: SubmissionStatus
   feedback: string | null
