@@ -44,6 +44,8 @@ export interface ProgramWeekRow {
   title: string
   materials_url: string | null
   assignment: string | null
+  /** Certificate milestone finished by this week's work (e.g. a CS50 project). */
+  milestone: string | null
 }
 
 export interface CohortWeekRow {

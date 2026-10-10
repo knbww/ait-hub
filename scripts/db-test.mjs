@@ -205,6 +205,9 @@ async function freshScenario() {
     `select starts_at = '2026-11-23 15:00+05' from public.events where title = 'Первый рейтинговый контест'`, [], true)
   await expectEqual('content: loading it writes nothing to the audit log', db, pg,
     'select count(*)::int from public.audit_log', [], 0)
+  await expectEqual('progress: the twelve CS50 AI projects are milestones', db, pg,
+    `select string_agg(milestone, ',' order by week_number) from public.program_weeks where track_id = 'ai'`, [],
+    'Degrees,Tic-Tac-Toe,Knights,Minesweeper,Heredity,PageRank,Crossword,Shopping,Nim,Traffic,Parser,Attention')
   await expectEqual('content: one pinned welcome post', db, pg,
     'select count(*)::int from public.news where pinned and author_id is null', [], 1)
 
@@ -508,6 +511,14 @@ async function freshScenario() {
     'update public.rating_results set rating_delta = 300 where event_id = $1', [contest])
   await expectError('rating: only oversight reopens an event', db, U.leadAlgo,
     `update public.events set status = 'confirmed' where id = $1`, [contest], /forbidden/)
+
+  // ── Milestones ────────────────────────────────────────────────────────────
+  await expectOk('progress: a lead renames a milestone of their track', db, l,
+    `update public.program_weeks set milestone = 'Degrees (CS50)' where track_id = 'ai' and week_number = 5`)
+  await expectNoEffect('progress: not of another track', db, l,
+    `update public.program_weeks set milestone = 'x' where track_id = 'algo' and week_number = 5`)
+  await expectNoEffect('progress: members cannot', db, m,
+    `update public.program_weeks set milestone = 'x' where track_id = 'ai' and week_number = 5`)
 
   // ── News ──────────────────────────────────────────────────────────────────
   const insertNews = 'insert into public.news (title, body, track_id, pinned) values ($1, $2, $3, $4) returning id'

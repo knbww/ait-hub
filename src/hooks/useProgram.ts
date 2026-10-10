@@ -11,7 +11,7 @@ export function useProgramWeeks(trackId: TrackId | null | undefined) {
       if (!supabase || !trackId) return []
       const { data, error } = await supabase
         .from('program_weeks')
-        .select('id, track_id, week_number, title, materials_url, assignment')
+        .select('id, track_id, week_number, title, materials_url, assignment, milestone')
         .eq('track_id', trackId)
         .order('week_number')
       if (error) throw error
@@ -74,6 +74,45 @@ export function useWeekWork(weekId: string | null, trackId: TrackId | null, enab
         submissions: new Map((subsRes.data as SubmissionRow[]).map((s) => [s.profile_id, s])),
         attendance: new Set((attRes.data as AttendanceRow[]).map((a) => `${a.profile_id}:${a.kind}`)),
       }
+    },
+  })
+}
+
+export interface TrackProgress {
+  members: ProfileRow[]
+  /** profile id → (week id → work) */
+  submissions: Map<string, Map<string, SubmissionRow>>
+}
+
+/** Staff overview of a track: its active members and all their works (RLS: members the viewer manages). */
+export function useTrackProgress(trackId: TrackId | null, enabled: boolean) {
+  return useQuery<TrackProgress>({
+    queryKey: ['track-progress', trackId],
+    enabled: Boolean(enabled && trackId),
+    queryFn: async () => {
+      const empty: TrackProgress = { members: [], submissions: new Map() }
+      if (!supabase || !trackId) return empty
+      const [membersRes, subsRes] = await Promise.all([
+        supabase
+          .from('profiles')
+          .select('id, user_id, full_name, role, grade, track_id, cohort_id, avatar_path, github_username, codeforces_handle, status, course_completed_at, created_at')
+          .eq('track_id', trackId)
+          .eq('role', 'member')
+          .eq('status', 'active')
+          .order('full_name'),
+        supabase
+          .from('submissions')
+          .select(`${SUBMISSION_COLUMNS}, week:program_weeks!inner(track_id)`)
+          .eq('week.track_id', trackId),
+      ])
+      if (membersRes.error) throw membersRes.error
+      if (subsRes.error) throw subsRes.error
+      const submissions = new Map<string, Map<string, SubmissionRow>>()
+      for (const s of subsRes.data as unknown as SubmissionRow[]) {
+        if (!submissions.has(s.profile_id)) submissions.set(s.profile_id, new Map())
+        submissions.get(s.profile_id)!.set(s.week_id, s)
+      }
+      return { members: membersRes.data as unknown as ProfileRow[], submissions }
     },
   })
 }

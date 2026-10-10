@@ -14,6 +14,7 @@ const DashboardPage = page(() => import('./pages/DashboardPage'), 'DashboardPage
 const ProgramPage = page(() => import('./pages/ProgramPage'), 'ProgramPage')
 const CalendarPage = page(() => import('./pages/CalendarPage'), 'CalendarPage')
 const NewsPage = page(() => import('./pages/NewsPage'), 'NewsPage')
+const ProgressPage = page(() => import('./pages/ProgressPage'), 'ProgressPage')
 const PointsPage = page(() => import('./pages/PointsPage'), 'PointsPage')
 const RatingPage = page(() => import('./pages/RatingPage'), 'RatingPage')
 const TeamsPage = page(() => import('./pages/TeamsPage'), 'TeamsPage')
@@ -40,6 +41,7 @@ export function AnimatedRoutes() {
           <Route path="/program" element={auth(<ProgramPage />)} />
           <Route path="/calendar" element={auth(<CalendarPage />)} />
           <Route path="/news" element={auth(<NewsPage />)} />
+          <Route path="/progress" element={auth(<ProgressPage />)} />
           <Route path="/points" element={auth(<PointsPage />)} />
           <Route path="/rating" element={auth(<RatingPage />)} />
           <Route path="/teams" element={auth(<TeamsPage />)} />

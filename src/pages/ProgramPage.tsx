@@ -415,6 +415,11 @@ export function ProgramPage() {
               : t('program.weekOf', { n: current, total: PROGRAM_WEEKS })}
         </p>
         {trackId && <DriveLink key={trackId} trackId={trackId} url={track?.drive_url ?? null} canEdit={manage} />}
+        {trackId && (
+          <Link to="/progress" className="inline-block text-sm underline mt-3">
+            {manage ? t('progress.staffTitle') : t('card.progress')} →
+          </Link>
+        )}
       </GlassCard>
 
       {!trackId ? (
