@@ -19,7 +19,7 @@ export function TeamCard() {
         empty={!mine} emptyText={t('team.none')}>
         {mine && (
           <div>
-            <p className="text-base font-normal">{mine.name}</p>
+            <p className="text-base font-normal"><Link to={`/teams/${mine.id}`} className="hover:underline">{mine.name}</Link></p>
             {mine.goal && <p className="text-sm text-gray-700 mb-2">{mine.goal}</p>}
             <p className="text-xs text-gray-600">
               {mine.team_members?.map((m) => m.profile?.full_name).filter(Boolean).join(', ')}

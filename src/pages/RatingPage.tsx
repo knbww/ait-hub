@@ -149,7 +149,8 @@ function EventResults({ event, canEdit }: { event: EventRow; canEdit: boolean })
               <li key={r.id} className="py-2 flex items-center gap-3 text-sm">
                 <span className="w-8 text-gray-500">{r.place ?? '—'}</span>
                 <span className="flex-1 truncate">
-                  {r.profile_id ? <Link to={`/members/${r.profile_id}`} className="hover:underline">{r.profile?.full_name}</Link> : r.team?.name}
+                  {r.profile_id ? <Link to={`/members/${r.profile_id}`} className="hover:underline">{r.profile?.full_name}</Link>
+                    : r.team_id ? <Link to={`/teams/${r.team_id}`} className="hover:underline">{r.team?.name}</Link> : null}
                 </span>
                 {r.score !== null && <span className="text-gray-600">{r.score}</span>}
                 <span className="w-12 text-right font-medium">{r.rating_delta > 0 ? `+${r.rating_delta}` : r.rating_delta}</span>
@@ -231,7 +232,7 @@ export function RatingPage() {
                   <li key={r.team_id} className="flex items-center gap-3 px-2 py-2">
                     <span className="w-6 text-sm text-gray-500">{i + 1}</span>
                     <span className="flex-1 min-w-0">
-                      <span className="block truncate text-sm">{r.name}</span>
+                      <Link to={`/teams/${r.team_id}`} className="block truncate text-sm hover:underline">{r.name}</Link>
                       <span className="block text-xs text-gray-600">{t('rating.stats', { events: r.events, best: r.best_place ?? '—' })}</span>
                     </span>
                     <span className="text-sm font-medium tabular-nums">{r.rating}</span>

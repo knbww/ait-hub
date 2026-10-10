@@ -18,6 +18,7 @@ const ProgressPage = page(() => import('./pages/ProgressPage'), 'ProgressPage')
 const PointsPage = page(() => import('./pages/PointsPage'), 'PointsPage')
 const RatingPage = page(() => import('./pages/RatingPage'), 'RatingPage')
 const TeamsPage = page(() => import('./pages/TeamsPage'), 'TeamsPage')
+const TeamPage = page(() => import('./pages/TeamPage'), 'TeamPage')
 const ProjectsPage = page(() => import('./pages/ProjectsPage'), 'ProjectsPage')
 const ProjectPage = page(() => import('./pages/ProjectPage'), 'ProjectPage')
 const ProfilePage = page(() => import('./pages/ProfilePage'), 'ProfilePage')
@@ -45,6 +46,7 @@ export function AnimatedRoutes() {
           <Route path="/points" element={auth(<PointsPage />)} />
           <Route path="/rating" element={auth(<RatingPage />)} />
           <Route path="/teams" element={auth(<TeamsPage />)} />
+          <Route path="/teams/:id" element={auth(<TeamPage />)} />
           <Route path="/projects" element={auth(<ProjectsPage />)} />
           <Route path="/projects/:id" element={auth(<ProjectPage />)} />
           <Route path="/profile" element={auth(<ProfilePage />)} />

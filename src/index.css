@@ -1,8 +1,16 @@
 @import "tailwindcss";
 
-/* System fonts only. On Apple devices `ui-rounded` is SF Pro Rounded (the look the design was
-   drawn in); elsewhere the platform's own sans. No font files are shipped: Apple's SF fonts
-   may not be redistributed from a website. */
+/* Small grey text sits on translucent glass: the two lightest text greys are a step darker than
+   Tailwind's, so captions stay readable over the coloured background. */
+@theme {
+  --color-gray-500: oklch(0.49 0.027 264.364);
+  --color-gray-600: oklch(0.41 0.03 256.802);
+}
+
+/* On Apple devices `ui-rounded` is SF Pro Rounded, the look the design was drawn in (Apple's
+   fonts can't be shipped from a website). Everywhere else Nunito — a rounded face with full
+   Cyrillic, served from this site — keeps the same character instead of Segoe UI / Roboto.
+   A browser downloads Nunito only where SF Rounded isn't installed. */
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;
@@ -10,7 +18,7 @@
   }
 
   html, body {
-    font-family: ui-rounded, 'SF Pro Rounded', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
+    font-family: ui-rounded, 'SF Pro Rounded', 'Nunito Variable', system-ui, -apple-system, 'Segoe UI', Roboto, 'Helvetica Neue', Arial, sans-serif;
   }
 
   body {

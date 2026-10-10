@@ -6,15 +6,20 @@ import { GlassCard } from '../components/GlassCard'
 import { DataState, ErrorText } from '../components/DataState'
 import { Avatar } from '../components/Avatar'
 import { TrackBadge } from '../components/TrackBadge'
+import { RatingChart } from '../components/RatingChart'
+import type { RatingPoint } from '../components/RatingChart'
+import { toRatingPoints } from '../lib/rating'
+import { WeekGrid } from '../components/WeekGrid'
 import { pageVariants } from '../lib/animations'
 import { useAuth } from '../context/authContext'
 import { useI18n } from '../context/i18nContext'
-import { useMember } from '../hooks/useClub'
+import { useMember, useSchedule } from '../hooks/useClub'
 import { useMemberPrivate } from '../hooks/useManage'
-import { usePointsJournal, usePointsTotal } from '../hooks/usePoints'
-import { useRatingHistory } from '../hooks/useEvents'
+import { useLeaderboard, usePointsJournal, usePointsTotal } from '../hooks/usePoints'
+import { useRatingHistory, useTrackRating } from '../hooks/useEvents'
 import { useProjects, useTeams } from '../hooks/useTeams'
-import { useMySubmissions } from '../hooks/useProgram'
+import { useMySubmissions, useProgramWeeks } from '../hooks/useProgram'
+import { summarize } from '../lib/progress'
 import {
   adminSetPassword, deleteMember, exportMemberData, setMemberRole, setMemberStatus, setMemberTrack,
 } from '../lib/memberActions'
@@ -167,6 +172,74 @@ function ManagePanel({ member }: { member: ProfileRow }) {
   )
 }
 
+type HistoryRow = NonNullable<ReturnType<typeof useRatingHistory>['data']>[number]
+
+function Tile({ label, value, sub }: { label: string; value: string | number; sub?: string }) {
+  return (
+    <GlassCard className="!p-4">
+      <p className="text-xs text-gray-600">{label}</p>
+      <p className="text-3xl font-light leading-tight mt-0.5">{value}</p>
+      {sub && <p className="text-xs text-gray-600 mt-0.5">{sub}</p>}
+    </GlassCard>
+  )
+}
+
+/** HLTV-style headline numbers: rating and place in the track, events, best place, AIT Points. */
+function StatsRow({ member, history, points }: { member: ProfileRow; history: HistoryRow[]; points: number }) {
+  const { t } = useI18n()
+  const byTrack = new Map<TrackId, number>()
+  for (const r of history) if (r.event) byTrack.set(r.event.track_id, (byTrack.get(r.event.track_id) ?? 0) + 1)
+  const track: TrackId | null = member.track_id ?? [...byTrack.entries()].sort((a, b) => b[1] - a[1])[0]?.[0] ?? null
+  const ratingList = useTrackRating(track ?? 'ai')
+  const leaderboard = useLeaderboard(member.track_id)
+  const ratingIndex = track ? (ratingList.data ?? []).findIndex((r) => r.profile_id === member.id) : -1
+  const rating = ratingIndex >= 0 ? ratingList.data![ratingIndex].rating : null
+  const pointsIndex = (leaderboard.data ?? []).findIndex((r) => r.profile_id === member.id)
+  const places = history.map((r) => r.place).filter((n): n is number => n !== null)
+
+  return (
+    <div className="grid grid-cols-2 sm:grid-cols-4 gap-3">
+      <Tile label={track ? t('member.stat.rating', { track: t(`track.${track}.short`) }) : t('member.stat.ratingAny')}
+        value={rating ?? '—'}
+        sub={ratingIndex >= 0 ? t('member.stat.place', { n: ratingIndex + 1, total: ratingList.data!.length }) : undefined} />
+      <Tile label={t('member.stat.events')} value={history.length} />
+      <Tile label={t('member.stat.best')} value={places.length ? t('member.place', { n: Math.min(...places) }) : '—'} />
+      <Tile label="AIT Points" value={points}
+        sub={pointsIndex >= 0 ? t('member.stat.place', { n: pointsIndex + 1, total: leaderboard.data!.length }) : undefined} />
+    </div>
+  )
+}
+
+/** Rating after each completed rated event, per track. */
+function ratingSeries(history: HistoryRow[]): { track: TrackId; points: RatingPoint[] }[] {
+  return TRACK_IDS
+    .map((track) => ({ track, points: toRatingPoints(history.filter((r) => r.event?.track_id === track)) }))
+    .filter((s) => s.points.length > 0)
+}
+
+/** Works week by week — only for the member themselves and those who manage them. */
+function MemberWeeks({ member }: { member: ProfileRow }) {
+  const { t } = useI18n()
+  const schedule = useSchedule(member.cohort_id)
+  const program = useProgramWeeks(member.track_id)
+  const works = useMySubmissions(member.id)
+  const s = summarize(program.data ?? [], schedule.data ?? [], works.data)
+  return (
+    <GlassCard>
+      <h2 className={sectionTitle}>{t('member.weeks')}</h2>
+      <p className="text-sm text-gray-700 mb-3">
+        {t('progress.weeksAccepted', { n: s.accepted, total: s.due })}
+        {s.milestones.length > 0 && ` · ${t('progress.milestonesDone', { n: s.milestones.filter((x) => x.state === 'accepted').length, total: s.milestones.length })}`}
+      </p>
+      <DataState isLoading={program.isLoading || schedule.isLoading || works.isLoading}
+        error={program.error ?? schedule.error ?? works.error}
+        onRetry={() => { void program.refetch(); void schedule.refetch(); void works.refetch() }}>
+        <WeekGrid weeks={s.weeks} linkable={false} />
+      </DataState>
+    </GlassCard>
+  )
+}
+
 export function MemberPage() {
   const { id } = useParams()
   const { t } = useI18n()
@@ -183,10 +256,6 @@ export function MemberPage() {
   )
   const team = (teams.data ?? []).find((tm) => tm.team_members?.some((x) => x.profile_id === id))
   const memberProjects = (projects.data ?? []).filter((p) => p.project_members?.some((x) => x.profile_id === id))
-  const ratings = TRACK_IDS.map((track) => {
-    const rows = (history.data ?? []).filter((r) => r.event?.track_id === track)
-    return { track, rating: rows.reduce((s, r) => s + r.rating_delta, 0), events: rows.length }
-  }).filter((r) => r.events > 0)
 
   return (
     <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit" className="max-w-3xl mx-auto space-y-4">
@@ -213,48 +282,59 @@ export function MemberPage() {
               </div>
             </GlassCard>
 
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <GlassCard>
-                <p className="text-xs text-gray-600">AIT Points</p>
-                <p className="text-4xl font-light">{total.data ?? 0}</p>
+            <StatsRow member={m} history={history.data ?? []} points={total.data ?? 0} />
+
+            {ratingSeries(history.data ?? []).map((series) => (
+              <GlassCard key={series.track}>
+                <h2 className={`${sectionTitle} mb-2`}>{t('member.chart.title', { track: t(`track.${series.track}.short`) })}</h2>
+                <RatingChart points={series.points}
+                  label={t('member.chart.aria', { name: m.full_name, track: t(`track.${series.track}`) })} />
               </GlassCard>
-              <GlassCard>
-                <p className="text-xs text-gray-600 mb-1">{t('member.ratings')}</p>
-                {ratings.length === 0 ? (
-                  <p className="text-sm text-gray-700">{t('member.noRating')}</p>
-                ) : (
-                  <ul className="space-y-1">
-                    {ratings.map((r) => (
-                      <li key={r.track} className="flex items-center justify-between text-sm">
-                        <TrackBadge track={r.track} />
-                        <span>{t('member.ratingLine', { rating: r.rating, events: r.events })}</span>
-                      </li>
-                    ))}
-                  </ul>
-                )}
-              </GlassCard>
-            </div>
+            ))}
 
             {(history.data ?? []).length > 0 && (
               <GlassCard>
                 <h2 className={sectionTitle}>{t('member.results')}</h2>
-                <ul className="divide-y divide-white/50 mt-2">
-                  {history.data!.map((r) => (
-                    <li key={r.id} className="py-2 flex items-center gap-3 text-sm">
-                      <span className="flex-1 min-w-0 truncate">{r.event?.title}</span>
-                      <span className="text-gray-600">{r.place ? t('member.place', { n: r.place }) : '—'}</span>
-                      <span className="w-12 text-right font-medium">{r.rating_delta > 0 ? `+${r.rating_delta}` : r.rating_delta}</span>
-                    </li>
-                  ))}
-                </ul>
+                <div className="overflow-x-auto -mx-1 mt-2">
+                  <table className="w-full text-sm min-w-[30rem]">
+                    <thead>
+                      <tr className="text-left text-xs text-gray-600">
+                        <th className="font-normal py-2 px-1">{t('member.col.date')}</th>
+                        <th className="font-normal py-2 px-1">{t('member.col.event')}</th>
+                        <th className="font-normal py-2 px-1">{t('member.col.place')}</th>
+                        <th className="font-normal py-2 px-1">{t('member.col.score')}</th>
+                        <th className="font-normal py-2 px-1 text-right">{t('member.col.delta')}</th>
+                      </tr>
+                    </thead>
+                    <tbody>
+                      {history.data!.map((r) => (
+                        <tr key={r.id} className="border-t border-white/60">
+                          <td className="py-2 px-1 whitespace-nowrap text-gray-700">{r.event ? formatDate(r.event.starts_at) : '—'}</td>
+                          <td className="py-2 px-1">
+                            <span className="flex items-center gap-2">{r.event && <TrackBadge track={r.event.track_id} />} {r.event?.title}</span>
+                          </td>
+                          <td className="py-2 px-1">{r.place ?? '—'}</td>
+                          <td className="py-2 px-1">{r.score ?? '—'}</td>
+                          <td className={`py-2 px-1 text-right font-medium ${r.rating_delta < 0 ? 'text-red-700' : 'text-green-800'}`}>
+                            {r.rating_delta > 0 ? `+${r.rating_delta}` : r.rating_delta}
+                          </td>
+                        </tr>
+                      ))}
+                    </tbody>
+                  </table>
+                </div>
               </GlassCard>
             )}
+
+            {(me?.id === m.id || canManage) && m.role === 'member' && m.track_id && <MemberWeeks member={m} />}
 
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
               <GlassCard>
                 <h2 className={sectionTitle}>{t('card.team')}</h2>
                 {team ? (
-                  <p className="text-sm mt-2">{team.name} · {t('teams.count', { n: team.team_members?.length ?? 0, max: 5 })}</p>
+                  <p className="text-sm mt-2">
+                    <Link to={`/teams/${team.id}`} className="underline">{team.name}</Link> · {t('teams.count', { n: team.team_members?.length ?? 0, max: 5 })}
+                  </p>
                 ) : (
                   <p className="text-sm text-gray-700 mt-2">{t('member.noTeam')}</p>
                 )}

@@ -1,6 +1,6 @@
 import { useQuery } from '@tanstack/react-query'
 import { supabase } from '../lib/supabase'
-import type { ProjectRow, TeamRequestRow, TeamRow } from '../lib/db'
+import type { ProjectRow, TeamRequestRow, TeamRow, TrackId } from '../lib/db'
 
 const TEAM_COLUMNS =
   'id, name, track_id, goal, captain_id, status, created_at, ' +
@@ -19,6 +19,33 @@ export function useTeams() {
         .order('created_at')
       if (error) throw error
       return data as unknown as TeamRow[]
+    },
+  })
+}
+
+export interface TeamResultRow {
+  id: string
+  place: number | null
+  score: number | null
+  rating_delta: number
+  event: { title: string; starts_at: string; track_id: TrackId } | null
+}
+
+/** A team's published results (completed rated events), newest first. */
+export function useTeamResults(teamId: string | undefined) {
+  return useQuery<TeamResultRow[]>({
+    queryKey: ['rating', 'team-results', teamId ?? null],
+    enabled: Boolean(teamId),
+    queryFn: async () => {
+      if (!supabase || !teamId) return []
+      const { data, error } = await supabase
+        .from('rating_results')
+        .select('id, place, score, rating_delta, event:events!inner(title, starts_at, track_id, status)')
+        .eq('team_id', teamId)
+        .eq('event.status', 'completed')
+      if (error) throw error
+      return (data as unknown as TeamResultRow[])
+        .sort((a, b) => (b.event?.starts_at ?? '').localeCompare(a.event?.starts_at ?? ''))
     },
   })
 }

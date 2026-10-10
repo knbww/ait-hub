@@ -1,4 +1,5 @@
 import { Link } from 'react-router-dom'
+import { motion } from 'framer-motion'
 import { useI18n } from '../context/i18nContext'
 import type { WeekProgress, WeekState } from '../lib/progress'
 
@@ -24,7 +25,8 @@ export function WeekGrid({ weeks, linkable = true }: { weeks: WeekProgress[]; li
           const title = `${t('week.number', { n: w.week.week_number })} · ${w.week.title} · ${t(`progress.state.${w.state}`)}`
           const cell = `aspect-square rounded-md text-[10px] sm:text-xs flex items-center justify-center ${STYLE[w.state]}`
           return (
-            <li key={w.week.id}>
+            <motion.li key={w.week.id} initial={{ opacity: 0, scale: 0.85 }} animate={{ opacity: 1, scale: 1 }}
+              transition={{ delay: Math.min(w.week.week_number * 0.012, 0.45), duration: 0.2 }}>
               {linkable ? (
                 <Link to={`/program#week-${w.week.week_number}`} className={`${cell} hover:opacity-80`} title={title} aria-label={title}>
                   {w.week.week_number}
@@ -32,7 +34,7 @@ export function WeekGrid({ weeks, linkable = true }: { weeks: WeekProgress[]; li
               ) : (
                 <span className={cell} title={title}>{w.week.week_number}</span>
               )}
-            </li>
+            </motion.li>
           )
         })}
       </ol>

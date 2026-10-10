@@ -111,7 +111,7 @@ function TeamCardFull({ team, manage, mine, requests }: {
     <GlassCard>
       <div className="flex flex-wrap items-start justify-between gap-2 mb-2">
         <div>
-          <h3 className="text-lg font-normal">{team.name}</h3>
+          <h3 className="text-lg font-normal"><Link to={`/teams/${team.id}`} className="hover:underline">{team.name}</Link></h3>
           {team.goal && <p className="text-sm text-gray-700">{team.goal}</p>}
         </div>
         <span className="text-xs text-gray-600">{t('teams.count', { n: members.length, max: TEAM_LIMIT })}</span>
@@ -243,7 +243,7 @@ export function TeamsPage() {
                   <GlassCard key={tm.id}>
                     <div className="flex flex-wrap items-start justify-between gap-2">
                       <div className="min-w-0">
-                        <h3 className="text-lg font-normal">{tm.name}</h3>
+                        <h3 className="text-lg font-normal"><Link to={`/teams/${tm.id}`} className="hover:underline">{tm.name}</Link></h3>
                         {tm.goal && <p className="text-sm text-gray-700">{tm.goal}</p>}
                         <p className="text-xs text-gray-600 mt-1">
                           {tm.team_members?.map((m) => m.profile?.full_name).join(', ')} · {t('teams.count', { n: tm.team_members?.length ?? 0, max: TEAM_LIMIT })}
