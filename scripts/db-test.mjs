@@ -46,13 +46,17 @@ async function migrate(db, files) {
 }
 
 // ── Running SQL as someone ──────────────────────────────────────────────────
+// Sessions count as confirmed with a second factor (aal2) unless the id is prefixed `aal1:`.
 async function become(db, who) {
   await db.exec('reset role')
   if (who === 'postgres') return
-  const claims = who === 'anon' ? { role: 'anon' } : { sub: who, role: 'authenticated' }
+  const aal1 = typeof who === 'string' && who.startsWith('aal1:')
+  const sub = aal1 ? who.slice(5) : who
+  const claims = who === 'anon' ? { role: 'anon' } : { sub, role: 'authenticated', aal: aal1 ? 'aal1' : 'aal2' }
   await db.query(`select set_config('request.jwt.claims', $1, false)`, [JSON.stringify(claims)])
   await db.exec(who === 'anon' ? 'set role anon' : 'set role authenticated')
 }
+const noMfa = (uid) => `aal1:${uid}`
 
 async function run(db, who, sql, params = []) {
   await become(db, who)
@@ -573,6 +577,29 @@ async function freshScenario() {
     `insert into storage.objects (bucket_id, name) values ('avatars', $1)`, [`${U.ai2}/a.png`], RLS)
   await expectEqual('avatars: anonymous visitors see nothing', db, anon,
     `select count(*)::int from storage.objects where bucket_id = 'avatars'`, [], 0)
+
+  // ── Second factor and API surface ─────────────────────────────────────────
+  await expectError('mfa: exports need a second factor', db, noMfa(U.dir), 'select * from public.export_members()', [], /mfa_required/)
+  await expectError('mfa: so do points exports', db, noMfa(U.cur), 'select * from public.export_points()', [], /mfa_required/)
+  await expectError('mfa: role changes need it', db, noMfa(U.dir),
+    `select public.set_member_role($1, 'track_lead')`, [P.ai4], /mfa_required/)
+  await expectError('mfa: password resets need it', db, noMfa(U.dir),
+    `select public.admin_set_password($1, 'новый-пароль-2')`, [P.ai4], /mfa_required/)
+  await expectError('mfa: deletion needs it', db, noMfa(U.dir), 'select public.delete_member($1)', [P.ai6], /mfa_required/)
+  await expectError('mfa: a lead downloading a member\'s data needs it', db, noMfa(l),
+    'select public.export_member_data($1)', [P.ai2], /mfa_required/)
+  await expectOk('mfa: members download their own data without it', db, noMfa(m), 'select public.export_member_data($1)', [P.ai1])
+  await expectError('mfa: forbidden comes before the second factor', db, noMfa(m),
+    'select * from public.export_members()', [], /forbidden/)
+  await expectError('api: trigger functions can\'t be called', db, m, 'select public.handle_new_user()', [], DENIED)
+  await expectError('api: the second-factor check isn\'t callable either', db, m, 'select public.require_mfa()', [], DENIED)
+  await expectEqual('api: the old access-token hook is gone', db, pg,
+    `select to_regprocedure('public.custom_access_token_hook(jsonb)') is null`, [], true)
+  await expectOk('layout: a member saves their dashboard', db, m,
+    `insert into public.dashboard_layouts (profile_id, layout) values ($1, '[]'::jsonb)
+     on conflict (profile_id) do update set layout = excluded.layout`, [P.ai1])
+  await expectError('layout: not someone else\'s', db, m,
+    `insert into public.dashboard_layouts (profile_id, layout) values ($1, '[]'::jsonb)`, [P.ai2], RLS)
 
   // ── Exports, deletion, audit ──────────────────────────────────────────────
   await expectEqual('export: director sees everyone', db, U.dir, 'select count(*)::int from public.export_members()', [], 13)

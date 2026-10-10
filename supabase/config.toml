@@ -42,8 +42,3 @@ enabled = true
 client_id = "env(SUPABASE_AUTH_GITHUB_CLIENT_ID)"
 secret = "env(SUPABASE_AUTH_GITHUB_SECRET)"
 
-# Injects the member's role as a JWT claim. Optional: access rules read roles from the
-# database, not the token. In the cloud dashboard: Authentication > Hooks > Custom Access Token.
-[auth.hook.custom_access_token]
-enabled = true
-uri = "pg-functions://postgres/public/custom_access_token_hook"

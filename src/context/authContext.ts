@@ -10,6 +10,8 @@ export interface SignUpInput {
   joinCode: string
   telegram: string
   photoConsent: boolean
+  /** Cloudflare Turnstile token, when bot protection is on. */
+  captchaToken?: string
 }
 
 export interface AuthValue {
@@ -26,7 +28,13 @@ export interface AuthValue {
   /** Director or curator — sees the whole club. */
   isOversight: boolean
   isDirector: boolean
-  signIn: (email: string, password: string) => Promise<{ error: unknown }>
+  /** Signed in, has an authenticator app, but this session hasn't entered its code yet. */
+  mfaPending: boolean
+  /** This session was confirmed with an authenticator-app code. */
+  mfaVerified: boolean
+  /** Re-read the session's assurance level (after a code is confirmed or the factor removed). */
+  refreshMfa: () => Promise<void>
+  signIn: (email: string, password: string, captchaToken?: string) => Promise<{ error: unknown }>
   /** For members who already joined with a code: GitHub links to the account with the same email. */
   signInWithGitHub: () => Promise<{ error: unknown }>
   /** Error Supabase sent back from a GitHub sign-in (e.g. no club account for that email). */

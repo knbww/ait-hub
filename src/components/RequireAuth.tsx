@@ -3,6 +3,7 @@ import { Navigate } from 'react-router-dom'
 import { useAuth } from '../context/authContext'
 import { useI18n } from '../context/i18nContext'
 import { GlassCard } from './GlassCard'
+import { MfaPrompt } from './MfaPrompt'
 import { errorKey } from '../lib/errors'
 import { btnPrimary, btnSecondary } from '../lib/ui'
 
@@ -42,11 +43,12 @@ function LoadFailed({ error }: { error: unknown }) {
 
 /** Signed-in, active members only; guests go to /join. */
 export function RequireAuth({ children }: { children: ReactNode }) {
-  const { session, profile, loading, profileError } = useAuth()
+  const { session, profile, loading, profileError, mfaPending } = useAuth()
   const { t } = useI18n()
 
   if (loading) return <PageLoading />
   if (!session) return <Navigate to="/join" replace />
+  if (mfaPending) return <MfaPrompt />
   if (profileError) return <LoadFailed error={profileError} />
   if (!profile) return <Blocked title={t('auth.noProfile.title')} text={t('auth.noProfile.text')} />
   if (profile.status !== 'active') return <Blocked title={t('auth.inactive.title')} text={t('auth.inactive.text')} />

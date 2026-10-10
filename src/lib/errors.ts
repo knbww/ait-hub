@@ -28,6 +28,8 @@ const DB_CODES = [
   'avatar_path_foreign',
   'invalid_schedule',
   'invalid_shift',
+  'mfa_required',
+  'captcha_needed',
 ] as const
 
 function rawMessage(error: unknown): string {
@@ -50,6 +52,10 @@ export function errorKey(error: unknown): string {
     return 'errors.network'
   }
   if (lower.includes('invalid login credentials')) return 'errors.badLogin'
+  if (lower.includes('captcha')) return 'errors.captcha'
+  if (lower.includes('invalid totp') || lower.includes('mfa_verification_failed') || lower.includes('invalid code')) {
+    return 'errors.badCode'
+  }
   if (lower.includes('already registered') || lower.includes('already been registered') || lower.includes('user_already_exists')) {
     return 'errors.emailTaken'
   }

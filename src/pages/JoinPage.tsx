@@ -6,6 +6,8 @@ import { ArrowRight, BrainCircuit, CalendarCheck, Code2, Rocket, Trophy } from '
 import { GlassCard } from '../components/GlassCard'
 import { ErrorText } from '../components/DataState'
 import { OauthNotice } from '../components/OauthNotice'
+import { Captcha } from '../components/Captcha'
+import { captchaSiteKey } from '../lib/captcha'
 import { cardVariants, pageVariants } from '../lib/animations'
 import { useAuth } from '../context/authContext'
 import { useI18n } from '../context/i18nContext'
@@ -61,11 +63,14 @@ function SignUpForm({ code, trackTitle, onReset }: { code: string; trackTitle: s
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<unknown>(null)
   const [notice, setNotice] = useState<string | null>(null)
+  const [captcha, setCaptcha] = useState<string | null>(null)
+  const [captchaReset, setCaptchaReset] = useState(0)
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     if (password.length < 8) return setError('weak_password')
     if (!photo) return setError('photo_choice')
+    if (captchaSiteKey && !captcha) return setError('captcha_needed')
     setBusy(true)
     setError(null)
     const res = await signUp({
@@ -76,9 +81,13 @@ function SignUpForm({ code, trackTitle, onReset }: { code: string; trackTitle: s
       joinCode: code,
       telegram,
       photoConsent: photo === 'yes',
+      captchaToken: captcha ?? undefined,
     })
     setBusy(false)
-    if (res.error) return setError(res.error)
+    if (res.error) {
+      setCaptchaReset((n) => n + 1)
+      return setError(res.error)
+    }
     if (res.needsConfirmation) return setNotice(t('join.form.confirmEmail'))
     navigate('/', { replace: true })
   }
@@ -141,6 +150,7 @@ function SignUpForm({ code, trackTitle, onReset }: { code: string; trackTitle: s
           ))}
         </div>
       </fieldset>
+      <Captcha onToken={setCaptcha} resetKey={captchaReset} />
       {error === 'photo_choice' ? (
         <p className="text-sm text-red-700" role="alert">{t('join.form.photoRequired')}</p>
       ) : (

@@ -8,6 +8,8 @@ interface ImportMetaEnv {
   readonly VITE_PUBLIC_ORIGIN?: string
   /** "true" in the demo copy (npm run demo): fictional data, one-click sign-in per role. */
   readonly VITE_DEMO?: string
+  /** Cloudflare Turnstile site key: bot protection on sign-in and sign-up when set. */
+  readonly VITE_TURNSTILE_SITE_KEY?: string
 }
 
 interface ImportMeta {

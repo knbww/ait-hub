@@ -11,6 +11,8 @@ import { useAuth } from '../context/authContext'
 import { useI18n } from '../context/i18nContext'
 import { isSupabaseConfigured } from '../lib/supabase'
 import { DEMO_ACCOUNTS, DEMO_PASSWORD, isDemo } from '../lib/demo'
+import { Captcha } from '../components/Captcha'
+import { captchaSiteKey } from '../lib/captcha'
 import { btnPrimary, btnSecondary, inputClass, labelClass } from '../lib/ui'
 
 export function LoginPage() {
@@ -21,16 +23,22 @@ export function LoginPage() {
   const [password, setPassword] = useState('')
   const [error, setError] = useState<unknown>(null)
   const [busy, setBusy] = useState(false)
+  const [captcha, setCaptcha] = useState<string | null>(null)
+  const [captchaReset, setCaptchaReset] = useState(0)
 
   if (session) return <Navigate to="/" replace />
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
+    if (captchaSiteKey && !captcha) return setError('captcha_needed')
     setBusy(true)
     setError(null)
-    const res = await signIn(email, password)
+    const res = await signIn(email, password, captcha ?? undefined)
     setBusy(false)
-    if (res.error) return setError(res.error)
+    if (res.error) {
+      setCaptchaReset((n) => n + 1)
+      return setError(res.error)
+    }
     navigate('/', { replace: true })
   }
 
@@ -82,6 +90,7 @@ export function LoginPage() {
             <input id="l-pass" type="password" className={inputClass} value={password}
               onChange={(e) => setPassword(e.target.value)} autoComplete="current-password" required />
           </div>
+          <Captcha onToken={setCaptcha} resetKey={captchaReset} />
           <ErrorText error={error} />
           <button type="submit" disabled={busy} className={`${btnPrimary} w-full`}>
             {busy ? t('common.wait') : t('login.submit')}

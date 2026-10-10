@@ -7,6 +7,7 @@ import { GlassCard } from '../components/GlassCard'
 import { ErrorText } from '../components/DataState'
 import { Avatar } from '../components/Avatar'
 import { TrackBadge } from '../components/TrackBadge'
+import { MfaSection } from '../components/MfaSection'
 import { pageVariants } from '../lib/animations'
 import { useAuth } from '../context/authContext'
 import { useI18n } from '../context/i18nContext'
@@ -283,7 +284,7 @@ function PasswordSection() {
 export function ProfilePage() {
   const { t } = useI18n()
   const navigate = useNavigate()
-  const { session, profile, signOut } = useAuth()
+  const { session, profile, signOut, isStaff } = useAuth()
   const { isDevMode, setDevMode } = useDevMode()
   const [exportError, setExportError] = useState<unknown>(null)
 
@@ -315,6 +316,7 @@ export function ProfilePage() {
       <ContactsSection profile={profile} email={session?.user.email} />
       <PhotoSection profile={profile} />
       <PasswordSection />
+      {isStaff && <MfaSection />}
 
       <GlassCard>
         <h2 className={sectionTitle}>{t('profile.data')}</h2>
