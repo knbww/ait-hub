@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import {
-  BookOpen, CalendarDays, FolderKanban, House, Menu, Shield, Sparkles, Trophy, User, Users,
+  BookOpen, CalendarDays, FolderKanban, House, Menu, Newspaper, Shield, Sparkles, Trophy, User, Users,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useAuth } from '../context/authContext'
@@ -17,6 +17,7 @@ interface NavItem {
 
 const NAV: NavItem[] = [
   { key: 'nav.home', path: '/', icon: House },
+  { key: 'nav.news', path: '/news', icon: Newspaper },
   { key: 'nav.program', path: '/program', icon: BookOpen },
   { key: 'nav.calendar', path: '/calendar', icon: CalendarDays },
   { key: 'nav.points', path: '/points', icon: Sparkles },
@@ -25,9 +26,10 @@ const NAV: NavItem[] = [
   { key: 'nav.projects', path: '/projects', icon: FolderKanban },
 ]
 
-/** Phone tab bar: the four daily sections + "more". */
-const TABS = NAV.slice(0, 4)
-const MORE = NAV.slice(4)
+/** Phone tab bar: the four daily sections + "more" (news is also on the home screen). */
+const TAB_PATHS = ['/', '/program', '/calendar', '/points']
+const TABS = NAV.filter((item) => TAB_PATHS.includes(item.path))
+const MORE = NAV.filter((item) => !TAB_PATHS.includes(item.path))
 
 const isActive = (pathname: string, path: string) =>
   path === '/' ? pathname === '/' : pathname === path || pathname.startsWith(`${path}/`)

@@ -7,10 +7,11 @@ import { LeaderboardCard, MyPointsCard } from './PointsCards'
 import { RatingCard } from './RatingCard'
 import { ProjectsCard, TeamCard } from './TeamProjectCards'
 import { JoinCodeCard, ReviewCard } from './StaffCards'
+import { NewsCard } from './NewsCard'
 
 /** Default order for members; staff get their tools first and no personal-progress cards. */
-export const MEMBER_CARDS: CardId[] = ['week', 'deadlines', 'events', 'points', 'leaderboard', 'rating', 'team', 'projects']
-export const STAFF_CARDS: CardId[] = ['joinCode', 'review', 'events', 'week', 'leaderboard', 'rating', 'projects']
+export const MEMBER_CARDS: CardId[] = ['week', 'news', 'deadlines', 'events', 'points', 'leaderboard', 'rating', 'team', 'projects']
+export const STAFF_CARDS: CardId[] = ['joinCode', 'review', 'news', 'events', 'week', 'leaderboard', 'rating', 'projects']
 
 /** i18n keys for card titles, shown in the "hidden cards" panel of layout mode. */
 export const CARD_TITLES: Record<CardId, string> = {
@@ -24,6 +25,7 @@ export const CARD_TITLES: Record<CardId, string> = {
   projects: 'card.projects',
   joinCode: 'card.joinCode',
   review: 'card.review',
+  news: 'card.news',
 }
 
 export const CARD_COMPONENTS: Record<CardId, ComponentType> = {
@@ -37,4 +39,5 @@ export const CARD_COMPONENTS: Record<CardId, ComponentType> = {
   projects: ProjectsCard,
   joinCode: JoinCodeCard,
   review: ReviewCard,
+  news: NewsCard,
 }

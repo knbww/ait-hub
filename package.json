@@ -7,6 +7,7 @@
     "dev": "vite",
     "build": "tsc -b && vite build",
     "deploy": "node scripts/deploy.mjs",
+    "demo": "node scripts/demo.mjs",
     "typecheck": "tsc -b",
     "lint": "eslint .",
     "test:db": "node scripts/db-test.mjs",

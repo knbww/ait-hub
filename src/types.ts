@@ -9,6 +9,7 @@ export type CardId =
   | 'projects'
   | 'joinCode'
   | 'review'
+  | 'news'
 
 export interface CardConfig {
   id: CardId

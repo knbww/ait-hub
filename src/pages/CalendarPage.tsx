@@ -6,6 +6,7 @@ import { ChevronDown, ExternalLink, Plus } from 'lucide-react'
 import { GlassCard } from '../components/GlassCard'
 import { DataState, ErrorText } from '../components/DataState'
 import { EventLine } from '../components/EventLine'
+import { LinkifiedText } from '../components/LinkifiedText'
 import { Modal } from '../components/Modal'
 import { pageVariants } from '../lib/animations'
 import { useAuth } from '../context/authContext'
@@ -192,14 +193,14 @@ function EventItem({ event, canEdit, onEdit }: { event: EventRow; canEdit: boole
       </div>
       {open && (
         <div className="mt-2 ml-2 pl-3 border-l-2 border-white/70 space-y-3 text-sm">
-          {event.description && <p className="whitespace-pre-wrap">{event.description}</p>}
+          {event.description && <LinkifiedText text={event.description} />}
           {event.is_rated && (
             <div>
               <p className="text-xs font-medium text-gray-600 mb-1">
                 {t('calendar.rules')}
                 {event.rules_published_at && ` · ${t('calendar.rulesPublished', { date: formatDateTime(event.rules_published_at) })}`}
               </p>
-              {event.rules && <p className="whitespace-pre-wrap">{event.rules}</p>}
+              {event.rules && <LinkifiedText text={event.rules} />}
               {event.rules_url && (
                 <a href={event.rules_url} target="_blank" rel="noreferrer" className="inline-flex items-center gap-1 underline">
                   <ExternalLink className="w-3 h-3" /> {t('calendar.rulesLink')}

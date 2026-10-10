@@ -6,8 +6,8 @@
 //
 // Two scenarios:
 //   1. upgrade — the June schema + a prod-like snapshot, then the October migrations;
-//   2. fresh   — all migrations on an empty database, then the access-rule checks;
-//   3. seed    — all migrations + supabase/seed.sql (local development data) apply cleanly.
+//   2. fresh   — all migrations on an empty database, then the content and access-rule checks;
+//   3. seed    — all migrations + supabase/seed.sql (the demo club) apply cleanly.
 
 import { readFileSync, readdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
@@ -185,6 +185,25 @@ async function freshScenario() {
   await migrate(db, MIGRATIONS)
   const pg = 'postgres'
 
+  // ── Programme content from the track calendars ───────────────────────────
+  await expectEqual('content: every week has an assignment', db, pg,
+    'select count(*)::int from public.program_weeks where assignment is not null', [], 108)
+  await expectEqual('content: every week links to its Drive folder', db, pg,
+    `select count(*)::int from public.program_weeks where materials_url like 'https://drive.google.com/drive/folders/%'`, [], 108)
+  await expectEqual('content: each track links to its Drive folder', db, pg,
+    `select count(*)::int from public.tracks where drive_url like 'https://drive.google.com/drive/folders/%'`, [], 3)
+  await expectEqual('content: 36 weeks from Monday 5 October 2026', db, pg,
+    `select min(starts_on)::text || ' / ' || max(starts_on)::text || ' / ' || count(*) from public.cohort_weeks`, [],
+    '2026-10-05 / 2027-06-07 / 36')
+  await expectEqual('content: competitions of the calendars wait as drafts', db, pg,
+    `select count(*)::int from public.events where status = 'draft' and not is_rated`, [], 23)
+  await expectEqual('content: a draft sits on its week\'s Monday', db, pg,
+    `select starts_at = '2026-11-23 15:00+05' from public.events where title = 'Первый рейтинговый контест'`, [], true)
+  await expectEqual('content: loading it writes nothing to the audit log', db, pg,
+    'select count(*)::int from public.audit_log', [], 0)
+  await expectEqual('content: one pinned welcome post', db, pg,
+    'select count(*)::int from public.news where pinned and author_id is null', [], 1)
+
   const codes = Object.fromEntries(
     (await rows(db, pg, 'select track_id, code from public.join_codes where active')).map((r) => [r.track_id, r.code]),
   )
@@ -243,7 +262,7 @@ async function freshScenario() {
   // ── Anonymous visitor ─────────────────────────────────────────────────────
   const anon = 'anon'
   for (const table of ['profiles', 'member_private', 'points_entries', 'events', 'tracks', 'program_weeks',
-    'submissions', 'teams', 'projects', 'rating_results', 'audit_log', 'join_codes', 'dashboard_layouts']) {
+    'submissions', 'teams', 'projects', 'rating_results', 'audit_log', 'join_codes', 'dashboard_layouts', 'news']) {
     await expectError(`anon: cannot read ${table}`, db, anon, `select * from public.${table}`, [], DENIED)
   }
   await expectError('anon: cannot call the leaderboard', db, anon, 'select * from public.points_leaderboard()', [], DENIED)
@@ -449,7 +468,8 @@ async function freshScenario() {
   await expectOk('events: lead drafts a tournament', db, l, insertEvent,
     ['tournament', 'Турнир', 'ai', '30 days', true, 'правила', 'draft'])
   await expectEqual('events: members don\'t see drafts', db, m, 'select count(*)::int from public.events', [], 0)
-  await expectEqual('events: staff see drafts', db, U.leadAlgo, 'select count(*)::int from public.events', [], 1)
+  // the 23 drafts from the track calendars + this one
+  await expectEqual('events: staff see drafts', db, U.leadAlgo, 'select count(*)::int from public.events', [], 24)
   await expectOk('events: director adds a club-wide workshop', db, U.dir, insertEvent,
     ['workshop', 'Воркшоп', null, '10 days', false, null, 'confirmed'])
   await expectEqual('events: members see confirmed events', db, m, 'select count(*)::int from public.events', [], 1)
@@ -484,6 +504,33 @@ async function freshScenario() {
     'update public.rating_results set rating_delta = 300 where event_id = $1', [contest])
   await expectError('rating: only oversight reopens an event', db, U.leadAlgo,
     `update public.events set status = 'confirmed' where id = $1`, [contest], /forbidden/)
+
+  // ── News ──────────────────────────────────────────────────────────────────
+  const insertNews = 'insert into public.news (title, body, track_id, pinned) values ($1, $2, $3, $4) returning id'
+  await expectEqual('news: members read posts', db, m, 'select count(*)::int from public.news', [], 1)
+  await expectEqual('news: deactivated members read nothing', db, U.inactive, 'select count(*)::int from public.news', [], 0)
+  await expectError('news: members cannot post', db, m, insertNews, ['x', 'y', 'ai', false], RLS)
+  await expectError('news: a lead cannot post for the whole club', db, l, insertNews, ['x', 'y', null, false], RLS)
+  await expectError('news: a lead cannot post for another track', db, l, insertNews, ['x', 'y', 'algo', false], RLS)
+  const leadPost = await value(db, l, insertNews, ['Турнир ботов', 'Правила в папке недели', 'ai', false])
+  await expectEqual('news: the author is whoever posted', db, pg,
+    'select author_id from public.news where id = $1', [leadPost], P.leadAi)
+  await expectError('news: the author cannot be set by hand', db, l,
+    'insert into public.news (title, body, track_id, author_id) values ($1, $2, $3, $4)', ['x', 'y', 'ai', P.dir], DENIED)
+  await expectError('news: links must be https', db, l,
+    'insert into public.news (title, body, track_id, link_url) values ($1, $2, $3, $4)', ['x', 'y', 'ai', 'http://x.kz'], /news_link_url_check/)
+  const clubPost = await value(db, U.dir, insertNews, ['Хакатон', 'Записывайтесь до четверга', null, true])
+  await expectNoEffect('news: a lead cannot edit a club-wide post', db, l,
+    `update public.news set title = 'взлом' where id = $1`, [clubPost])
+  await expectNoEffect('news: another track\'s lead cannot delete it', db, U.leadAlgo,
+    'delete from public.news where id = $1', [leadPost])
+  await expectNoEffect('news: members cannot delete posts', db, m, 'delete from public.news where id = $1', [leadPost])
+  await expectOk('news: the lead edits own track\'s post', db, l,
+    `update public.news set body = 'Правила и скрипт — в папке недели 8' where id = $1`, [leadPost])
+  await expectEqual('news: editing keeps author and date', db, pg,
+    'select author_id = $2 and published_at < updated_at from public.news where id = $1', [leadPost, P.leadAi], true)
+  await expectOk('news: the curator removes any post', db, U.cur, 'delete from public.news where id = $1', [leadPost])
+  await expectEqual('news: members see the rest', db, m, 'select count(*)::int from public.news', [], 2)
 
   // ── Teams ─────────────────────────────────────────────────────────────────
   const team = await value(db, U.ai1, `select public.create_team('Нейроны', 'турнир')`)
@@ -558,8 +605,37 @@ async function seedScenario() {
   } catch (e) {
     record('seed: applies cleanly', false, e.message)
   }
-  await expectEqual('seed: a 36-week schedule', db, 'postgres', 'select count(*)::int from public.cohort_weeks', [], 36)
-  await expectEqual('seed: one example event', db, 'postgres', 'select count(*)::int from public.events', [], 1)
+  const pg = 'postgres'
+  await expectEqual('seed: 30 demo accounts with profiles', db, pg,
+    `select count(*)::int from public.profiles p join auth.users u on u.id = p.user_id where u.email like '%@demo.aitclub.org'`, [], 30)
+  await expectEqual('seed: staff roles', db, pg,
+    `select string_agg(role, ',' order by role) from public.profiles where role <> 'member'`, [], 'curator,director,track_lead,track_lead,track_lead')
+  await expectEqual('seed: every account can sign in by email', db, pg,
+    `select count(*)::int from auth.identities where provider = 'email'`, [], 30)
+  await expectEqual('seed: the demo year is at week 17', db, pg,
+    `select week_number from public.cohort_weeks where starts_on = date_trunc('week', current_date)::date`, [], 17)
+  await expectEqual('seed: works in every past week', db, pg,
+    `select count(distinct w.week_number)::int from public.submissions s join public.program_weeks w on w.id = s.week_id`, [], 17)
+  await expectEqual('seed: rated results published', db, pg,
+    `select count(distinct r.event_id)::int from public.rating_results r join public.events e on e.id = r.event_id
+     where e.status = 'completed'`, [], 5)
+  await expectEqual('seed: the rules came before every rated event', db, pg,
+    `select bool_and(rules_published_at < starts_at) from public.events where is_rated and status <> 'draft'`, [], true)
+  await expectEqual('seed: teams within the limit', db, pg,
+    'select max(n)::int from (select count(*) as n from public.team_members group by team_id) t', [], 3)
+  await expectEqual('seed: AIT Points journal', db, pg,
+    `select count(*) > 200 from public.points_entries`, [], true)
+  await expectEqual('seed: news from staff', db, pg, 'select count(*)::int from public.news', [], 8)
+  await expectEqual('seed: the calendar drafts were replaced', db, pg,
+    `select count(*)::int from public.events where title = 'Демо' or description like 'Черновик из календаря курса%'`, [], 0)
+  await expectEqual('seed: nothing logged by the seed itself', db, pg,
+    `select count(*)::int from public.audit_log where actor_id is null`, [], 0)
+  try {
+    await db.exec(read('supabase/seed.sql'))
+    record('seed: refuses a database that has members', false, 'it ran a second time')
+  } catch (e) {
+    record('seed: refuses a database that has members', /only fills an empty database/.test(e.message), e.message)
+  }
   await db.close()
 }
 

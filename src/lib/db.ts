@@ -227,6 +227,20 @@ export interface JoinCodeRow {
   created_at: string
 }
 
+export interface NewsRow {
+  id: string
+  title: string
+  body: string
+  link_url: string | null
+  /** null = the whole club. */
+  track_id: TrackId | null
+  pinned: boolean
+  author_id: string | null
+  published_at: string
+  updated_at: string
+  author?: { full_name: string } | null
+}
+
 export interface AuditRow {
   id: number
   action: string

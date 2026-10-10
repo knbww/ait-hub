@@ -4,6 +4,7 @@ import { motion } from 'framer-motion'
 import { Link, useLocation, useSearchParams } from 'react-router-dom'
 import { Check, ChevronDown, ExternalLink, FolderOpen, Pencil } from 'lucide-react'
 import { GlassCard } from '../components/GlassCard'
+import { LinkifiedText } from '../components/LinkifiedText'
 import { DataState, ErrorText } from '../components/DataState'
 import { SubmissionBadge } from '../components/SubmissionBadge'
 import { Avatar } from '../components/Avatar'
@@ -279,7 +280,7 @@ function WeekItem({ week, startsOn, isCurrent, upcoming, manage, submission, ope
               {week.assignment && (
                 <div className="text-sm">
                   <p className="text-xs font-medium text-gray-600 mb-1">{t('program.assignment')}</p>
-                  <p className="whitespace-pre-wrap">{week.assignment}</p>
+                  <LinkifiedText text={week.assignment} labels />
                 </div>
               )}
             </>

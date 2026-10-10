@@ -10,6 +10,7 @@ import { pageVariants } from '../lib/animations'
 import { useAuth } from '../context/authContext'
 import { useI18n } from '../context/i18nContext'
 import { isSupabaseConfigured } from '../lib/supabase'
+import { DEMO_ACCOUNTS, DEMO_PASSWORD, isDemo } from '../lib/demo'
 import { btnPrimary, btnSecondary, inputClass, labelClass } from '../lib/ui'
 
 export function LoginPage() {
@@ -39,11 +40,34 @@ export function LoginPage() {
     if (res.error) setError(res.error)
   }
 
+  const demoSignIn = async (demoEmail: string) => {
+    setBusy(true)
+    setError(null)
+    const res = await signIn(demoEmail, DEMO_PASSWORD)
+    setBusy(false)
+    if (res.error) return setError(res.error)
+    navigate('/', { replace: true })
+  }
+
   return (
     <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit" className="max-w-md mx-auto">
       <GlassCard>
         <h1 className="text-2xl font-light mb-5 text-center">{t('login.title')}</h1>
         <OauthNotice />
+        {isDemo && (
+          <div className="mb-5 rounded-2xl border border-[#750014]/20 bg-[#750014]/5 p-3">
+            <p className="text-sm font-medium mb-2">{t('demo.title')}</p>
+            <div className="grid grid-cols-2 gap-2">
+              {DEMO_ACCOUNTS.map((a) => (
+                <button key={a.email} type="button" disabled={busy} onClick={() => demoSignIn(a.email)}
+                  className={`${btnSecondary} !px-2 text-xs sm:text-sm`}>
+                  {t(a.label)}
+                </button>
+              ))}
+            </div>
+            <p className="text-xs text-gray-600 mt-2">{t('demo.password', { password: DEMO_PASSWORD })}</p>
+          </div>
+        )}
         {!isSupabaseConfigured && (
           <p className="mb-4 text-sm text-amber-800 bg-amber-100/70 rounded-xl p-3">{t('login.notConfigured')}</p>
         )}
@@ -63,11 +87,15 @@ export function LoginPage() {
             {busy ? t('common.wait') : t('login.submit')}
           </button>
         </form>
-        <div className="my-4 text-center text-xs text-gray-500">{t('login.or')}</div>
-        <button onClick={github} className={`${btnSecondary} w-full`}>
-          <Github className="w-4 h-4" /> {t('login.github')}
-        </button>
-        <p className="text-xs text-gray-600 text-center mt-2">{t('login.githubHint')}</p>
+        {!isDemo && (
+          <>
+            <div className="my-4 text-center text-xs text-gray-500">{t('login.or')}</div>
+            <button onClick={github} className={`${btnSecondary} w-full`}>
+              <Github className="w-4 h-4" /> {t('login.github')}
+            </button>
+            <p className="text-xs text-gray-600 text-center mt-2">{t('login.githubHint')}</p>
+          </>
+        )}
         <div className="mt-5 space-y-2 text-sm text-gray-700 text-center">
           <p>{t('login.forgot')}</p>
           <p>

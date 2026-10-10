@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { Link, useParams } from 'react-router-dom'
 import { ArrowLeft, CircleCheck, Pencil, UserPlus } from 'lucide-react'
 import { GlassCard } from '../components/GlassCard'
+import { LinkifiedText } from '../components/LinkifiedText'
 import { DataState, ErrorText } from '../components/DataState'
 import { Avatar } from '../components/Avatar'
 import { ProjectForm } from '../components/ProjectForm'
@@ -22,7 +23,7 @@ function Field({ label, value }: { label: string; value: string | null }) {
   return (
     <div>
       <p className="text-xs font-medium text-gray-600">{label}</p>
-      <p className="text-sm whitespace-pre-wrap break-words">{value}</p>
+      <LinkifiedText text={value} className="text-sm" />
     </div>
   )
 }
