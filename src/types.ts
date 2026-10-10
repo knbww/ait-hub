@@ -11,6 +11,7 @@ export type CardId =
   | 'review'
   | 'news'
   | 'progress'
+  | 'opportunities'
 
 export interface CardConfig {
   id: CardId

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import {
-  BookOpen, CalendarDays, FolderKanban, House, Menu, Newspaper, Shield, Sparkles, Trophy, User, Users,
+  Award, BookOpen, CalendarDays, FolderKanban, House, Menu, Newspaper, Shield, Sparkles, Trophy, User, Users,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useAuth } from '../context/authContext'
@@ -18,6 +18,7 @@ interface NavItem {
 const NAV: NavItem[] = [
   { key: 'nav.home', path: '/', icon: House },
   { key: 'nav.news', path: '/news', icon: Newspaper },
+  { key: 'nav.opportunities', path: '/opportunities', icon: Award },
   { key: 'nav.program', path: '/program', icon: BookOpen },
   { key: 'nav.calendar', path: '/calendar', icon: CalendarDays },
   { key: 'nav.points', path: '/points', icon: Sparkles },
@@ -76,13 +77,13 @@ export function Navbar() {
                     to="/manage"
                     title={t('nav.manage')}
                     className={({ isActive: active }) =>
-                      `flex items-center gap-2 p-2.5 lg:px-3 lg:py-1.5 rounded-lg text-sm transition-colors ${
+                      `flex items-center gap-2 p-2.5 xl:px-3 xl:py-1.5 rounded-lg text-sm transition-colors ${
                         active ? 'bg-gray-900 text-white' : 'text-gray-700 hover:bg-white/70'
                       }`
                     }
                   >
-                    <Shield className="w-5 h-5 lg:w-4 lg:h-4" />
-                    <span className="hidden lg:inline">{t('nav.manage')}</span>
+                    <Shield className="w-5 h-5 xl:w-4 xl:h-4" />
+                    <span className="hidden xl:inline">{t('nav.manage')}</span>
                   </NavLink>
                 )}
                 <NavLink

@@ -1,5 +1,6 @@
 // Web Push for AIT Hub. Called by the Hub right after an action — a work reviewed, a news post,
-// a request to join a team — and once a day by GitHub Actions for tomorrow's deadline and events.
+// a request to join a team — and once a day by GitHub Actions for tomorrow's deadline and events
+// and for the deadlines of competitions members saved.
 // Each call is checked: the caller must be whoever did the action (their session), the daily run
 // must carry CRON_SECRET. Payloads say what happened and where to look; no contact data.
 //
@@ -172,6 +173,22 @@ async function daily() {
       body: e.location ? `${time} · ${e.location}` : `в ${time}`,
       url: `${SITE}/calendar`,
       tag: `event-${e.id}`,
+    })
+  }
+
+  // Competitions members marked «хочу участвовать»: three days before the deadline and the day before.
+  const inThreeDays = local(3)
+  const { data: due } = await admin.from('opportunities').select('id, title, deadline')
+    .in('deadline', [tomorrow, inThreeDays]).eq('hidden', false)
+  for (const o of due ?? []) {
+    const { data: savers } = await admin.from('opportunity_saves')
+      .select('profile_id, profile:profiles!inner(status)').eq('opportunity_id', o.id).eq('profile.status', 'active')
+    const last = o.deadline === tomorrow
+    sent += await send((savers ?? []).map((s) => s.profile_id as string), {
+      title: last ? 'Завтра последний день подачи' : 'Через 3 дня закрывается приём',
+      body: o.title,
+      url: `${SITE}/opportunities/${o.id}`,
+      tag: `opportunity-${o.id}-${last ? 1 : 3}`,
     })
   }
   return reply(200, { sent })

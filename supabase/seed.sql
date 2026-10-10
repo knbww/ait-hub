@@ -514,6 +514,17 @@ begin
   join public.news n on n.title = c.title
   where n.published_at + c.after::interval < now();
 
+  -- A few marks in the catalog of competitions.
+  insert into public.opportunity_saves (opportunity_id, profile_id, created_at)
+  select o.id, pg_temp.pid(s.person), now() - interval '2 days'
+  from (values
+    ('aruzhan', 'technovation'), ('aruzhan', 'waicy-2026'), ('daniyar', 'faio'), ('nikita', 'ai-olymp'),
+    ('tamerlan', 'innopolis-open'), ('tamerlan', 'eurasian-team-olympiad'), ('polina', 'eurasian-team-olympiad'),
+    ('rustam', 'eurasian-team-olympiad'), ('zhanel', 'respa-informatics-junior'),
+    ('alikhan', 'conrad-challenge'), ('diana', 'sko-hub-pizza-pitch'), ('sanzhar', 'nasa-space-apps-petropavlovsk')
+  ) as s(person, key)
+  join public.opportunities o on o.key = s.key;
+
   -- ── Audit trail ───────────────────────────────────────────────────────────────
   insert into public.audit_log (actor_id, action, target_id, details, created_at) values
     (pg_temp.pid('director'), 'schedule_set', null, '{"last_week": 36}', pg_temp.at(1, 0, '08:00') - interval '7 days'),

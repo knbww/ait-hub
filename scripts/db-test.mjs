@@ -210,6 +210,14 @@ async function freshScenario() {
     'Degrees,Tic-Tac-Toe,Knights,Minesweeper,Heredity,PageRank,Crossword,Shopping,Nim,Traffic,Parser,Attention')
   await expectEqual('content: one pinned welcome post', db, pg,
     'select count(*)::int from public.news where pinned and author_id is null', [], 1)
+  await expectEqual('content: the catalog of competitions is loaded', db, pg,
+    'select count(*)::int from public.opportunities where key is not null', [], 44)
+  await expectEqual('content: one paused programme waits hidden', db, pg,
+    'select string_agg(key, \',\') from public.opportunities where hidden', [], 'beginit')
+  await expectEqual('content: every entry names its sources', db, pg,
+    'select count(*)::int from public.opportunities where cardinality(sources) = 0', [], 0)
+  await expectEqual('content: loading it is idempotent', db, pg,
+    `select count(distinct key)::int from public.opportunities`, [], 44)
 
   const codes = Object.fromEntries(
     (await rows(db, pg, 'select track_id, code from public.join_codes where active')).map((r) => [r.track_id, r.code]),
@@ -270,7 +278,7 @@ async function freshScenario() {
   const anon = 'anon'
   for (const table of ['profiles', 'member_private', 'points_entries', 'events', 'tracks', 'program_weeks',
     'submissions', 'teams', 'projects', 'rating_results', 'audit_log', 'join_codes', 'dashboard_layouts', 'news',
-    'news_likes', 'news_comments']) {
+    'news_likes', 'news_comments', 'opportunities', 'opportunity_saves']) {
     await expectError(`anon: cannot read ${table}`, db, anon, `select * from public.${table}`, [], DENIED)
   }
   await expectError('anon: cannot call the leaderboard', db, anon, 'select * from public.points_leaderboard()', [], DENIED)
@@ -654,6 +662,56 @@ async function freshScenario() {
   await expectEqual('work files: a link-only resubmission clears them', db, pg,
     `select jsonb_array_length(files) from public.submissions where id = $1`, [sub1], 0)
 
+  // ── Competitions and opportunities ────────────────────────────────────────
+  const insertOpp = `insert into public.opportunities (title, kind, region, summary, url, tracks, deadline, sources)
+                     values ($1, $2, $3, $4, $5, $6, $7, $8) returning id`
+  const oppArgs = (over = {}) => {
+    const o = { title: 'Innopolis Open', kind: 'olympiad', region: 'online', summary: 'Олимпиада по информатике',
+      url: 'https://dovuz.innopolis.university', tracks: '{algo}', deadline: '2026-10-19',
+      sources: '{https://dovuz.innopolis.university}', ...over }
+    return [o.title, o.kind, o.region, o.summary, o.url, o.tracks, o.deadline, o.sources]
+  }
+  await expectError('opportunities: members cannot add', db, m, insertOpp, oppArgs(), RLS)
+  const opp = await value(db, l, insertOpp, oppArgs())
+  await expectEqual('opportunities: the author is recorded', db, pg,
+    'select created_by from public.opportunities where id = $1', [opp], P.leadAi)
+  await expectError('opportunities: links must be https', db, l, insertOpp, oppArgs({ url: 'http://x.kz' }), /opportunities_url_check/)
+  await expectError('opportunities: so must sources', db, l, insertOpp, oppArgs({ sources: '{http://x.kz}' }), /invalid_link/)
+  await expectError('opportunities: only the club\'s tracks', db, l, insertOpp, oppArgs({ tracks: '{math}' }), /opportunities_tracks_check/)
+  await expectError('opportunities: only known kinds', db, l, insertOpp, oppArgs({ kind: 'party' }), /opportunities_kind_check/)
+  await expectEqual('opportunities: every member reads them', db, U.startup1,
+    'select count(*)::int from public.opportunities where id = $1', [opp], 1)
+  await expectEqual('opportunities: deactivated members don\'t', db, U.inactive,
+    'select count(*)::int from public.opportunities', [], 0)
+  await expectOk('opportunities: any lead updates them', db, U.leadAlgo,
+    `update public.opportunities set deadline = '2026-10-20' where id = $1`, [opp])
+  await expectNoEffect('opportunities: members cannot edit', db, m,
+    `update public.opportunities set title = 'x' where id = $1`, [opp])
+  await expectError('opportunities: the author cannot be changed', db, U.leadAlgo,
+    'update public.opportunities set created_by = $2 where id = $1', [opp, P.leadAlgo], DENIED)
+  await expectOk('opportunities: an entry can be hidden', db, l, 'update public.opportunities set hidden = true where id = $1', [opp])
+  await expectEqual('opportunities: members no longer see it', db, m,
+    'select count(*)::int from public.opportunities where id = $1', [opp], 0)
+  await expectEqual('opportunities: staff still do', db, U.leadAlgo,
+    'select count(*)::int from public.opportunities where id = $1', [opp], 1)
+  await run(db, l, 'update public.opportunities set hidden = false where id = $1', [opp])
+
+  const saveOpp = 'insert into public.opportunity_saves (opportunity_id, profile_id) values ($1, $2)'
+  await expectOk('saves: a member marks one', db, m, saveOpp, [opp, P.ai1])
+  await expectError('saves: not for someone else', db, m, saveOpp, [opp, P.ai2], RLS)
+  await run(db, U.algo1, saveOpp, [opp, P.algo1])
+  await expectEqual('saves: members see their own', db, m, 'select count(*)::int from public.opportunity_saves', [], 1)
+  await expectEqual('saves: a lead sees their track\'s', db, l, 'select count(*)::int from public.opportunity_saves', [], 1)
+  await expectEqual('saves: the curator sees everyone\'s', db, U.cur, 'select count(*)::int from public.opportunity_saves', [], 2)
+  await expectEqual('saves: in the member\'s data download', db, m,
+    `select public.export_member_data($1) -> 'saved_opportunities' -> 0 ->> 'title'`, [P.ai1], 'Innopolis Open')
+  await expectNoEffect('saves: nobody removes another member\'s mark', db, U.dir,
+    'delete from public.opportunity_saves where profile_id = $1', [P.ai1])
+  await expectNoEffect('opportunities: a lead cannot delete another\'s entry', db, U.leadAlgo,
+    'delete from public.opportunities where id = $1', [opp])
+  await expectOk('opportunities: the author deletes it', db, l, 'delete from public.opportunities where id = $1', [opp])
+  await expectEqual('saves: go with it', db, pg, 'select count(*)::int from public.opportunity_saves', [], 0)
+
   // ── Teams ─────────────────────────────────────────────────────────────────
   const team = await value(db, U.ai1, `select public.create_team('Нейроны', 'турнир')`)
   await expectError('teams: one team per member', db, U.ai1, `select public.create_team('Вторая')`, [], /already_in_team/)
@@ -790,6 +848,7 @@ async function seedScenario() {
   await expectEqual('seed: news from staff', db, pg, 'select count(*)::int from public.news', [], 8)
   await expectEqual('seed: members like the news', db, pg, 'select count(*) > 40 from public.news_likes', [], true)
   await expectEqual('seed: and talk under it', db, pg, 'select count(*) >= 7 from public.news_comments', [], true)
+  await expectEqual('seed: members mark competitions', db, pg, 'select count(*)::int from public.opportunity_saves', [], 12)
   await expectEqual('seed: the calendar drafts were replaced', db, pg,
     `select count(*)::int from public.events where title = 'Демо' or description like 'Черновик из календаря курса%'`, [], 0)
   await expectEqual('seed: nothing logged by the seed itself', db, pg,

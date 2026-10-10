@@ -275,3 +275,50 @@ export interface AuditRow {
   created_at: string
   actor?: { full_name: string } | null
 }
+
+export type OpportunityKind =
+  | 'olympiad'
+  | 'competition'
+  | 'hackathon'
+  | 'startup'
+  | 'program'
+  | 'camp'
+  | 'internship'
+  | 'grant'
+  | 'course'
+  | 'event'
+export type OpportunityRegion = 'sko' | 'kz' | 'online' | 'intl'
+
+export interface OpportunityRow {
+  id: string
+  key: string | null
+  title: string
+  kind: OpportunityKind
+  organizer: string | null
+  tracks: TrackId[]
+  region: OpportunityRegion
+  grade_min: number | null
+  grade_max: number | null
+  eligibility: string | null
+  team: string | null
+  fee: string | null
+  summary: string
+  description: string | null
+  how_to_apply: string | null
+  url: string
+  apply_url: string | null
+  deadline: string | null
+  starts_on: string | null
+  ends_on: string | null
+  /** What is known about the dates when they aren't confirmed (or extra detail when they are). */
+  dates_note: string | null
+  /** The dates were read on an official page for the current season. */
+  dates_verified: boolean
+  sources: string[]
+  notes: string | null
+  /** Seen by staff only. */
+  hidden: boolean
+  created_by: string | null
+  created_at: string
+  updated_at: string
+}
