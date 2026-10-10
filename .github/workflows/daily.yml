@@ -1,0 +1,33 @@
+name: Daily reminders
+
+# Every evening the push function reminds members about tomorrow's deadline (a week's work is due
+# on Sunday) and tomorrow's confirmed events — only on devices where they turned notifications on.
+#
+# Repository secret: CRON_SECRET (the same value is a secret of the Supabase function `push`).
+# Repository variable: VITE_SUPABASE_URL.
+
+on:
+  schedule:
+    - cron: '0 13 * * *' # 18:00 in Kazakhstan
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  remind:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Send reminders
+        env:
+          SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+          CRON_SECRET: ${{ secrets.CRON_SECRET }}
+        run: |
+          if [ -z "$CRON_SECRET" ] || [ -z "$SUPABASE_URL" ]; then
+            echo "::warning::CRON_SECRET / VITE_SUPABASE_URL are not set — reminders skipped."
+            exit 0
+          fi
+          curl -fsS -X POST "$SUPABASE_URL/functions/v1/push" \
+            -H "Content-Type: application/json" \
+            -H "x-cron-secret: $CRON_SECRET" \
+            -d '{"action":"daily"}'

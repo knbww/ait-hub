@@ -10,6 +10,8 @@ interface ImportMetaEnv {
   readonly VITE_DEMO?: string
   /** Cloudflare Turnstile site key: bot protection on sign-in and sign-up when set. */
   readonly VITE_TURNSTILE_SITE_KEY?: string
+  /** VAPID public key for push notifications (the private one is a Supabase function secret). */
+  readonly VITE_VAPID_PUBLIC_KEY?: string
 }
 
 interface ImportMeta {

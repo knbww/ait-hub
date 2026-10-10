@@ -589,6 +589,23 @@ async function freshScenario() {
   await expectEqual('avatars: anonymous visitors see nothing', db, anon,
     `select count(*)::int from storage.objects where bucket_id = 'avatars'`, [], 0)
 
+  // ── Push notifications ────────────────────────────────────────────────────
+  const endpoint = 'https://push.example.com/device-1'
+  await expectOk('push: a member registers a device', db, m, 'select public.register_push($1, $2, $3, $4)',
+    [endpoint, 'p256dh-key', 'auth-key', 'test browser'])
+  await expectEqual('push: they see their device', db, m, 'select count(*)::int from public.push_subscriptions', [], 1)
+  await expectEqual('push: nobody else does', db, U.ai2, 'select count(*)::int from public.push_subscriptions', [], 0)
+  await expectEqual('push: not even staff', db, U.dir, 'select count(*)::int from public.push_subscriptions', [], 0)
+  await expectOk('push: a shared computer changes hands', db, U.ai2, 'select public.register_push($1, $2, $3)',
+    [endpoint, 'p256dh-key-2', 'auth-key-2'])
+  await expectEqual('push: the device now belongs to the new user', db, pg,
+    'select profile_id from public.push_subscriptions where endpoint = $1', [endpoint], P.ai2)
+  await expectError('push: no direct writes', db, m, 'delete from public.push_subscriptions', [], DENIED)
+  await expectOk('push: removing a device', db, U.ai2, 'select public.unregister_push($1)', [endpoint])
+  await expectEqual('push: gone', db, pg, 'select count(*)::int from public.push_subscriptions', [], 0)
+  await expectError('push: guests cannot register', db, anon, 'select public.register_push($1, $2, $3)', [endpoint, 'a', 'b'], DENIED)
+  await expectError('push: endpoints must be https', db, m, 'select public.register_push($1, $2, $3)', ['http://x.kz', 'a', 'b'], /check/)
+
   // ── Second factor and API surface ─────────────────────────────────────────
   await expectError('mfa: exports need a second factor', db, noMfa(U.dir), 'select * from public.export_members()', [], /mfa_required/)
   await expectError('mfa: so do points exports', db, noMfa(U.cur), 'select * from public.export_points()', [], /mfa_required/)

@@ -30,6 +30,7 @@ const DB_CODES = [
   'invalid_shift',
   'mfa_required',
   'captcha_needed',
+  'push_denied',
 ] as const
 
 function rawMessage(error: unknown): string {

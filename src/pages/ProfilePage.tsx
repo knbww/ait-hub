@@ -8,6 +8,7 @@ import { ErrorText } from '../components/DataState'
 import { Avatar } from '../components/Avatar'
 import { TrackBadge } from '../components/TrackBadge'
 import { MfaSection } from '../components/MfaSection'
+import { AppSection } from '../components/AppSection'
 import { pageVariants } from '../lib/animations'
 import { useAuth } from '../context/authContext'
 import { useI18n } from '../context/i18nContext'
@@ -317,6 +318,7 @@ export function ProfilePage() {
       <PhotoSection profile={profile} />
       <PasswordSection />
       {isStaff && <MfaSection />}
+      <AppSection />
 
       <GlassCard>
         <h2 className={sectionTitle}>{t('profile.data')}</h2>

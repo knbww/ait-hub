@@ -8,9 +8,11 @@ import { ErrorBoundary } from './components/ErrorBoundary'
 import { queryClient } from './lib/queryClient'
 import { initSentry } from './lib/sentry'
 import { redirectToPublicOrigin } from './lib/origin'
+import { registerServiceWorker } from './lib/install'
 
 if (!redirectToPublicOrigin()) {
   initSentry()
+  registerServiceWorker()
 
   createRoot(document.getElementById('root')!).render(
     <StrictMode>

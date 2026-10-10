@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
 import { notConfigured, refresh, rpc } from './mutate'
+import { notify } from './push'
 import type { Result } from './mutate'
 import type { MeetingKind, SubmissionStatus, TrackId } from './db'
 
@@ -8,11 +9,15 @@ export const submitWork = (weekId: string, link: string, comment: string) =>
     ['submissions'],
   ])
 
-export const reviewWork = (submissionId: string, status: Exclude<SubmissionStatus, 'submitted'>, feedback: string) =>
-  rpc('review_work', { p_submission: submissionId, p_status: status, p_feedback: feedback.trim() || null }, [
+export async function reviewWork(submissionId: string, status: Exclude<SubmissionStatus, 'submitted'>, feedback: string) {
+  const res = await rpc('review_work', { p_submission: submissionId, p_status: status, p_feedback: feedback.trim() || null }, [
     ['week-work'],
     ['submissions'],
+    ['track-progress'],
   ])
+  if (!res.error) notify({ action: 'review', submission_id: submissionId })
+  return res
+}
 
 export const setAttendance = (profileId: string, weekId: string, kind: MeetingKind, present: boolean) =>
   rpc('set_attendance', { p_profile: profileId, p_week: weekId, p_kind: kind, p_present: present }, [

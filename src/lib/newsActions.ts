@@ -1,5 +1,6 @@
 import { supabase } from './supabase'
 import { notConfigured, refresh } from './mutate'
+import { notify } from './push'
 import type { Result } from './mutate'
 import type { TrackId } from './db'
 
@@ -13,10 +14,14 @@ export interface NewsInput {
 
 export async function saveNews(id: string | null, input: NewsInput): Promise<Result> {
   if (!supabase) return notConfigured()
-  const { error } = id
-    ? await supabase.from('news').update(input).eq('id', id)
-    : await supabase.from('news').insert(input)
-  if (error) return { data: null, error }
+  if (id) {
+    const { error } = await supabase.from('news').update(input).eq('id', id)
+    if (error) return { data: null, error }
+  } else {
+    const { data, error } = await supabase.from('news').insert(input).select('id').single()
+    if (error) return { data: null, error }
+    notify({ action: 'news', news_id: (data as { id: string }).id })
+  }
   await refresh([['news']])
   return { data: null, error: null }
 }
