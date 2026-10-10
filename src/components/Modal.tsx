@@ -1,5 +1,6 @@
 import { useEffect } from 'react'
 import type { ReactNode } from 'react'
+import { createPortal } from 'react-dom'
 import { X } from 'lucide-react'
 import { useI18n } from '../context/i18nContext'
 
@@ -29,7 +30,8 @@ export function Modal({ title, onClose, children, wide = false }: ModalProps) {
     }
   }, [onClose])
 
-  return (
+  // In <body>, so a frosted (backdrop-filter) parent can't trap the fixed overlay.
+  return createPortal(
     <div
       className="fixed inset-0 z-[200] flex items-end sm:items-center justify-center sm:p-4 bg-black/30 backdrop-blur-sm"
       onClick={onClose}
@@ -53,6 +55,7 @@ export function Modal({ title, onClose, children, wide = false }: ModalProps) {
         </div>
         {children}
       </div>
-    </div>
+    </div>,
+    document.body,
   )
 }

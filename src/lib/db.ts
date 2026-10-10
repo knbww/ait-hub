@@ -240,7 +240,22 @@ export interface NewsRow {
   author_id: string | null
   published_at: string
   updated_at: string
+  /** Files in the private `news` bucket, `<post id>/<name>`; at most six. */
+  photos: string[]
+  allow_comments: boolean
   author?: { full_name: string } | null
+  likes?: { profile_id: string; profile: { full_name: string } | null }[]
+  /** Only ids — enough to count; the comments themselves load when a post is opened. */
+  comments?: { id: string }[]
+}
+
+export interface NewsCommentRow {
+  id: string
+  news_id: string
+  author_id: string
+  body: string
+  created_at: string
+  author?: { full_name: string; avatar_path: string | null } | null
 }
 
 export interface AuditRow {

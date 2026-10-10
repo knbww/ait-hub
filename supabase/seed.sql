@@ -488,6 +488,32 @@ begin
      'https://cs50.harvard.edu/ai/', 'ai', false, 'lead_ai', 2, 1, '19:30')
   ) as n(title, body, link, track, pinned, author, week, day, at);
 
+  -- Likes from members who see the post, and a few conversations under it.
+  insert into public.news_likes (news_id, profile_id, created_at)
+  select n.id, d.pid, n.published_at + make_interval(mins => 5 + pg_temp.roll(d.pid, 0, 'like-at:' || n.id) * 9)
+  from public.news n
+  cross join demo_people d
+  where d.key <> 'gleb'
+    and (n.track_id is null or n.track_id = d.track or d.role <> 'member')
+    and pg_temp.roll(d.pid, 0, 'like:' || n.id) < case when n.track_id is null then 45 else 60 end
+    and n.published_at + make_interval(mins => 5 + pg_temp.roll(d.pid, 0, 'like-at:' || n.id) * 9) < now();
+
+  insert into public.news_comments (news_id, author_id, body, created_at)
+  select n.id, pg_temp.pid(c.author), c.body, n.published_at + c.after::interval
+  from (values
+    ('Как прошёл Demo Day', 'diana', 'Спасибо за организацию! Было волнительно, но очень круто.', '2 hours'),
+    ('Как прошёл Demo Day', 'alikhan', 'Нам задали много вопросов про монетизацию — учтём к следующему питчу.', '3 hours'),
+    ('Как прошёл Demo Day', 'lead_start', 'Алихан, это хороший знак: значит, идея зацепила. Разберём на занятии в понедельник.', '4 hours'),
+    ('Первый рейтинговый контест — в четверг', 'polina', 'А задачи на графы будут?', '1 hour'),
+    ('Первый рейтинговый контест — в четверг', 'lead_algo', 'Одна, и несложная: BFS из пятой недели.', '2 hours'),
+    ('Турнир ботов: судейский скрипт готов', 'daniyar', 'Бота можно разбить на несколько файлов или нужен один?', '40 minutes'),
+    ('Турнир ботов: судейский скрипт готов', 'lead_ai', 'Можно несколько, точка входа — bot.py. Дописал это в правила.', '90 minutes'),
+    ('Хакатон на контрольной неделе', 'sanzhar', 'Можно собрать команду из двух направлений?', '30 minutes'),
+    ('Хакатон на контрольной неделе', 'director', 'Да, смешанные команды только приветствуются.', '1 hour')
+  ) as c(title, author, body, after)
+  join public.news n on n.title = c.title
+  where n.published_at + c.after::interval < now();
+
   -- ── Audit trail ───────────────────────────────────────────────────────────────
   insert into public.audit_log (actor_id, action, target_id, details, created_at) values
     (pg_temp.pid('director'), 'schedule_set', null, '{"last_week": 36}', pg_temp.at(1, 0, '08:00') - interval '7 days'),

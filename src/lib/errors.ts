@@ -31,6 +31,13 @@ const DB_CODES = [
   'mfa_required',
   'captcha_needed',
   'push_denied',
+  'comments_closed',
+  'too_fast',
+  'invalid_photo_path',
+  'photo_unreadable',
+  'photo_too_big',
+  'too_many_photos',
+  'photo_consent_needed',
 ] as const
 
 function rawMessage(error: unknown): string {

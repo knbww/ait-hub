@@ -122,6 +122,18 @@ export const formatMonth = (iso: string) => {
   return s.charAt(0).toUpperCase() + s.slice(1)
 }
 
+const relativeFormat = new Intl.RelativeTimeFormat('ru-RU', { numeric: 'auto' })
+const shortDateTimeFormat = new Intl.DateTimeFormat('ru-RU', { day: 'numeric', month: 'short', hour: '2-digit', minute: '2-digit' })
+
+/** «сейчас», «5 минут назад», «3 часа назад», then a date — for comments and messages. */
+export function formatAgo(iso: string, now = Date.now()): string {
+  const minutes = Math.round((now - new Date(iso).getTime()) / 60_000)
+  if (minutes < 1) return relativeFormat.format(0, 'second')
+  if (minutes < 60) return relativeFormat.format(-minutes, 'minute')
+  if (minutes < 24 * 60) return relativeFormat.format(-Math.round(minutes / 60), 'hour')
+  return shortDateTimeFormat.format(new Date(iso))
+}
+
 /** `datetime-local` input value ↔ ISO timestamp, in the viewer's time zone. */
 export function toLocalInput(iso: string): string {
   const d = new Date(iso)

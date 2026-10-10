@@ -269,7 +269,8 @@ async function freshScenario() {
   // ── Anonymous visitor ─────────────────────────────────────────────────────
   const anon = 'anon'
   for (const table of ['profiles', 'member_private', 'points_entries', 'events', 'tracks', 'program_weeks',
-    'submissions', 'teams', 'projects', 'rating_results', 'audit_log', 'join_codes', 'dashboard_layouts', 'news']) {
+    'submissions', 'teams', 'projects', 'rating_results', 'audit_log', 'join_codes', 'dashboard_layouts', 'news',
+    'news_likes', 'news_comments']) {
     await expectError(`anon: cannot read ${table}`, db, anon, `select * from public.${table}`, [], DENIED)
   }
   await expectError('anon: cannot call the leaderboard', db, anon, 'select * from public.points_leaderboard()', [], DENIED)
@@ -547,6 +548,69 @@ async function freshScenario() {
   await expectOk('news: the curator removes any post', db, U.cur, 'delete from public.news where id = $1', [leadPost])
   await expectEqual('news: members see the rest', db, m, 'select count(*)::int from public.news', [], 2)
 
+  // ── News: photos, likes, comments ─────────────────────────────────────────
+  const photo = `insert into storage.objects (bucket_id, name) values ('news', $1)`
+  const aiPost = await value(db, l, insertNews, ['Фото с практикума', 'Как это было', 'ai', false])
+  await expectOk('news photos: the lead uploads into the post\'s folder', db, l, photo, [`${aiPost}/p1.webp`])
+  await expectError('news photos: not into a post they can\'t edit', db, l, photo, [`${clubPost}/p1.webp`], RLS)
+  await expectError('news photos: members cannot upload', db, m, photo, [`${aiPost}/p2.webp`], RLS)
+  await expectError('news photos: not into a folder of no post', db, l, photo, ['whatever/p1.webp'], RLS)
+  await expectOk('news photos: the lead attaches it to the post', db, l,
+    'update public.news set photos = array[$2] where id = $1', [aiPost, `${aiPost}/p1.webp`])
+  await expectError('news photos: only files of the post\'s own folder', db, l,
+    'update public.news set photos = array[$2] where id = $1', [aiPost, `${clubPost}/p1.webp`], /invalid_photo_path/)
+  await expectError('news photos: at most six', db, l,
+    'update public.news set photos = array_fill($2::text, array[7]) where id = $1', [aiPost, `${aiPost}/p1.webp`], /news_photos_check/)
+  await expectEqual('news photos: members see them', db, m,
+    `select count(*)::int from storage.objects where bucket_id = 'news'`, [], 1)
+  await expectEqual('news photos: deactivated members don\'t', db, U.inactive,
+    `select count(*)::int from storage.objects where bucket_id = 'news'`, [], 0)
+  await expectNoEffect('news photos: members cannot delete them', db, m, `delete from storage.objects where bucket_id = 'news'`)
+
+  const like = 'insert into public.news_likes (news_id, profile_id) values ($1, $2)'
+  await expectOk('likes: a member likes a post', db, m, like, [aiPost, P.ai1])
+  await expectError('likes: once', db, m, like, [aiPost, P.ai1], /duplicate key/)
+  await expectError('likes: not on someone else\'s behalf', db, m, like, [aiPost, P.ai2], RLS)
+  await expectError('likes: deactivated members cannot', db, U.inactive, like, [aiPost, P.inactive], RLS)
+  await run(db, U.algo1, like, [aiPost, P.algo1])
+  await expectEqual('likes: everyone sees them', db, U.ai2,
+    'select count(*)::int from public.news_likes where news_id = $1', [aiPost], 2)
+  await expectNoEffect('likes: nobody takes back someone else\'s', db, U.dir,
+    'delete from public.news_likes where news_id = $1 and profile_id = $2', [aiPost, P.ai1])
+  await expectOk('likes: a member takes theirs back', db, m,
+    'delete from public.news_likes where news_id = $1 and profile_id = $2', [aiPost, P.ai1])
+
+  const comment = 'insert into public.news_comments (news_id, body) values ($1, $2) returning id'
+  const c1 = await value(db, m, comment, [aiPost, '  Было круто!  '])
+  await expectEqual('comments: the author is whoever wrote it, text trimmed', db, pg,
+    'select author_id = $2 and body = $3 from public.news_comments where id = $1', [c1, P.ai1, 'Было круто!'], true)
+  await expectError('comments: the author cannot be set by hand', db, m,
+    'insert into public.news_comments (news_id, body, author_id) values ($1, $2, $3)', [aiPost, 'x', P.ai2], DENIED)
+  await expectError('comments: not empty', db, m, comment, [aiPost, '   '], /news_comments_body_check/)
+  await expectError('comments: deactivated members cannot write', db, U.inactive, comment, [aiPost, 'x'], RLS)
+  const c2 = await value(db, U.algo1, comment, [aiPost, 'А где код?'])
+  await expectEqual('comments: every member reads them', db, U.startup1,
+    'select count(*)::int from public.news_comments where news_id = $1', [aiPost], 2)
+  await expectNoEffect('comments: members cannot remove others\'', db, m, 'delete from public.news_comments where id = $1', [c2])
+  await expectNoEffect('comments: nor can another track\'s lead', db, U.leadAlgo,
+    'delete from public.news_comments where id = $1', [c1])
+  await expectOk('comments: the post\'s lead removes one', db, l, 'delete from public.news_comments where id = $1', [c2])
+  await expectEqual('comments: which is logged', db, U.cur,
+    `select count(*)::int from public.audit_log where action = 'comment_removed' and target_id = $1`, [P.algo1], 1)
+  await expectOk('comments: authors remove their own', db, m, 'delete from public.news_comments where id = $1', [c1])
+  for (let i = 1; i <= 5; i++) await run(db, U.ai3, comment, [aiPost, `сообщение ${i}`])
+  await expectError('comments: at most five a minute', db, U.ai3, comment, [aiPost, 'ещё одно'], /too_fast/)
+  await expectOk('comments: the lead closes them', db, l, 'update public.news set allow_comments = false where id = $1', [aiPost])
+  await expectError('comments: none under a closed post', db, U.ai2, comment, [aiPost, 'x'], /comments_closed/)
+  await expectOk('news photos: the lead removes the file', db, l,
+    `delete from storage.objects where bucket_id = 'news' and name = $1`, [`${aiPost}/p1.webp`])
+  await expectOk('news: deleting a post', db, l, 'delete from public.news where id = $1', [aiPost])
+  await expectEqual('news: takes its comments and likes along', db, pg,
+    `select ((select count(*) from public.news_comments where news_id = $1)
+           + (select count(*) from public.news_likes where news_id = $1))::int`, [aiPost], 0)
+  await expectEqual('comments: only the moderator\'s removal was logged', db, pg,
+    `select count(*)::int from public.audit_log where action = 'comment_removed'`, [], 1)
+
   // ── Teams ─────────────────────────────────────────────────────────────────
   const team = await value(db, U.ai1, `select public.create_team('Нейроны', 'турнир')`)
   await expectError('teams: one team per member', db, U.ai1, `select public.create_team('Вторая')`, [], /already_in_team/)
@@ -681,6 +745,8 @@ async function seedScenario() {
   await expectEqual('seed: AIT Points journal', db, pg,
     `select count(*) > 200 from public.points_entries`, [], true)
   await expectEqual('seed: news from staff', db, pg, 'select count(*)::int from public.news', [], 8)
+  await expectEqual('seed: members like the news', db, pg, 'select count(*) > 40 from public.news_likes', [], true)
+  await expectEqual('seed: and talk under it', db, pg, 'select count(*) >= 7 from public.news_comments', [], true)
   await expectEqual('seed: the calendar drafts were replaced', db, pg,
     `select count(*)::int from public.events where title = 'Демо' or description like 'Черновик из календаря курса%'`, [], 0)
   await expectEqual('seed: nothing logged by the seed itself', db, pg,
