@@ -10,10 +10,15 @@ import { queryClient } from './lib/queryClient'
 import { initSentry } from './lib/sentry'
 import { redirectToPublicOrigin } from './lib/origin'
 import { registerServiceWorker } from './lib/install'
+import { reloadForNewVersion } from './lib/staleVersion'
 
 if (!redirectToPublicOrigin()) {
   initSentry()
   registerServiceWorker()
+  // A page's files failed to preload: most likely a newer version was published meanwhile.
+  window.addEventListener('vite:preloadError', (event) => {
+    if (reloadForNewVersion()) event.preventDefault()
+  })
 
   createRoot(document.getElementById('root')!).render(
     <StrictMode>

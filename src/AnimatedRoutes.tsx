@@ -3,10 +3,15 @@ import type { ComponentType, ReactNode } from 'react'
 import { AnimatePresence } from 'framer-motion'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { PageLoading, RequireAuth, RequireStaff } from './components/RequireAuth'
+import { reloadForNewVersion } from './lib/staleVersion'
 
-// Route-level code splitting: each page becomes its own lazily-loaded chunk.
+// Route-level code splitting: each page becomes its own lazily-loaded chunk. A chunk that is
+// gone because a newer version was published meanwhile reloads the page once.
 const page = <K extends string>(load: () => Promise<Record<K, ComponentType>>, name: K) =>
-  lazy(() => load().then((m) => ({ default: m[name] })))
+  lazy(() => load().then((m) => ({ default: m[name] })).catch((error: unknown) => {
+    if (reloadForNewVersion()) return new Promise<never>(() => {})
+    throw error
+  }))
 
 const JoinPage = page(() => import('./pages/JoinPage'), 'JoinPage')
 const LoginPage = page(() => import('./pages/LoginPage'), 'LoginPage')

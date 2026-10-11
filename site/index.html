@@ -1,0 +1,264 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>AIT Club — искусственный интеллект, алгоритмы и стартапы для школьников</title>
+    <meta name="description" content="Технологический клуб для 7–12 классов: искусственный интеллект по курсу CS50 AI, олимпиадные алгоритмы на C++ и стартап-инженерия. Учебный год, проекты, контесты и Demo Day. Участие бесплатное." />
+    <meta name="theme-color" content="#750014" />
+    <link rel="icon" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <meta property="og:type" content="website" />
+    <meta property="og:title" content="AIT Club" />
+    <meta property="og:description" content="Искусственный интеллект, алгоритмы и стартапы для школьников 7–12 классов." />
+    <meta property="og:image" content="/shots/catalog.jpg" />
+    <script type="module" src="./main.ts"></script>
+  </head>
+  <body>
+    <div class="bg" aria-hidden="true">
+      <span class="blob blob-1"></span>
+      <span class="blob blob-2"></span>
+      <span class="blob blob-3"></span>
+      <span class="blob blob-4"></span>
+    </div>
+
+    <header class="sticky top-2 sm:top-4 z-50 px-3 sm:px-6">
+      <nav class="glass max-w-6xl mx-auto rounded-2xl px-3 sm:px-4 py-2 flex items-center gap-3" aria-label="Разделы">
+        <a href="#top" class="shrink-0" aria-label="AIT Club — в начало">
+          <img src="/aitlogo.png" alt="AIT Club" class="h-9 sm:h-10 w-auto mix-blend-multiply" />
+        </a>
+        <div class="hidden md:flex items-center gap-1 flex-1 text-sm">
+          <a class="nav-link" href="#tracks">Направления</a>
+          <a class="nav-link" href="#year">Как устроен год</a>
+          <a class="nav-link" href="#hub">AIT Hub</a>
+          <a class="nav-link" href="#join">Как вступить</a>
+          <a class="nav-link" href="#faq">Вопросы</a>
+        </div>
+        <div class="flex-1 md:hidden"></div>
+        <a class="btn btn-dark !min-h-[40px] !px-4" href="https://hub.aitclub.org">Войти в Hub</a>
+      </nav>
+    </header>
+
+    <main id="top">
+      <!-- Hero -->
+      <section class="px-4 sm:px-6 pt-12 sm:pt-20 pb-12 sm:pb-20">
+        <div class="max-w-6xl mx-auto grid lg:grid-cols-[1.15fr_1fr] gap-10 lg:gap-14 items-center">
+          <div>
+            <p class="reveal kicker">Технологический клуб для 7–12 классов</p>
+            <h1 class="reveal text-[2.6rem] leading-[1.05] sm:text-[3.5rem] font-light tracking-tight mt-4">
+              Понимать технологии<br /> <span class="accent-text">и строить свои</span>
+            </h1>
+            <p class="reveal text-lg text-gray-700 mt-6 max-w-xl">
+              Искусственный интеллект, олимпиадные алгоритмы и стартап-инженерия. Участник выбирает одно направление
+              и весь учебный год работает над настоящими задачами: проекты гарвардского CS50 AI, контесты на Codeforces,
+              собственный продукт с первыми пользователями.
+            </p>
+            <div class="reveal flex flex-wrap gap-3 mt-8">
+              <a class="btn btn-accent" href="#join">Как вступить</a>
+              <a class="btn btn-ghost" href="#tracks">Направления →</a>
+            </div>
+            <ul class="reveal flex flex-wrap gap-2 mt-8 text-sm" aria-label="Коротко о клубе">
+              <li class="chip">3 направления</li>
+              <li class="chip">36 недель</li>
+              <li class="chip">занятие + практикум каждую неделю</li>
+              <li class="chip">с нуля</li>
+              <li class="chip">бесплатно</li>
+            </ul>
+          </div>
+          <div class="reveal relative" aria-hidden="true">
+            <div class="orbit">
+              <div class="orbit-card orbit-card-1">
+                <span class="orbit-icon bg-violet-600/10 text-violet-800">AI</span>
+                <span><b>Искусственный интеллект</b><br /><small>12 проектов CS50 AI</small></span>
+              </div>
+              <div class="orbit-card orbit-card-2">
+                <span class="orbit-icon bg-sky-600/10 text-sky-800">{ }</span>
+                <span><b>Алгоритмы</b><br /><small>C++ · Codeforces · CSES</small></span>
+              </div>
+              <div class="orbit-card orbit-card-3">
+                <span class="orbit-icon bg-amber-600/15 text-amber-800">↗</span>
+                <span><b>Стартап-инженерия</b><br /><small>MVP · пользователи · питч</small></span>
+              </div>
+              <div class="orbit-core">
+                <img src="/aitlogo.png" alt="" class="w-28 sm:w-32 mix-blend-multiply" />
+              </div>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Tracks -->
+      <section id="tracks" class="section">
+        <div class="max-w-6xl mx-auto">
+          <p class="reveal kicker">Направления</p>
+          <h2 class="reveal section-title">Три направления — выберите одно на год</h2>
+          <p class="reveal section-lead">Одно направление, чтобы хватило времени сделать его по-настоящему. Знать Python или C++ заранее не нужно — нужна готовность работать каждую неделю.</p>
+          <div class="grid md:grid-cols-3 gap-4 sm:gap-5 mt-10">
+            <article class="reveal track glass">
+              <div class="track-icon bg-violet-600/10 text-violet-800">AI</div>
+              <h3 class="track-title">Искусственный интеллект</h3>
+              <p class="track-text">Как ИИ устроен внутри. Основа — гарвардский курс CS50’s Introduction to AI with Python: поиск, логика, вероятности, оптимизация, машинное обучение, нейросети и языковые модели.</p>
+              <ul class="track-list">
+                <li>12 официальных проектов с автоматической проверкой — от Degrees и Tic-Tac-Toe до Traffic и Attention</li>
+                <li>Турниры ботов по заранее объявленным правилам</li>
+                <li>Python с нуля</li>
+              </ul>
+              <p class="track-tools">Python · CS50 AI</p>
+            </article>
+            <article class="reveal track glass">
+              <div class="track-icon bg-sky-600/10 text-sky-800">{ }</div>
+              <h3 class="track-title">Алгоритмы и олимпиады</h3>
+              <p class="track-text">Олимпиадные задачи: придумать алгоритм, оценить его до того, как писать код, и написать без ошибок.</p>
+              <ul class="track-list">
+                <li>Пять задач в неделю на CSES и по USACO Guide</li>
+                <li>Ежемесячные рейтинговые контесты клуба на Codeforces</li>
+                <li>Подготовка к республиканской олимпиаде по информатике</li>
+              </ul>
+              <p class="track-tools">C++ · CSES · Codeforces · USACO Guide</p>
+            </article>
+            <article class="reveal track glass">
+              <div class="track-icon bg-amber-600/15 text-amber-800">↗</div>
+              <h3 class="track-title">Стартап-инженерия</h3>
+              <p class="track-text">От проблемы до продукта, которым пользуются, — своими руками: интервью с клиентами, лендинг, MVP на React, первые пользователи, рост и питч.</p>
+              <ul class="track-list">
+                <li>Команды до пяти человек</li>
+                <li>Питч-разборы с экспертами и Demo Day</li>
+                <li>Full Stack Open и практики LaunchX</li>
+              </ul>
+              <p class="track-tools">React · Full Stack Open · LaunchX</p>
+            </article>
+          </div>
+        </div>
+      </section>
+
+      <!-- Year -->
+      <section id="year" class="section">
+        <div class="max-w-6xl mx-auto grid lg:grid-cols-[1fr_1.2fr] gap-10 items-start">
+          <div class="lg:sticky lg:top-28">
+            <p class="reveal kicker">Учебный год</p>
+            <h2 class="reveal section-title">Как устроен год</h2>
+            <p class="reveal section-lead">36 недель, две встречи в каждой. Сертификат в конце года — за сделанное, а не за посещение: проекты, решённые задачи, работающий продукт.</p>
+          </div>
+          <ol class="timeline">
+            <li class="reveal timeline-item">
+              <span class="timeline-dot"></span>
+              <h3>Занятие и практикум каждую неделю</h3>
+              <p>На занятии — новая тема, на практикуме вы работаете сами, а ведущий рядом и помогает.</p>
+            </li>
+            <li class="reveal timeline-item">
+              <span class="timeline-dot"></span>
+              <h3>Работа сдаётся каждую неделю</h3>
+              <p>Руководитель направления проверяет и отвечает. Посещение не обязательно — обязательна работа.</p>
+            </li>
+            <li class="reveal timeline-item">
+              <span class="timeline-dot"></span>
+              <h3>Рейтинговые события</h3>
+              <p>Контесты, турниры ботов и питч-разборы — с правилами, объявленными заранее. По ним меняется рейтинг направления.</p>
+            </li>
+            <li class="reveal timeline-item">
+              <span class="timeline-dot"></span>
+              <h3>Хакатоны и Demo Day</h3>
+              <p>Несколько хакатонов за год и Demo Day, где команды показывают свои продукты гостям.</p>
+            </li>
+            <li class="reveal timeline-item">
+              <span class="timeline-dot"></span>
+              <h3>AIT Points</h3>
+              <p>Очки за подтверждённую работу: руководитель отмечает, за что и сколько. Рейтинг направления считается отдельно.</p>
+            </li>
+            <li class="reveal timeline-item">
+              <span class="timeline-dot timeline-dot-end"></span>
+              <h3>Сертификат</h3>
+              <p>В конце года — один сертификат за весь пройденный путь.</p>
+            </li>
+          </ol>
+        </div>
+      </section>
+
+      <!-- Hub -->
+      <section id="hub" class="section">
+        <div class="max-w-6xl mx-auto">
+          <p class="reveal kicker">AIT Hub</p>
+          <h2 class="reveal section-title">Всё, что нужно на неделе, — в одном месте</h2>
+          <p class="reveal section-lead">AIT Hub — рабочее место участника клуба: задания и материалы недели, сдача работ и отзывы, рейтинги, команды, проекты и каталог конкурсов. Работает в браузере и ставится на телефон как приложение.</p>
+          <div class="grid lg:grid-cols-[1fr_1.35fr] gap-8 mt-10 items-center">
+            <ul class="grid sm:grid-cols-2 lg:grid-cols-1 gap-3">
+              <li class="reveal feature glass"><b>Программа недели</b><span>Тема, материалы в Drive, задание и дедлайн — для своего направления.</span></li>
+              <li class="reveal feature glass"><b>Сдача работ и отзывы</b><span>Ссылка или файлы, проверка руководителя, история всех недель.</span></li>
+              <li class="reveal feature glass"><b>AIT Points и рейтинги</b><span>Журнал очков и рейтинги направлений по итогам событий.</span></li>
+              <li class="reveal feature glass"><b>Команды, проекты и чаты</b><span>Команда до пяти человек, вклад каждого в проект, чат команды.</span></li>
+              <li class="reveal feature glass"><b>Конкурсы и возможности</b><span>Олимпиады, хакатоны и стартап-конкурсы со сроками и ссылками — и напоминание о дедлайне.</span></li>
+            </ul>
+            <div class="reveal shots" aria-label="Экраны AIT Hub на демо-данных">
+              <figure class="shot shot-desktop">
+                <img src="/shots/catalog.jpg" alt="Каталог конкурсов в AIT Hub" loading="lazy" width="1280" height="800" />
+              </figure>
+              <figure class="shot shot-phone">
+                <img src="/shots/progress-phone.jpg" alt="Мой прогресс в AIT Hub на телефоне" loading="lazy" width="390" height="780" />
+              </figure>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- Join -->
+      <section id="join" class="section">
+        <div class="max-w-6xl mx-auto">
+          <div class="reveal glass join rounded-[2rem] p-6 sm:p-10 lg:p-14">
+            <p class="kicker">Как вступить</p>
+            <h2 class="section-title">Три шага</h2>
+            <ol class="grid md:grid-cols-3 gap-4 mt-8">
+              <li class="step"><span class="step-n">1</span><b>Приходите на встречу клуба</b><span>Руководитель направления покажет код вступления или QR-код.</span></li>
+              <li class="step"><span class="step-n">2</span><b>Введите код в AIT Hub</b><span>На hub.aitclub.org/join — код сразу определит направление.</span></li>
+              <li class="step"><span class="step-n">3</span><b>Начните первую неделю</b><span>Задание и материалы уже ждут в программе.</span></li>
+            </ol>
+            <div class="flex flex-wrap gap-3 mt-8">
+              <a class="btn btn-accent" href="https://hub.aitclub.org/join">У меня есть код</a>
+              <a class="btn btn-ghost" href="https://hub.aitclub.org/login">Я уже в клубе — войти</a>
+            </div>
+          </div>
+        </div>
+      </section>
+
+      <!-- FAQ -->
+      <section id="faq" class="section pb-24">
+        <div class="max-w-3xl mx-auto">
+          <p class="reveal kicker">Вопросы</p>
+          <h2 class="reveal section-title">Частые вопросы</h2>
+          <div class="mt-8 space-y-3">
+            <details class="reveal faq glass">
+              <summary>Нужно уметь программировать?</summary>
+              <p>Нет. Python и C++ осваиваются с нуля. Нужна готовность работать каждую неделю.</p>
+            </details>
+            <details class="reveal faq glass">
+              <summary>Кто может вступить?</summary>
+              <p>Школьники 7–12 классов.</p>
+            </details>
+            <details class="reveal faq glass">
+              <summary>Сколько стоит?</summary>
+              <p>Участие бесплатное.</p>
+            </details>
+            <details class="reveal faq glass">
+              <summary>Можно выбрать два направления?</summary>
+              <p>Нет: одно направление на учебный год — так хватает времени пройти его по-настоящему.</p>
+            </details>
+            <details class="reveal faq glass">
+              <summary>Обязательно ходить на все встречи?</summary>
+              <p>Посещение не обязательно — обязательна работа: задания сдаются каждую неделю, а сертификат дают за сделанное.</p>
+            </details>
+            <details class="reveal faq glass">
+              <summary>Что такое AIT Points и рейтинг?</summary>
+              <p>AIT Points начисляются за подтверждённую работу. Рейтинг направления — отдельно: он меняется только по итогам рейтинговых событий с заранее объявленными правилами.</p>
+            </details>
+          </div>
+        </div>
+      </section>
+    </main>
+
+    <footer class="px-4 sm:px-6 pb-10">
+      <div class="glass max-w-6xl mx-auto rounded-2xl px-5 py-4 flex flex-wrap items-center justify-between gap-3 text-sm text-gray-700">
+        <span>© <span data-year>2026</span> AIT Club</span>
+        <a class="underline underline-offset-4" href="https://hub.aitclub.org">AIT Hub</a>
+      </div>
+    </footer>
+  </body>
+</html>

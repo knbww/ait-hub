@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { motion } from 'framer-motion'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
-import { ArrowRight, BrainCircuit, CalendarCheck, Code2, Rocket, Trophy } from 'lucide-react'
+import { ArrowRight, Award, BookOpen, FileCheck, MessageCircle, Sparkles, Users } from 'lucide-react'
 import { GlassCard } from '../components/GlassCard'
 import { ErrorText } from '../components/DataState'
 import { OauthNotice } from '../components/OauthNotice'
@@ -238,11 +238,16 @@ function SignedIn({ urlCode }: { urlCode: string }) {
   )
 }
 
-const TRACK_CARDS = [
-  { id: 'ai', icon: BrainCircuit },
-  { id: 'algo', icon: Code2 },
-  { id: 'startup', icon: Rocket },
+const FEATURES = [
+  { id: 'program', icon: BookOpen },
+  { id: 'works', icon: FileCheck },
+  { id: 'points', icon: Sparkles },
+  { id: 'teams', icon: Users },
+  { id: 'opportunities', icon: Award },
+  { id: 'chats', icon: MessageCircle },
 ] as const
+
+const CLUB_SITE = 'https://aitclub.org'
 
 export function JoinPage() {
   const { t } = useI18n()
@@ -271,61 +276,78 @@ export function JoinPage() {
   }
 
   return (
-    <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit" className="max-w-3xl mx-auto space-y-4 sm:space-y-6">
-      <motion.div variants={cardVariants}>
-        <GlassCard className="text-center">
-          <img src={logo} alt="" className="h-14 w-auto mx-auto mb-3" style={{ mixBlendMode: 'multiply' }} />
-          <h1 className="text-3xl sm:text-4xl font-bold mb-2">AIT Club</h1>
-          <p className="text-[#750014] font-medium mb-2">{t('join.tagline')}</p>
-          <p className="text-gray-700 max-w-xl mx-auto mb-5 text-sm sm:text-base">{t('join.intro')}</p>
-          <div className="max-w-md mx-auto">
-            <OauthNotice />
-            {joinBlock}
-          </div>
-          {!session && (
-            <p className="text-sm text-gray-600 mt-5">
-              {t('join.haveAccount')}{' '}
-              <Link to="/login" className="underline text-gray-900">{t('nav.signIn')}</Link>
-            </p>
-          )}
-        </GlassCard>
-      </motion.div>
-
-      <motion.div variants={cardVariants}>
-        <GlassCard>
-          <h2 className="text-lg font-light mb-3">{t('join.tracks.title')}</h2>
-          <div className="grid grid-cols-1 sm:grid-cols-3 gap-3">
-            {TRACK_CARDS.map(({ id, icon: Icon }) => (
-              <div key={id} className="p-4 rounded-2xl border border-white/60 bg-white/30">
-                <Icon className="w-6 h-6 text-[#750014] mb-2" />
-                <h3 className="font-normal mb-1">{t(`track.${id}`)}</h3>
-                <p className="text-xs text-gray-700">{t(`join.tracks.${id}`)}</p>
-              </div>
+    <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit" className="max-w-6xl mx-auto space-y-10 sm:space-y-16 pt-2 sm:pt-6">
+      <section className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-6 lg:gap-12 items-center">
+        <motion.div variants={cardVariants} className="px-1">
+          <p className="text-xs font-semibold tracking-[0.14em] uppercase text-[#750014]">{t('join.hub.kicker')}</p>
+          <h1 className="text-4xl sm:text-5xl font-light tracking-tight leading-[1.08] mt-3">
+            {t('join.hub.title')} <span className="text-[#750014]">{t('join.hub.titleAccent')}</span>
+          </h1>
+          <p className="text-base sm:text-lg text-gray-700 mt-5 max-w-xl">{t('join.hub.lead')}</p>
+          <div className="flex flex-wrap gap-2 mt-6 text-sm">
+            {(['grades', 'tracks', 'free', 'app'] as const).map((k) => (
+              <span key={k} className="px-3 py-1.5 rounded-full bg-white/55 border border-white/90 text-gray-700">{t(`join.hub.fact.${k}`)}</span>
             ))}
           </div>
-        </GlassCard>
-      </motion.div>
+          <a href={CLUB_SITE} className="inline-flex items-center gap-1.5 mt-6 text-sm text-gray-800 underline underline-offset-4 hover:text-[#750014]">
+            {t('join.hub.aboutClub')} <ArrowRight className="w-4 h-4" />
+          </a>
+        </motion.div>
 
-      <motion.div variants={cardVariants}>
-        <GlassCard>
-          <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-            <div className="flex gap-3">
-              <CalendarCheck className="w-6 h-6 text-[#750014] shrink-0" />
-              <div>
-                <h3 className="font-normal mb-1">{t('join.year.title')}</h3>
-                <p className="text-sm text-gray-700">{t('join.year.text')}</p>
-              </div>
+        <motion.div variants={cardVariants}>
+          <GlassCard className="!p-5 sm:!p-7">
+            <div className="flex items-center gap-3 mb-4">
+              <img src={logo} alt="" className="h-10 w-auto" style={{ mixBlendMode: 'multiply' }} />
+              <h2 className="text-xl font-light">{session ? t('join.hub.cardSignedIn') : t('join.hub.cardTitle')}</h2>
             </div>
-            <div className="flex gap-3">
-              <Trophy className="w-6 h-6 text-[#750014] shrink-0" />
-              <div>
-                <h3 className="font-normal mb-1">{t('join.points.title')}</h3>
-                <p className="text-sm text-gray-700">{t('join.points.text')}</p>
-              </div>
-            </div>
-          </div>
+            <OauthNotice />
+            {joinBlock}
+            {!session && (
+              <p className="text-sm text-gray-600 mt-5 pt-4 border-t border-white/60">
+                {t('join.haveAccount')}{' '}
+                <Link to="/login" className="underline text-gray-900">{t('nav.signIn')}</Link>
+              </p>
+            )}
+          </GlassCard>
+        </motion.div>
+      </section>
+
+      <section>
+        <motion.h2 variants={cardVariants} className="text-2xl sm:text-3xl font-light px-1 mb-5">{t('join.hub.featuresTitle')}</motion.h2>
+        <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 gap-3 sm:gap-4">
+          {FEATURES.map(({ id, icon: Icon }, i) => (
+            <motion.div key={id} initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }}
+              viewport={{ once: true, margin: '-40px' }} transition={{ delay: (i % 3) * 0.08, type: 'spring', stiffness: 260, damping: 26 }}>
+              <GlassCard className="h-full hover:-translate-y-0.5 transition-transform">
+                <span className="inline-flex w-11 h-11 rounded-2xl bg-[#750014]/10 text-[#750014] items-center justify-center mb-3">
+                  <Icon className="w-5 h-5" />
+                </span>
+                <h3 className="text-lg font-normal">{t(`join.hub.feature.${id}.title`)}</h3>
+                <p className="text-sm text-gray-700 mt-1">{t(`join.hub.feature.${id}.text`)}</p>
+              </GlassCard>
+            </motion.div>
+          ))}
+        </div>
+      </section>
+
+      <motion.section initial={{ opacity: 0, y: 24 }} whileInView={{ opacity: 1, y: 0 }} viewport={{ once: true, margin: '-40px' }}>
+        <GlassCard className="!p-6 sm:!p-10">
+          <h2 className="text-2xl sm:text-3xl font-light">{t('join.hub.stepsTitle')}</h2>
+          <ol className="grid grid-cols-1 md:grid-cols-3 gap-3 sm:gap-4 mt-6">
+            {[1, 2, 3].map((n) => (
+              <li key={n} className="rounded-2xl bg-white/50 border border-white/80 p-4">
+                <span className="w-8 h-8 rounded-full bg-[#750014] text-white text-sm font-semibold flex items-center justify-center mb-3">{n}</span>
+                <p className="font-normal">{t(`join.hub.step${n}.title`)}</p>
+                <p className="text-sm text-gray-700 mt-1">{t(`join.hub.step${n}.text`)}</p>
+              </li>
+            ))}
+          </ol>
+          <p className="text-sm text-gray-700 mt-6">
+            {t('join.hub.tracksNote')}{' '}
+            <a href={`${CLUB_SITE}/#tracks`} className="underline underline-offset-4 hover:text-[#750014]">{t('join.hub.tracksLink')}</a>
+          </p>
         </GlassCard>
-      </motion.div>
+      </motion.section>
     </motion.div>
   )
 }
