@@ -42,7 +42,7 @@ export function AnimatedRoutes() {
   return (
     <AnimatePresence mode="wait">
       <Suspense fallback={<PageLoading />}>
-        <Routes location={location} key={location.pathname}>
+        <Routes location={location} key={location.pathname.startsWith('/chats') ? '/chats' : location.pathname}>
           <Route path="/join" element={<JoinPage />} />
           <Route path="/login" element={<LoginPage />} />
 

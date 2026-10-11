@@ -17,6 +17,7 @@ import { deleteResult, saveResult, setEventStatus } from '../lib/eventActions'
 import { TRACK_IDS, notOver } from '../lib/club'
 import type { EventRow, TrackId } from '../lib/db'
 import { btnPrimary, btnSecondary, inputClass, labelClass, pageTitle, sectionTitle, segment } from '../lib/ui'
+import { RankBadge } from '../components/RankBadge'
 
 function ResultsEditor({ event }: { event: EventRow }) {
   const { t } = useI18n()
@@ -205,7 +206,7 @@ export function RatingPage() {
                   <li key={r.profile_id}>
                     <Link to={`/members/${r.profile_id}`}
                       className={`flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-white/40 ${r.profile_id === profile?.id ? 'bg-[#750014]/10' : ''}`}>
-                      <span className="w-6 text-sm text-gray-500">{i + 1}</span>
+                      <RankBadge n={i + 1} />
                       <Avatar path={r.avatar_path} name={r.full_name} size="sm" />
                       <span className="flex-1 min-w-0">
                         <span className="block truncate text-sm">{r.full_name}</span>
@@ -230,7 +231,7 @@ export function RatingPage() {
               <ol className="space-y-1">
                 {(teams.data ?? []).map((r, i) => (
                   <li key={r.team_id} className="flex items-center gap-3 px-2 py-2">
-                    <span className="w-6 text-sm text-gray-500">{i + 1}</span>
+                    <RankBadge n={i + 1} />
                     <span className="flex-1 min-w-0">
                       <Link to={`/teams/${r.team_id}`} className="block truncate text-sm hover:underline">{r.name}</Link>
                       <span className="block text-xs text-gray-600">{t('rating.stats', { events: r.events, best: r.best_place ?? '—' })}</span>

@@ -1,4 +1,5 @@
 import { motion } from 'framer-motion'
+import { CountUp } from './CountUp'
 
 /** Circular progress (0…1) with the percentage in the middle; fills in on first show. */
 export function ProgressRing({ value, size = 96, label }: { value: number; size?: number; label?: string }) {
@@ -18,7 +19,7 @@ export function ProgressRing({ value, size = 96, label }: { value: number; size?
           transition={{ duration: 0.9, ease: 'easeOut' }} className="text-[#750014]" />
       </svg>
       <span className="absolute inset-0 flex items-center justify-center font-light" style={{ fontSize: size / 4.2 }}>
-        {Math.round(clamped * 100)}%
+        <CountUp value={Math.round(clamped * 100)} />%
       </span>
     </div>
   )

@@ -19,8 +19,13 @@ import {
   MEETING_KINDS, PROGRAM_WEEKS, TRACK_IDS, currentWeekNumber, daysUntil, formatShortDay, isHttpUrl, weekDeadline,
 } from '../lib/club'
 import { MAX_WORK_FILES, WORK_FILE_ACCEPT, checkWorkFile } from '../lib/workFiles'
+import { WeekGrid } from '../components/WeekGrid'
+import { summarize } from '../lib/progress'
 import type { MeetingKind, ProfileRow, ProgramWeekRow, SubmissionRow, TrackId, WorkFile } from '../lib/db'
 import { btnPrimary, btnSecondary, btnSmall, inputClass, labelClass, pageTitle, segment } from '../lib/ui'
+
+/** Upcoming weeks listed before «show all». */
+const AHEAD_SHOWN = 3
 
 // ── Member: hand in a week's work ───────────────────────────────────────────
 function SubmitWork({ week, submission }: { week: ProgramWeekRow; submission: SubmissionRow | undefined }) {
@@ -403,7 +408,7 @@ function DriveLink({ trackId, url, canEdit }: { trackId: TrackId; url: string | 
 }
 
 export function ProgramPage() {
-  const { t } = useI18n()
+  const { t, tp } = useI18n()
   const { profile, role, isOversight } = useAuth()
   const { hash } = useLocation()
   const [params, setParams] = useSearchParams()
@@ -442,6 +447,12 @@ export function ProgramPage() {
   const past = weeks.filter((w) => current !== null && w.week_number < current)
   const now = weeks.filter((w) => w.week_number === current)
   const ahead = weeks.filter((w) => current === null || w.week_number > current)
+  // Past weeks stay folded and only the next few lie ahead, unless a link points further.
+  const linked = hashWeek ? Number(hashWeek) : null
+  const [showPast, setShowPast] = useState(() => linked !== null && current !== null && linked < current)
+  const [showAllAhead, setShowAllAhead] = useState(() => linked !== null && current !== null && linked > current + AHEAD_SHOWN)
+  const aheadShown = showAllAhead ? ahead : ahead.slice(0, AHEAD_SHOWN)
+  const grid = !manage && weeks.length ? summarize(weeks, schedule.data ?? [], subs.data).weeks : []
 
   const renderWeek = (w: ProgramWeekRow) => (
     <WeekItem key={w.id} week={w} startsOn={dates.get(w.week_number)} isCurrent={w.week_number === current}
@@ -484,11 +495,23 @@ export function ProgramPage() {
         <DataState isLoading={program.isLoading || schedule.isLoading} error={program.error ?? schedule.error}
           onRetry={() => { void program.refetch(); void schedule.refetch() }}>
           <div className="space-y-3">
+            {grid.length > 0 && <GlassCard><WeekGrid weeks={grid} /></GlassCard>}
             {now.map(renderWeek)}
-            {past.length > 0 && <h2 className="text-sm uppercase tracking-wider text-gray-600 pt-2 px-1">{t('program.past')}</h2>}
-            {[...past].reverse().map(renderWeek)}
             {ahead.length > 0 && <h2 className="text-sm uppercase tracking-wider text-gray-600 pt-2 px-1">{t('program.ahead')}</h2>}
-            {ahead.map(renderWeek)}
+            {aheadShown.map(renderWeek)}
+            {ahead.length > aheadShown.length && (
+              <button type="button" onClick={() => setShowAllAhead(true)} className={`${btnSecondary} w-full`}>
+                {tp('program.showAhead', ahead.length - aheadShown.length)}
+              </button>
+            )}
+            {past.length > 0 && (
+              <button type="button" onClick={() => setShowPast((v) => !v)} aria-expanded={showPast}
+                className="flex w-full items-center justify-between gap-2 text-sm uppercase tracking-wider text-gray-600 pt-2 px-1">
+                {t('program.pastN', { n: past.length })}
+                <ChevronDown className={`w-4 h-4 transition-transform ${showPast ? 'rotate-180' : ''}`} />
+              </button>
+            )}
+            {showPast && [...past].reverse().map(renderWeek)}
           </div>
         </DataState>
       )}

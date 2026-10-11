@@ -1,5 +1,9 @@
 import type { Variants } from 'framer-motion'
 
+// One motion language for the whole Hub: a page fades in and its glass cards follow one after
+// another, rising a little; leaving a page is a quick fade so navigation never waits on it.
+// Reduced-motion users get none of it (MotionConfig in App).
+
 export const pageVariants: Variants = {
   initial: {
     opacity: 0,
@@ -7,15 +11,15 @@ export const pageVariants: Variants = {
   animate: {
     opacity: 1,
     transition: {
-      staggerChildren: 0.08,
-      delayChildren: 0.2,
+      duration: 0.2,
+      staggerChildren: 0.045,
+      delayChildren: 0.02,
     },
   },
   exit: {
-    opacity: 1,
+    opacity: 0,
     transition: {
-      staggerChildren: 0.05,
-      staggerDirection: 1,
+      duration: 0.12,
     },
   },
 }
@@ -23,22 +27,15 @@ export const pageVariants: Variants = {
 export const cardVariants: Variants = {
   initial: {
     opacity: 0,
-    y: 60,
+    y: 14,
   },
   animate: {
     opacity: 1,
     y: 0,
     transition: {
       type: 'spring',
-      stiffness: 300,
-      damping: 25,
-    },
-  },
-  exit: {
-    opacity: 0,
-    y: -60,
-    transition: {
-      duration: 0.3,
+      stiffness: 380,
+      damping: 32,
     },
   },
 }

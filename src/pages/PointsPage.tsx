@@ -4,6 +4,8 @@ import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
 import { GlassCard } from '../components/GlassCard'
 import { DataState, ErrorText } from '../components/DataState'
+import { CountUp } from '../components/CountUp'
+import { RankBadge } from '../components/RankBadge'
 import { Avatar } from '../components/Avatar'
 import { TrackBadge } from '../components/TrackBadge'
 import { pageVariants } from '../lib/animations'
@@ -139,7 +141,7 @@ function Leaderboard() {
             <li key={r.profile_id}>
               <Link to={`/members/${r.profile_id}`}
                 className={`flex items-center gap-3 px-2 py-2 rounded-xl hover:bg-white/40 ${r.profile_id === profile?.id ? 'bg-[#750014]/10' : ''}`}>
-                <span className="w-6 text-sm text-gray-500 tabular-nums">{i + 1}</span>
+                <RankBadge n={i + 1} />
                 <Avatar path={r.avatar_path} name={r.full_name} size="sm" />
                 <span className="flex-1 min-w-0">
                   <span className="block truncate text-sm">{r.full_name}</span>
@@ -188,7 +190,7 @@ export function PointsPage() {
           ) : (
             <GlassCard>
               <h2 className={sectionTitle}>{t('points.mine')}</h2>
-              <p className="text-5xl font-light my-3">{total.data ?? 0}</p>
+              <p className="text-5xl font-light my-3"><CountUp value={total.data ?? 0} /></p>
               <DataState isLoading={mine.isLoading} error={mine.error} onRetry={() => void mine.refetch()}
                 empty={(mine.data ?? []).length === 0} emptyText={t('points.noneYet')}>
                 <Journal entries={mine.data ?? []} showMember={false} />

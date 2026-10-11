@@ -3,6 +3,8 @@ import { Crown, Sparkles } from 'lucide-react'
 import { CardShell } from './CardShell'
 import { DataState } from '../components/DataState'
 import { Avatar } from '../components/Avatar'
+import { CountUp } from '../components/CountUp'
+import { RankBadge } from '../components/RankBadge'
 import { useAuth } from '../context/authContext'
 import { useI18n } from '../context/i18nContext'
 import { useLeaderboard, usePointsJournal, usePointsTotal } from '../hooks/usePoints'
@@ -18,7 +20,7 @@ export function MyPointsCard() {
   return (
     <CardShell icon={Sparkles} title={t('card.points')} to="/points" linkLabel={t('card.journal')}>
       <DataState isLoading={total.isLoading} error={total.error} onRetry={() => void total.refetch()}>
-        <p className="text-4xl font-light leading-none mb-1">{total.data ?? 0}</p>
+        <p className="text-4xl font-light leading-none mb-1"><CountUp value={total.data ?? 0} /></p>
         <p className="text-xs text-gray-600 mb-3">{t('points.short')}</p>
         {(journal.data ?? []).length === 0 ? (
           <p className="text-sm text-gray-600">{t('points.noneYet')}</p>
@@ -61,7 +63,7 @@ export function LeaderboardCard() {
             <li key={r.profile_id}>
               <Link to={`/members/${r.profile_id}`}
                 className={`flex items-center gap-3 px-2 py-1.5 rounded-xl hover:bg-white/40 ${r.profile_id === profile?.id ? 'bg-[#750014]/10' : ''}`}>
-                <span className="w-5 text-sm text-gray-500 tabular-nums">{i + 1}</span>
+                <RankBadge n={i + 1} />
                 <Avatar path={r.avatar_path} name={r.full_name} size="sm" />
                 <span className="flex-1 truncate text-sm">{r.full_name}</span>
                 <span className="text-sm font-medium tabular-nums">{r.total}</span>

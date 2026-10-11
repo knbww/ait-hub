@@ -143,6 +143,7 @@ export const messages: Record<string, string> = {
 
   // ── Dashboard & cards ─────────────────────────────────────────────────────
   'dashboard.hello': 'Привет, {name}!',
+  'dashboard.week': 'неделя {n} из {total}',
   'dashboard.hiddenCards': 'Скрытые карточки',
 
   'prompt.track': 'Вы ещё не в направлении. Введите код вступления от руководителя направления.',
@@ -431,7 +432,10 @@ export const messages: Record<string, string> = {
   'program.title': 'Программа',
   'program.weekOf': 'Сейчас неделя {n} из {total}.',
   'program.now': 'сейчас',
-  'program.past': 'Прошедшие недели',
+  'program.pastN': 'Прошедшие недели · {n}',
+  'program.showAhead.one': 'Показать ещё {n} неделю вперёд',
+  'program.showAhead.few': 'Показать ещё {n} недели вперёд',
+  'program.showAhead.many': 'Показать ещё {n} недель вперёд',
   'program.ahead': 'Впереди',
   'program.upcoming': 'Эта неделя ещё впереди.',
   'program.noMaterials': 'Материалы появятся позже.',

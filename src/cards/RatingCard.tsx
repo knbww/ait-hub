@@ -6,6 +6,7 @@ import { useAuth } from '../context/authContext'
 import { useI18n } from '../context/i18nContext'
 import { useTrackRating } from '../hooks/useEvents'
 import type { TrackId } from '../lib/db'
+import { RankBadge } from '../components/RankBadge'
 
 /** The member's track rating: their place and the top three. */
 export function RatingCard() {
@@ -30,7 +31,7 @@ export function RatingCard() {
           {rows.slice(0, 3).map((r, i) => (
             <li key={r.profile_id}>
               <Link to={`/members/${r.profile_id}`} className="flex items-center gap-3 px-2 py-1.5 rounded-xl hover:bg-white/40">
-                <span className="w-5 text-sm text-gray-500">{i + 1}</span>
+                <RankBadge n={i + 1} />
                 <span className="flex-1 truncate text-sm">{r.full_name}</span>
                 <span className="text-sm font-medium tabular-nums">{r.rating}</span>
               </Link>
