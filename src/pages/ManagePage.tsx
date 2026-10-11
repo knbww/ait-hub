@@ -12,6 +12,8 @@ import { useAuth } from '../context/authContext'
 import { useI18n } from '../context/i18nContext'
 import { useMembers, useSchedule } from '../hooks/useClub'
 import { useAuditLog, useJoinCodes } from '../hooks/useManage'
+import { useReports } from '../hooks/useChats'
+import { resolveReport } from '../lib/chatActions'
 import { setSchedule, shiftSchedule } from '../lib/programActions'
 import { supabase } from '../lib/supabase'
 import { downloadCsv, stampedName } from '../lib/download'
@@ -19,7 +21,7 @@ import { PROGRAM_WEEKS, TRACK_IDS, formatDateTime, formatShortDay, parseDay, plu
 import type { Role, TrackId } from '../lib/db'
 import { btnPrimary, btnSecondary, chip, inputClass, labelClass, pageTitle, sectionTitle, segment } from '../lib/ui'
 
-type Tab = 'members' | 'codes' | 'schedule' | 'export' | 'audit'
+type Tab = 'members' | 'codes' | 'schedule' | 'export' | 'reports' | 'audit'
 
 function MembersTab() {
   const { t } = useI18n()
@@ -229,6 +231,60 @@ function ExportTab() {
   )
 }
 
+function ReportsTab() {
+  const { t } = useI18n()
+  const reports = useReports(true)
+  const [busy, setBusy] = useState<string | null>(null)
+  const [error, setError] = useState<unknown>(null)
+  const list = reports.data ?? []
+
+  const resolve = async (id: string, remove: boolean) => {
+    if (remove && !window.confirm(t('reports.removeConfirm'))) return
+    setBusy(id)
+    setError(null)
+    const res = await resolveReport(id, remove)
+    setBusy(null)
+    if (res.error) setError(res.error)
+  }
+
+  return (
+    <GlassCard>
+      <p className="text-sm text-gray-700 mb-3">{t('reports.hint')}</p>
+      <ErrorText error={error} />
+      <DataState isLoading={reports.isLoading} error={reports.error} onRetry={() => void reports.refetch()}
+        empty={list.length === 0} emptyText={t('reports.empty')}>
+        <ul className="space-y-3">
+          {list.map((r) => (
+            <li key={r.id} className={`rounded-2xl border p-3 ${r.status === 'open' ? 'border-[#a3203a]/30 bg-white/50' : 'border-white/60 bg-white/25'}`}>
+              <div className="flex flex-wrap items-center gap-2 text-xs text-gray-600 mb-2">
+                <span className={`${chip} ${r.status === 'open' ? 'bg-[#a3203a]/10 text-[#a3203a]' : 'bg-gray-900/5 text-gray-700'}`}>
+                  {t(`reports.status.${r.status}`)}
+                </span>
+                <span>{formatDateTime(r.created_at)}</span>
+                <span>· {t('reports.author', { name: r.author?.full_name ?? '—' })}</span>
+                <span>· {t('reports.reporter', { name: r.reporter?.full_name ?? '—' })}</span>
+              </div>
+              <blockquote className="text-sm text-gray-900 whitespace-pre-wrap break-words border-l-2 border-gray-900/20 pl-3">{r.excerpt}</blockquote>
+              {r.reason && <p className="text-sm text-gray-700 mt-2">{t('reports.reason', { reason: r.reason })}</p>}
+              {r.status === 'open' && (
+                <div className="flex flex-wrap gap-2 mt-3">
+                  <button disabled={busy === r.id} onClick={() => void resolve(r.id, true)}
+                    className={`${btnSecondary} !border-red-600 !text-red-700 hover:!bg-red-600 hover:!text-white`}>
+                    {t('reports.remove')}
+                  </button>
+                  <button disabled={busy === r.id} onClick={() => void resolve(r.id, false)} className={btnSecondary}>
+                    {t('reports.dismiss')}
+                  </button>
+                </div>
+              )}
+            </li>
+          ))}
+        </ul>
+      </DataState>
+    </GlassCard>
+  )
+}
+
 function AuditTab() {
   const { t } = useI18n()
   const log = useAuditLog(true)
@@ -263,7 +319,7 @@ export function ManagePage() {
   const { t } = useI18n()
   const { isOversight } = useAuth()
   const [params, setParams] = useSearchParams()
-  const tabs: Tab[] = isOversight ? ['members', 'codes', 'schedule', 'export', 'audit'] : ['members', 'codes', 'export']
+  const tabs: Tab[] = isOversight ? ['members', 'codes', 'schedule', 'export', 'reports', 'audit'] : ['members', 'codes', 'export']
   const requested = params.get('tab') as Tab | null
   const tab: Tab = requested && tabs.includes(requested) ? requested : 'members'
 
@@ -283,6 +339,7 @@ export function ManagePage() {
       {tab === 'codes' && <CodesTab />}
       {tab === 'schedule' && <ScheduleTab />}
       {tab === 'export' && <ExportTab />}
+      {tab === 'reports' && <ReportsTab />}
       {tab === 'audit' && <AuditTab />}
     </motion.div>
   )

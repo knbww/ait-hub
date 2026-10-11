@@ -15,6 +15,7 @@ const ProgramPage = page(() => import('./pages/ProgramPage'), 'ProgramPage')
 const CalendarPage = page(() => import('./pages/CalendarPage'), 'CalendarPage')
 const NewsPage = page(() => import('./pages/NewsPage'), 'NewsPage')
 const OpportunitiesPage = page(() => import('./pages/OpportunitiesPage'), 'OpportunitiesPage')
+const ChatsPage = page(() => import('./pages/ChatsPage'), 'ChatsPage')
 const OpportunityPage = page(() => import('./pages/OpportunityPage'), 'OpportunityPage')
 const ProgressPage = page(() => import('./pages/ProgressPage'), 'ProgressPage')
 const PointsPage = page(() => import('./pages/PointsPage'), 'PointsPage')
@@ -46,6 +47,8 @@ export function AnimatedRoutes() {
           <Route path="/news" element={auth(<NewsPage />)} />
           <Route path="/opportunities" element={auth(<OpportunitiesPage />)} />
           <Route path="/opportunities/:id" element={auth(<OpportunityPage />)} />
+          <Route path="/chats" element={auth(<ChatsPage />)} />
+          <Route path="/chats/:id" element={auth(<ChatsPage />)} />
           <Route path="/progress" element={auth(<ProgressPage />)} />
           <Route path="/points" element={auth(<PointsPage />)} />
           <Route path="/rating" element={auth(<RatingPage />)} />

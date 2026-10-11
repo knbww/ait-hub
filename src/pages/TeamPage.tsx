@@ -7,9 +7,12 @@ import { Avatar } from '../components/Avatar'
 import { TrackBadge } from '../components/TrackBadge'
 import { RatingChart } from '../components/RatingChart'
 import { pageVariants } from '../lib/animations'
+import { OpenChatButton } from '../components/OpenChatButton'
+import { useAuth } from '../context/authContext'
 import { useI18n } from '../context/i18nContext'
 import { useTeamRating } from '../hooks/useEvents'
 import { useProjects, useTeamResults, useTeams } from '../hooks/useTeams'
+import { openTeamChat } from '../lib/chatActions'
 import { formatDate } from '../lib/club'
 import { toRatingPoints } from '../lib/rating'
 import type { TeamRow } from '../lib/db'
@@ -118,8 +121,11 @@ function TeamProfile({ team }: { team: TeamRow }) {
 export function TeamPage() {
   const { id } = useParams()
   const { t } = useI18n()
+  const { profile, role } = useAuth()
   const teams = useTeams()
   const team = (teams.data ?? []).find((tm) => tm.id === id)
+  const inChat = Boolean(team && profile && (team.team_members?.some((m) => m.profile_id === profile.id)
+    || (role === 'track_lead' && profile.track_id === team.track_id)))
 
   return (
     <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit" className="max-w-3xl mx-auto space-y-4">
@@ -129,6 +135,7 @@ export function TeamPage() {
       <DataState isLoading={teams.isLoading} error={teams.error} onRetry={() => void teams.refetch()}
         empty={!team} emptyText={<GlassCard><p className="text-sm">{t('team.notFound')}</p></GlassCard>}>
         {team && <TeamProfile team={team} />}
+        {team && inChat && <OpenChatButton open={() => openTeamChat(team.id)} label={t('chat.openTeam')} />}
       </DataState>
     </motion.div>
   )

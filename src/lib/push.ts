@@ -57,6 +57,8 @@ type Notice =
   | { action: 'review'; submission_id: string }
   | { action: 'news'; news_id: string }
   | { action: 'team_request'; request_id: string }
+  | { action: 'message'; message_id: string }
+  | { action: 'report'; report_id: string }
 
 /** Fire and forget: tell the push function what just happened. */
 export function notify(notice: Notice) {

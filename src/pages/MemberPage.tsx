@@ -13,6 +13,8 @@ import { WeekGrid } from '../components/WeekGrid'
 import { pageVariants } from '../lib/animations'
 import { useAuth } from '../context/authContext'
 import { useI18n } from '../context/i18nContext'
+import { OpenChatButton } from '../components/OpenChatButton'
+import { openLeadChat } from '../lib/chatActions'
 import { useMember, useSchedule } from '../hooks/useClub'
 import { useMemberPrivate } from '../hooks/useManage'
 import { useLeaderboard, usePointsJournal, usePointsTotal } from '../hooks/usePoints'
@@ -280,6 +282,9 @@ export function MemberPage() {
                 </div>
                 {me?.id === m.id && <Link to="/profile" className="ml-auto text-sm underline">{t('common.edit')}</Link>}
               </div>
+              {canManage && m.role === 'member' && m.status === 'active' && (
+                <div className="mt-4"><OpenChatButton open={() => openLeadChat(m.id)} label={t('chat.writeMember')} /></div>
+              )}
             </GlassCard>
 
             <StatsRow member={m} history={history.data ?? []} points={total.data ?? 0} />

@@ -1,5 +1,5 @@
 // Web Push for AIT Hub. Called by the Hub right after an action — a work reviewed, a news post,
-// a request to join a team — and once a day by GitHub Actions for tomorrow's deadline and events
+// a request to join a team, a chat message, a report — and once a day by GitHub Actions for tomorrow's deadline and events
 // and for the deadlines of competitions members saved.
 // Each call is checked: the caller must be whoever did the action (their session), the daily run
 // must carry CRON_SECRET. Payloads say what happened and where to look; no contact data.
@@ -136,6 +136,45 @@ async function onTeamRequest(me: string, requestId: string) {
   return reply(200, { sent })
 }
 
+async function onMessage(me: string, messageId: string) {
+  const { data: m } = await admin.from('messages')
+    .select('id, conversation_id, author_id, body, created_at, author:profiles!messages_author_id_fkey(full_name)')
+    .eq('id', messageId).single()
+  // Only the author, and only a fresh message.
+  if (!m || m.author_id !== me || Date.now() - Date.parse(m.created_at) > 2 * 60 * 1000) return reply(403, { error: 'forbidden' })
+  const { data: c } = await admin.from('conversations')
+    .select('kind, team:teams(name), project:projects(title)').eq('id', m.conversation_id).single()
+  const { data: participants } = await admin.rpc('chat_participants', { p_conversation: m.conversation_id })
+  const recipients = ((participants ?? []) as string[]).filter((id) => id !== me)
+  const author = (m.author as unknown as { full_name: string } | null)?.full_name ?? 'Участник'
+  const team = (c?.team as unknown as { name: string } | null)?.name
+  const project = (c?.project as unknown as { title: string } | null)?.title
+  const where = c?.kind === 'team' ? ` · «${team}»` : c?.kind === 'project' ? ` · «${project}»` : ''
+  const sent = await send(recipients, {
+    title: `${author}${where}`,
+    body: m.body.length > 140 ? `${m.body.slice(0, 139)}…` : m.body,
+    url: `${SITE}/chats/${m.conversation_id}`,
+    tag: `chat-${m.conversation_id}`,
+  })
+  return reply(200, { sent })
+}
+
+async function onReport(me: string, reportId: string) {
+  const { data: r } = await admin.from('message_reports')
+    .select('id, reporter_id, status, excerpt, created_at').eq('id', reportId).single()
+  if (!r || r.reporter_id !== me || r.status !== 'open' || Date.now() - Date.parse(r.created_at) > 2 * 60 * 1000) {
+    return reply(403, { error: 'forbidden' })
+  }
+  const { data: oversight } = await admin.from('profiles').select('id').eq('status', 'active').in('role', ['director', 'curator'])
+  const sent = await send((oversight ?? []).map((p) => p.id as string), {
+    title: 'Жалоба на сообщение',
+    body: r.excerpt.length > 100 ? `${r.excerpt.slice(0, 99)}…` : r.excerpt,
+    url: `${SITE}/manage?tab=reports`,
+    tag: `report-${r.id}`,
+  })
+  return reply(200, { sent })
+}
+
 /** Evening reminders (Petropavl time, UTC+5): tomorrow's deadline and tomorrow's events. */
 async function daily() {
   const local = (offsetDays: number) => new Date(Date.now() + 5 * 3600_000 + offsetDays * 86_400_000).toISOString().slice(0, 10)
@@ -215,5 +254,7 @@ Deno.serve(async (req) => {
   if (body.action === 'review' && body.submission_id) return onReview(me, body.submission_id)
   if (body.action === 'news' && body.news_id) return onNews(me, body.news_id)
   if (body.action === 'team_request' && body.request_id) return onTeamRequest(me, body.request_id)
+  if (body.action === 'message' && body.message_id) return onMessage(me, body.message_id)
+  if (body.action === 'report' && body.report_id) return onReport(me, body.report_id)
   return reply(400, { error: 'bad_request' })
 })

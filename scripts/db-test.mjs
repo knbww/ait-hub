@@ -278,7 +278,8 @@ async function freshScenario() {
   const anon = 'anon'
   for (const table of ['profiles', 'member_private', 'points_entries', 'events', 'tracks', 'program_weeks',
     'submissions', 'teams', 'projects', 'rating_results', 'audit_log', 'join_codes', 'dashboard_layouts', 'news',
-    'news_likes', 'news_comments', 'opportunities', 'opportunity_saves']) {
+    'news_likes', 'news_comments', 'opportunities', 'opportunity_saves', 'conversations', 'messages',
+    'conversation_reads', 'message_reports']) {
     await expectError(`anon: cannot read ${table}`, db, anon, `select * from public.${table}`, [], DENIED)
   }
   await expectError('anon: cannot call the leaderboard', db, anon, 'select * from public.points_leaderboard()', [], DENIED)
@@ -746,6 +747,72 @@ async function freshScenario() {
   await expectOk('projects: a member\'s lead can edit', db, U.leadAlgo,
     `update public.projects set status = 'done' where id = $1`, [project])
 
+  // ── Chats ─────────────────────────────────────────────────────────────────
+  // The team «Нейроны» now has ai2–ai5 (ai1 left); the project «Бот расписания»: algo1 (owner), ai1.
+  const write = 'insert into public.messages (conversation_id, body) values ($1, $2) returning id'
+  const countIn = 'select count(*)::int from public.messages where conversation_id = $1'
+  const teamChat = await value(db, U.ai2, 'select public.open_team_chat($1)', [team])
+  await expectEqual('chats: opening again gives the same chat', db, U.ai3, 'select public.open_team_chat($1)', [team], teamChat)
+  await expectError('chats: not for someone outside the team', db, U.ai6, 'select public.open_team_chat($1)', [team], /forbidden/)
+  await expectEqual('chats: the track\'s lead takes part', db, l, 'select public.open_team_chat($1)', [team], teamChat)
+  await expectError('chats: another track\'s lead does not', db, U.leadAlgo, 'select public.open_team_chat($1)', [team], /forbidden/)
+  await expectError('chats: nor does the director', db, U.dir, 'select public.open_team_chat($1)', [team], /forbidden/)
+  const msg1 = await value(db, U.ai2, write, [teamChat, '  Созвон в 18:00?  '])
+  await expectEqual('chats: the author is whoever wrote, text trimmed', db, pg,
+    'select author_id = $2 and body = $3 from public.messages where id = $1', [msg1, P.ai2, 'Созвон в 18:00?'], true)
+  await expectError('chats: outsiders cannot write', db, U.ai6, write, [teamChat, 'привет'], RLS)
+  await expectEqual('chats: outsiders read nothing', db, U.ai6, countIn, [teamChat], 0)
+  await expectEqual('chats: the director reads nothing either', db, U.dir, countIn, [teamChat], 0)
+  await expectEqual('chats: deactivated members neither', db, U.inactive, 'select count(*)::int from public.messages', [], 0)
+  await expectError('chats: the author cannot be set by hand', db, U.ai3,
+    'insert into public.messages (conversation_id, body, author_id) values ($1, $2, $3)', [teamChat, 'x', P.ai2], DENIED)
+  await expectError('chats: no empty messages', db, U.ai3, write, [teamChat, '   '], /messages_body_check/)
+  const msg2 = await value(db, U.ai3, write, [teamChat, 'Да, давай'])
+  await expectEqual('chats: the inbox counts unread', db, U.ai2, 'select unread from public.my_conversations() where id = $1', [teamChat], 1)
+  await expectOk('chats: opening marks it read', db, U.ai2, 'select public.mark_chat_read($1)', [teamChat])
+  await expectEqual('chats: nothing unread then', db, U.ai2, 'select unread from public.my_conversations() where id = $1', [teamChat], 0)
+  await expectEqual('chats: the inbox shows the last message and the team', db, U.ai4,
+    `select last_body || ' / ' || name from public.my_conversations() where id = $1`, [teamChat], 'Да, давай / Нейроны')
+  await expectError('chats: no read marks in others\' chats', db, U.ai6, 'select public.mark_chat_read($1)', [teamChat], /forbidden/)
+  for (let i = 1; i <= 10; i++) await run(db, U.ai4, write, [teamChat, `сообщение ${i}`])
+  await expectError('chats: at most ten messages a minute', db, U.ai4, write, [teamChat, 'ещё'], /too_fast/)
+
+  const leadChat = await value(db, U.ai5, 'select public.open_lead_chat()')
+  await run(db, U.ai5, write, [leadChat, 'Можно сдать неделю позже?'])
+  await expectEqual('lead chat: the member\'s lead reads it', db, l, countIn, [leadChat], 1)
+  await expectEqual('lead chat: so does the curator', db, U.cur, countIn, [leadChat], 1)
+  await expectEqual('lead chat: other members do not', db, U.ai2, countIn, [leadChat], 0)
+  await expectEqual('lead chat: nor does another track\'s lead', db, U.leadAlgo, countIn, [leadChat], 0)
+  await expectEqual('lead chat: staff open it from their side', db, l, 'select public.open_lead_chat($1)', [P.ai5], leadChat)
+  await expectError('lead chat: members cannot open someone else\'s', db, U.ai2, 'select public.open_lead_chat($1)', [P.ai5], /forbidden/)
+  await expectError('lead chat: only members have one', db, U.dir, 'select public.open_lead_chat($1)', [P.leadAi], /not_found/)
+
+  const projectChat = await value(db, U.algo1, 'select public.open_project_chat($1)', [project])
+  await expectEqual('project chat: its members take part', db, U.ai1, 'select public.open_project_chat($1)', [project], projectChat)
+  await expectEqual('project chat: so do the leads of their tracks', db, U.leadAlgo,
+    'select public.open_project_chat($1)', [project], projectChat)
+  await expectError('project chat: not other members', db, U.ai3, 'select public.open_project_chat($1)', [project], /forbidden/)
+
+  const chatReport = await value(db, U.ai3, 'select public.report_message($1, $2)', [msg1, 'грубо'])
+  await expectError('reports: not one\'s own message', db, U.ai2, 'select public.report_message($1)', [msg1], /forbidden/)
+  await expectError('reports: only participants', db, U.ai6, 'select public.report_message($1)', [msg1], /forbidden/)
+  await expectEqual('reports: the director sees the copy without reading the chat', db, U.dir,
+    'select excerpt from public.message_reports where id = $1', [chatReport], 'Созвон в 18:00?')
+  await expectEqual('reports: the reporter sees theirs', db, U.ai3, 'select status from public.message_reports where id = $1', [chatReport], 'open')
+  await expectEqual('reports: nobody else does', db, U.ai2, 'select count(*)::int from public.message_reports', [], 0)
+  await expectError('reports: only director / curator resolve them', db, l, 'select public.resolve_report($1, true)', [chatReport], /forbidden/)
+  await expectOk('reports: the curator removes the message', db, U.cur, 'select public.resolve_report($1, true)', [chatReport])
+  await expectEqual('reports: it is gone', db, pg, 'select count(*)::int from public.messages where id = $1', [msg1], 0)
+  await expectEqual('reports: the report keeps the copy', db, pg,
+    `select status || ':' || excerpt from public.message_reports where id = $1`, [chatReport], 'removed:Созвон в 18:00?')
+  await expectNoEffect('chats: members cannot remove others\' messages', db, U.ai4,
+    'delete from public.messages where conversation_id = $1 and author_id <> $2', [teamChat, P.ai4])
+  await expectOk('chats: a lead removes one in their track\'s chat', db, l, 'delete from public.messages where id = $1', [msg2])
+  await expectOk('chats: authors remove their own', db, U.ai4,
+    'delete from public.messages where conversation_id = $1 and author_id = $2', [teamChat, P.ai4])
+  await expectEqual('chats: only others\' removals are logged', db, pg,
+    `select count(*)::int from public.audit_log where action = 'message_removed'`, [], 2)
+
   // ── Storage ───────────────────────────────────────────────────────────────
   await expectOk('avatars: upload into own folder', db, U.ai1,
     `insert into storage.objects (bucket_id, name) values ('avatars', $1)`, [`${U.ai1}/a.png`])
@@ -849,6 +916,8 @@ async function seedScenario() {
   await expectEqual('seed: members like the news', db, pg, 'select count(*) > 40 from public.news_likes', [], true)
   await expectEqual('seed: and talk under it', db, pg, 'select count(*) >= 7 from public.news_comments', [], true)
   await expectEqual('seed: members mark competitions', db, pg, 'select count(*)::int from public.opportunity_saves', [], 12)
+  await expectEqual('seed: three chats with messages', db, pg,
+    'select count(*)::int from public.conversations where last_message_at is not null', [], 3)
   await expectEqual('seed: the calendar drafts were replaced', db, pg,
     `select count(*)::int from public.events where title = 'Демо' or description like 'Черновик из календаря курса%'`, [], 0)
   await expectEqual('seed: nothing logged by the seed itself', db, pg,

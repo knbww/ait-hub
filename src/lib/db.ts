@@ -322,3 +322,46 @@ export interface OpportunityRow {
   created_at: string
   updated_at: string
 }
+
+export type ConversationKind = 'team' | 'project' | 'lead'
+
+/** A row of the inbox (database function my_conversations). */
+export interface ConversationRow {
+  id: string
+  kind: ConversationKind
+  team_id: string | null
+  project_id: string | null
+  /** For a conversation with management: the member it belongs to. */
+  member_id: string | null
+  /** Team name, project title, or the member's name. */
+  name: string | null
+  last_message_at: string | null
+  last_body: string | null
+  last_author_id: string | null
+  last_author: string | null
+  unread: number
+}
+
+export interface MessageRow {
+  id: string
+  conversation_id: string
+  author_id: string
+  body: string
+  created_at: string
+  author?: { full_name: string; avatar_path: string | null; role: Role } | null
+}
+
+export type ReportStatus = 'open' | 'removed' | 'dismissed'
+
+export interface MessageReportRow {
+  id: string
+  message_id: string | null
+  conversation_id: string | null
+  excerpt: string
+  reason: string | null
+  status: ReportStatus
+  created_at: string
+  resolved_at: string | null
+  reporter?: { full_name: string } | null
+  author?: { full_name: string } | null
+}

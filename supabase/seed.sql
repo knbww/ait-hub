@@ -525,6 +525,27 @@ begin
   ) as s(person, key)
   join public.opportunities o on o.key = s.key;
 
+  -- Chats: a team chat, a project chat across tracks and a member's question to management.
+  insert into public.conversations (id, kind, team_id, project_id, member_id, created_at) values
+    ('de000000-0000-4000-b000-000000000001', 'team', 'de000000-0000-4000-9000-000000000001', null, null, now() - interval '7 days'),
+    ('de000000-0000-4000-b000-000000000002', 'project', null, 'de000000-0000-4000-a000-000000000001', null, now() - interval '4 days'),
+    ('de000000-0000-4000-b000-000000000003', 'lead', null, null, pg_temp.pid('aruzhan'), now() - interval '2 days');
+
+  insert into public.messages (conversation_id, author_id, body, created_at)
+  select m.chat::uuid, pg_temp.pid(m.author), m.body, now() - make_interval(mins => m.ago)
+  from (values
+    ('de000000-0000-4000-b000-000000000001', 'alikhan', 'Всем привет! В четверг после практикума разбираем интервью с пунктами приёма.', 8600),
+    ('de000000-0000-4000-b000-000000000001', 'varvara', 'Я сверстала карту, осталось подключить фильтр по типу отходов.', 8540),
+    ('de000000-0000-4000-b000-000000000001', 'asel', 'У меня 14 пунктов с часами работы, скину таблицу в папку недели.', 8400),
+    ('de000000-0000-4000-b000-000000000001', 'lead_start', 'Отлично. К питчу нужны хотя бы пять интервью — записывайте цитаты, а не только выводы.', 7000),
+    ('de000000-0000-4000-b000-000000000001', 'alikhan', 'Принято, распределимся по двое.', 6900),
+    ('de000000-0000-4000-b000-000000000002', 'alikhan', 'Аружан, получится распознавать тип пластика по фото маркировки?', 5700),
+    ('de000000-0000-4000-b000-000000000002', 'aruzhan', 'Да, попробую модель из 13-й недели. Нужны фото — хотя бы 30 на каждый вид.', 5600),
+    ('de000000-0000-4000-b000-000000000002', 'varvara', 'Соберём на субботнике, я предупрежу ребят.', 5500),
+    ('de000000-0000-4000-b000-000000000003', 'aruzhan', 'Здравствуйте! Можно сдать Heredity в понедельник? На этой неделе олимпиада.', 2800),
+    ('de000000-0000-4000-b000-000000000003', 'lead_ai', 'Можно, удачи на олимпиаде! Отметь в комментарии к работе, что сдаёшь позже.', 2700)
+  ) as m(chat, author, body, ago);
+
   -- ── Audit trail ───────────────────────────────────────────────────────────────
   insert into public.audit_log (actor_id, action, target_id, details, created_at) values
     (pg_temp.pid('director'), 'schedule_set', null, '{"last_week": 36}', pg_temp.at(1, 0, '08:00') - interval '7 days'),

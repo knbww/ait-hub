@@ -1,11 +1,12 @@
 import { useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import {
-  Award, BookOpen, CalendarDays, FolderKanban, House, Menu, Newspaper, Shield, Sparkles, Trophy, User, Users,
+  Award, BookOpen, CalendarDays, FolderKanban, House, Menu, MessageCircle, Newspaper, Shield, Sparkles, Trophy, User, Users,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useAuth } from '../context/authContext'
 import { useI18n } from '../context/i18nContext'
+import { useChatLive, useInbox } from '../hooks/useChats'
 import { Modal } from './Modal'
 import logo from '../assets/aitlogo.png'
 
@@ -38,9 +39,12 @@ const isActive = (pathname: string, path: string) =>
 /** Top toolbar on desktop; on phones a slim top bar plus a bottom tab bar. */
 export function Navbar() {
   const { pathname } = useLocation()
-  const { session, isStaff } = useAuth()
-  const { t } = useI18n()
+  const { session, isStaff, profile } = useAuth()
+  const { t, tp } = useI18n()
   const [moreOpen, setMoreOpen] = useState(false)
+  useChatLive(profile?.id)
+  const inbox = useInbox(Boolean(profile))
+  const unread = (inbox.data ?? []).reduce((sum, c) => sum + c.unread, 0)
 
   const toolbar = 'backdrop-blur-[40px] bg-white/50 border border-white/70 shadow-[0_8px_32px_0_rgba(31,38,135,0.12)]'
 
@@ -86,6 +90,21 @@ export function Navbar() {
                     <span className="hidden xl:inline">{t('nav.manage')}</span>
                   </NavLink>
                 )}
+                <NavLink
+                  to="/chats"
+                  title={t('nav.chats')}
+                  aria-label={unread ? `${t('nav.chats')}: ${tp('chat.unreadN', unread)}` : t('nav.chats')}
+                  className={({ isActive: active }) =>
+                    `relative p-2.5 rounded-lg transition-colors ${active ? 'bg-gray-900 text-white' : 'text-gray-700 hover:bg-white/70'}`
+                  }
+                >
+                  <MessageCircle className="w-5 h-5" />
+                  {unread > 0 && (
+                    <span className="absolute top-1 right-1 min-w-4 h-4 px-1 rounded-full bg-[#a3203a] text-white text-[10px] leading-4 text-center tabular-nums">
+                      {unread > 9 ? '9+' : unread}
+                    </span>
+                  )}
+                </NavLink>
                 <NavLink
                   to="/profile"
                   title={t('nav.profile')}

@@ -7,6 +7,7 @@ import { LinkifiedText } from '../components/LinkifiedText'
 import { DataState, ErrorText } from '../components/DataState'
 import { Avatar } from '../components/Avatar'
 import { ProjectForm } from '../components/ProjectForm'
+import { OpenChatButton } from '../components/OpenChatButton'
 import { TrackBadge } from '../components/TrackBadge'
 import { pageVariants } from '../lib/animations'
 import { useAuth } from '../context/authContext'
@@ -14,6 +15,7 @@ import { useI18n } from '../context/i18nContext'
 import { useMembers } from '../hooks/useClub'
 import { useProject } from '../hooks/useTeams'
 import { addProjectMember, confirmContribution, removeProjectMember, updateContribution } from '../lib/projectActions'
+import { openProjectChat } from '../lib/chatActions'
 import { formatDay } from '../lib/club'
 import type { ProjectMemberRow, ProjectRow } from '../lib/db'
 import { btnPrimary, btnSecondary, btnSmall, chip, inputClass, labelClass, pageTitle, sectionTitle } from '../lib/ui'
@@ -147,6 +149,8 @@ export function ProjectPage() {
 
   const memberTracks = new Set((p?.project_members ?? []).map((m) => m.profile?.track_id))
   const canEdit = Boolean(p && (p.owner_id === profile?.id || isOversight || (role === 'track_lead' && memberTracks.has(profile?.track_id ?? null))))
+  const inChat = Boolean(p && profile && (p.project_members?.some((m) => m.profile_id === profile.id)
+    || (role === 'track_lead' && memberTracks.has(profile.track_id))))
 
   return (
     <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit" className="max-w-3xl mx-auto space-y-4">
@@ -172,9 +176,12 @@ export function ProjectPage() {
                       )}
                     </div>
                   </div>
-                  {canEdit && (
-                    <button onClick={() => setEditing(true)} className={btnSecondary}><Pencil className="w-4 h-4" /> {t('common.edit')}</button>
-                  )}
+                  <div className="flex flex-wrap gap-2">
+                    {inChat && <OpenChatButton open={() => openProjectChat(p.id)} label={t('chat.openProject')} />}
+                    {canEdit && (
+                      <button onClick={() => setEditing(true)} className={btnSecondary}><Pencil className="w-4 h-4" /> {t('common.edit')}</button>
+                    )}
+                  </div>
                 </div>
                 <div className="space-y-3">
                   <Field label={t('project.field.problem')} value={p.problem} />
