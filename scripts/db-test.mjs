@@ -4,10 +4,11 @@
 //
 //   npm run test:db
 //
-// Two scenarios:
+// Scenarios:
 //   1. upgrade — the June schema + a prod-like snapshot, then the October migrations;
 //   2. fresh   — all migrations on an empty database, then the content and access-rule checks;
-//   3. seed    — all migrations + supabase/seed.sql (the demo club) apply cleanly.
+//   3. seed    — all migrations + supabase/seed.sql (the demo club) apply cleanly;
+//   4. staff   — staff accounts created in the dashboard (Authentication → Add user).
 
 import { readFileSync, readdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
@@ -931,11 +932,75 @@ async function seedScenario() {
   await db.close()
 }
 
+// ── 4. Staff accounts from the dashboard ────────────────────────────────────
+// Authentication → Add user sends no metadata and a password, hashed (bcrypt) before the insert.
+// Only an email invited just before, with that same temporary password, gets through.
+async function staffScenario() {
+  const db = await freshDb()
+  await migrate(db, MIGRATIONS)
+  const pg = 'postgres'
+  const addUser = (id, email, password, meta = {}) =>
+    run(db, pg, `insert into auth.users (id, email, encrypted_password, raw_user_meta_data)
+      values ($1, $2, case when $3::text is null then '' else extensions.crypt($3, extensions.gen_salt('bf', 10)) end, $4)`,
+    [id, email, password, meta])
+  const invite = (email, role, name, password, expires = `now() + interval '1 hour'`) =>
+    run(db, pg, `insert into public.staff_invites (email, role, full_name, temp_password, expires_at)
+      values ($1, $2, $3, $4, ${expires})`, [email, role, name, password])
+  const expectAdd = (name, id, email, password, meta, pattern) =>
+    addUser(id, email, password, meta).then(
+      () => record(name, !pattern, 'expected an error, got success'),
+      (e) => record(name, !!pattern && pattern.test(e.message), `unexpected error: ${e.message}`))
+  const code = await value(db, pg, `select code from public.join_codes where active and track_id = 'ai' limit 1`)
+  const S = (n) => `40000000-0000-0000-0000-00000000000${n}`
+
+  await expectAdd('staff: no join code and no invite is rejected', S(1), 'nobody@example.com', 'Temp-Pass-1', {}, /invalid_join_code/)
+
+  await invite('staff@example.com', 'curator', ' Куратор Клуба ', 'Temp-Pass-2')
+  await expectAdd('staff: a different password does not take the invite', S(1), 'staff@example.com', 'Attacker-Pass', {}, /invalid_join_code/)
+  await expectAdd('staff: an account without a password (GitHub) does not take it', S(1), 'staff@example.com', null, {}, /invalid_join_code/)
+  await expectEqual('staff: the invite is still there', db, pg, 'select count(*)::int from public.staff_invites', [], 1)
+  await expectAdd('staff: Add user with the invited email and password', S(2), 'Staff@Example.com', 'Temp-Pass-2', null)
+  await expectEqual('staff: role, name, no track, no grade', db, pg,
+    `select concat_ws(',', role, full_name, coalesce(track_id, '-'), coalesce(grade::text, '-'), cohort_id = public.default_cohort_id())
+     from public.profiles where user_id = $1`, [S(2)], 'curator,Куратор Клуба,-,-,t')
+  await expectEqual('staff: the email goes to member_private', db, pg,
+    'select mp.email from public.member_private mp join public.profiles p on p.id = mp.profile_id where p.user_id = $1',
+    [S(2)], 'Staff@Example.com')
+  await expectEqual('staff: the invite is used up', db, pg, 'select count(*)::int from public.staff_invites', [], 0)
+
+  await invite('late@example.com', 'director', 'Поздно', 'Temp-Pass-3', `now() - interval '1 minute'`)
+  await expectAdd('staff: an expired invite does not let anyone in', S(3), 'late@example.com', 'Temp-Pass-3', {}, /invalid_join_code/)
+
+  await invite('pupil@example.com', 'director', 'Не директор', 'Temp-Pass-4')
+  await addUser(S(4), 'pupil@example.com', 'Temp-Pass-4', { join_code: code, full_name: 'Ученик', grade: 9, photo_consent: true })
+  await expectEqual('staff: signing up with a join code ignores the invite', db, pg,
+    'select role from public.profiles where user_id = $1', [S(4)], 'member')
+
+  await expectError('staff: members cannot read the invites', db, S(4), 'select * from public.staff_invites', [], DENIED)
+  await expectError('staff: members cannot add an invite', db, S(4),
+    `insert into public.staff_invites (email, role, full_name, temp_password) values ('me@example.com', 'director', 'Я', 'Temp-Pass-5')`,
+    [], DENIED)
+  await expectError('staff: invites are for director / curator only', db, pg,
+    `insert into public.staff_invites (email, role, full_name, temp_password) values ('l@example.com', 'track_lead', 'Л', 'Temp-Pass-6')`,
+    [], /check/)
+  await expectError('staff: invite emails are stored in lower case', db, pg,
+    `insert into public.staff_invites (email, role, full_name, temp_password) values ('Big@example.com', 'curator', 'Б', 'Temp-Pass-7')`,
+    [], /check/)
+
+  // A track lead left without a track can't replace the codes.
+  await run(db, pg, `update public.profiles set role = 'track_lead', track_id = null where user_id = $1`, [S(4)])
+  await expectError('join codes: a lead without a track cannot rotate any', db, S(4), `select public.rotate_join_code('ai')`, [], /forbidden/)
+  await run(db, pg, `update public.profiles set track_id = 'ai' where user_id = $1`, [S(4)])
+  await expectOk('join codes: a lead rotates their own track', db, S(4), `select public.rotate_join_code('ai')`)
+  await db.close()
+}
+
 const started = Date.now()
 try {
   await upgradeScenario()
   await freshScenario()
   await seedScenario()
+  await staffScenario()
 } catch (e) {
   failures.push(`setup failed: ${e.message}`)
 }

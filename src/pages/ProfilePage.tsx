@@ -68,7 +68,7 @@ function TrackSection({ profile }: { profile: ProfileRow }) {
 
 function DetailsSection({ profile }: { profile: ProfileRow }) {
   const { t } = useI18n()
-  const { refreshProfile } = useAuth()
+  const { refreshProfile, isOversight } = useAuth()
   const [name, setName] = useState(profile.full_name)
   const [grade, setGrade] = useState(profile.grade ? String(profile.grade) : '')
   const [github, setGithub] = useState(profile.github_username ?? '')
@@ -85,7 +85,7 @@ function DetailsSection({ profile }: { profile: ProfileRow }) {
     setSaved(false)
     const res = await updateMyProfile(profile.user_id, {
       full_name: name,
-      grade: Number(grade),
+      grade: isOversight ? profile.grade : Number(grade),
       github_username: github,
       codeforces_handle: codeforces,
     })
@@ -99,18 +99,21 @@ function DetailsSection({ profile }: { profile: ProfileRow }) {
     <GlassCard>
       <h2 className={sectionTitle}>{t('profile.details')}</h2>
       <form onSubmit={submit} className="space-y-3 mt-3">
-        <div className="grid grid-cols-1 sm:grid-cols-[1fr_9rem] gap-3">
+        <div className={isOversight ? '' : 'grid grid-cols-1 sm:grid-cols-[1fr_9rem] gap-3'}>
           <div>
             <label className={labelClass}>{t('join.form.name')}</label>
             <input className={inputClass} value={name} onChange={(e) => setName(e.target.value)} required maxLength={120} />
           </div>
-          <div>
-            <label className={labelClass}>{t('join.form.grade')}</label>
-            <select className={inputClass} value={grade} onChange={(e) => setGrade(e.target.value)} required>
-              <option value="" disabled>{t('join.form.gradePick')}</option>
-              {GRADES.map((g) => <option key={g} value={g}>{t('common.gradeN', { n: g })}</option>)}
-            </select>
-          </div>
+          {/* Director and curator are adults: no school grade. */}
+          {!isOversight && (
+            <div>
+              <label className={labelClass}>{t('join.form.grade')}</label>
+              <select className={inputClass} value={grade} onChange={(e) => setGrade(e.target.value)} required>
+                <option value="" disabled>{t('join.form.gradePick')}</option>
+                {GRADES.map((g) => <option key={g} value={g}>{t('common.gradeN', { n: g })}</option>)}
+              </select>
+            </div>
+          )}
         </div>
         <p className="text-xs font-medium text-gray-600 pt-1">{t('profile.connected')}</p>
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
