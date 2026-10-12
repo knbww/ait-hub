@@ -934,18 +934,23 @@ async function seedScenario() {
 
 // ── 4. Staff accounts from the dashboard ────────────────────────────────────
 // Authentication → Add user sends no metadata and a password, hashed (bcrypt) before the insert.
-// Only an email invited just before, with that same temporary password, gets through.
+// Only an invited email, with that same temporary password, gets through.
 async function staffScenario() {
   const db = await freshDb()
-  await migrate(db, MIGRATIONS)
   const pg = 'postgres'
+  // A database may already hold an older shape of the invites table.
+  await migrate(db, MIGRATIONS.filter((f) => f < '20261012150000'))
+  await run(db, pg, `create table public.staff_invites (email text primary key, role text, full_name text)`)
+  await run(db, pg, `insert into public.staff_invites values ('old@example.com', 'curator', 'Старое')`)
+  await migrate(db, MIGRATIONS.filter((f) => f >= '20261012150000'))
+  await expectEqual('staff: the invites table is created anew', db, pg, 'select count(*)::int from public.staff_invites', [], 0)
   const addUser = (id, email, password, meta = {}) =>
     run(db, pg, `insert into auth.users (id, email, encrypted_password, raw_user_meta_data)
       values ($1, $2, case when $3::text is null then '' else extensions.crypt($3, extensions.gen_salt('bf', 10)) end, $4)`,
     [id, email, password, meta])
-  const invite = (email, role, name, password, expires = `now() + interval '1 hour'`) =>
-    run(db, pg, `insert into public.staff_invites (email, role, full_name, temp_password, expires_at)
-      values ($1, $2, $3, $4, ${expires})`, [email, role, name, password])
+  const invite = (email, role, name, password) =>
+    run(db, pg, 'insert into public.staff_invites (email, role, full_name, temp_password) values ($1, $2, $3, $4)',
+      [email, role, name, password])
   const expectAdd = (name, id, email, password, meta, pattern) =>
     addUser(id, email, password, meta).then(
       () => record(name, !pattern, 'expected an error, got success'),
@@ -967,9 +972,6 @@ async function staffScenario() {
     'select mp.email from public.member_private mp join public.profiles p on p.id = mp.profile_id where p.user_id = $1',
     [S(2)], 'Staff@Example.com')
   await expectEqual('staff: the invite is used up', db, pg, 'select count(*)::int from public.staff_invites', [], 0)
-
-  await invite('late@example.com', 'director', 'Поздно', 'Temp-Pass-3', `now() - interval '1 minute'`)
-  await expectAdd('staff: an expired invite does not let anyone in', S(3), 'late@example.com', 'Temp-Pass-3', {}, /invalid_join_code/)
 
   await invite('pupil@example.com', 'director', 'Не директор', 'Temp-Pass-4')
   await addUser(S(4), 'pupil@example.com', 'Temp-Pass-4', { join_code: code, full_name: 'Ученик', grade: 9, photo_consent: true })

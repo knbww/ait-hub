@@ -1,21 +1,24 @@
 -- Director / curator accounts from the dashboard: Authentication → Add user, with a temporary
 -- password. Sign-up through the Hub still needs a join code. An account created without one is
--- let in only if the operator invited that email in the SQL Editor just before (see README):
+-- let in only if the operator invited that email in the SQL Editor beforehand (see README):
 --  * the invite names the role and the temporary password; the account must come with that same
 --    password. Supabase Auth inserts the user the same way for a public sign-up and for Add user,
 --    but the password hash is already in the row, so someone who only knows the email can't take
 --    the invite;
---  * the invite is used up by the account and expires after an hour; no staff email or password
---    stays in the database or in the repo;
+--  * the invite is used up by the account, so no staff email or password stays in the database;
+--    none is kept in the repo either;
 --  * the account gets the role, no track and no grade (staff are adults).
 -- Track leads are pupils: they still sign up with their track's code and the director promotes them.
 
-create table if not exists public.staff_invites (
+-- Created anew: a database may hold an older shape of this table, and invites are only pending
+-- accounts, nothing to keep.
+drop table if exists public.staff_invites;
+create table public.staff_invites (
   email         text primary key check (email = lower(btrim(email))),
   role          text not null check (role in ('director', 'curator')),
   full_name     text not null check (char_length(btrim(full_name)) between 1 and 120),
   temp_password text not null check (char_length(temp_password) between 8 and 72),
-  expires_at    timestamptz not null default now() + interval '1 hour'
+  created_at    timestamptz not null default now()
 );
 alter table public.staff_invites enable row level security;
 revoke all on public.staff_invites from anon, authenticated;
@@ -36,7 +39,6 @@ declare
 begin
   -- Staff, created in the dashboard (no join code in the metadata).
   if coalesce(meta ->> 'join_code', '') = '' then
-    delete from public.staff_invites where expires_at <= now();
     -- A bcrypt hash from Supabase Auth; users without a password (GitHub) never match.
     if coalesce(new.encrypted_password, '') like '$2%' then
       delete from public.staff_invites
