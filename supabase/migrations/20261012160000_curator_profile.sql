@@ -7,6 +7,7 @@
 update public.profiles set grade = null, track_id = null
 where role = 'curator' and (grade is not null or track_id is not null);
 
+alter table public.profiles drop constraint if exists profiles_curator_no_grade_track;
 alter table public.profiles add constraint profiles_curator_no_grade_track
   check (role <> 'curator' or (grade is null and track_id is null));
 
