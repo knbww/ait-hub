@@ -10,6 +10,9 @@ export const GRADES = [7, 8, 9, 10, 11, 12] as const
 export const STAFF_ROLES: Role[] = ['track_lead', 'director', 'curator']
 export const isStaffRole = (role: Role | null | undefined) => !!role && STAFF_ROLES.includes(role)
 
+/** The grade the UI shows: none for the curator, an adult (the director may be a pupil). */
+export const shownGrade = (p: { role: Role; grade: number | null }) => (p.role === 'curator' ? null : p.grade)
+
 export const POINT_CATEGORIES: PointsCategory[] = [
   'required_work',
   'extra_work',

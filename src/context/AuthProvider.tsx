@@ -176,6 +176,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       isStaff: role === 'track_lead' || role === 'director' || role === 'curator',
       isOversight: role === 'director' || role === 'curator',
       isDirector: role === 'director',
+      isCurator: role === 'curator',
       mfaPending: !!aal && aal.next === 'aal2' && aal.current !== 'aal2',
       mfaVerified: aal?.current === 'aal2',
       refreshMfa,

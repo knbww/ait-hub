@@ -257,7 +257,7 @@ async function freshScenario() {
   await signUp(U.inactive, 'inactive@example.com', meta(codes.ai, { full_name: 'Неактивный' }))
 
   await run(db, pg, `update public.profiles set role = 'director', track_id = null where user_id = $1`, [U.dir])
-  await run(db, pg, `update public.profiles set role = 'curator', track_id = null where user_id = $1`, [U.cur])
+  await run(db, pg, `update public.profiles set role = 'curator', track_id = null, grade = null where user_id = $1`, [U.cur])
   await run(db, pg, `update public.profiles set role = 'track_lead' where user_id in ($1, $2)`, [U.leadAi, U.leadAlgo])
   await run(db, pg, `update public.profiles set status = 'inactive' where user_id = $1`, [U.inactive])
 
@@ -994,6 +994,21 @@ async function staffScenario() {
   await expectError('join codes: a lead without a track cannot rotate any', db, S(4), `select public.rotate_join_code('ai')`, [], /forbidden/)
   await run(db, pg, `update public.profiles set track_id = 'ai' where user_id = $1`, [S(4)])
   await expectOk('join codes: a lead rotates their own track', db, S(4), `select public.rotate_join_code('ai')`)
+
+  // The curator is an adult: no grade, no track, whichever way she became curator.
+  await run(db, pg, `update public.profiles set role = 'director', track_id = null where user_id = $1`, [S(4)])
+  const fresh = await value(db, pg, `select code from public.join_codes where active and track_id = 'ai'`)
+  await addUser(S(5), 'teacher@example.com', 'Temp-Pass-8', { join_code: fresh, full_name: 'Учитель', grade: 11, photo_consent: true })
+  const teacher = await value(db, pg, 'select id from public.profiles where user_id = $1', [S(5)])
+  await expectOk('curator: the director promotes a pupil account', db, S(4), `select public.set_member_role($1, 'curator')`, [teacher])
+  await expectEqual('curator: promotion clears the grade and the track', db, pg,
+    `select concat_ws(',', role, coalesce(grade::text, '-'), coalesce(track_id, '-')) from public.profiles where id = $1`, [teacher], 'curator,-,-')
+  await expectError('curator: cannot give herself a grade', db, S(5),
+    'update public.profiles set grade = 10 where user_id = $1', [S(5)], /profiles_curator_no_grade_track/)
+  await expectError('curator: cannot join a track with a code', db, S(5), 'select public.claim_track($1)', [fresh], /profiles_curator_no_grade_track/)
+  await expectError('curator: the director cannot put her into a track', db, S(4),
+    `select public.set_member_track($1, 'ai')`, [teacher], /profiles_curator_no_grade_track/)
+  await expectOk('curator: edits her name', db, S(5), `update public.profiles set full_name = 'Учитель Учителева' where user_id = $1`, [S(5)])
   await db.close()
 }
 

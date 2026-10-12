@@ -28,6 +28,8 @@ export interface AuthValue {
   /** Director or curator — sees the whole club. */
   isOversight: boolean
   isDirector: boolean
+  /** The club's curator: an adult, so no school grade, track or pupil stats in the UI. */
+  isCurator: boolean
   /** Signed in, has an authenticator app, but this session hasn't entered its code yet. */
   mfaPending: boolean
   /** This session was confirmed with an authenticator-app code. */

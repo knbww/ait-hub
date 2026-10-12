@@ -65,7 +65,7 @@ function ProfilePrompts() {
 
 export function DashboardPage() {
   const { isDevMode } = useDevMode()
-  const { profile, isStaff } = useAuth()
+  const { profile, isStaff, isCurator } = useAuth()
   const { t } = useI18n()
   const profileId = profile?.id
   const allowed = isStaff ? STAFF_CARDS : MEMBER_CARDS
@@ -129,7 +129,7 @@ export function DashboardPage() {
   return (
     <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit" className="max-w-7xl mx-auto">
       <motion.div variants={cardVariants} className="mb-5 px-1">
-        <h1 className="text-2xl sm:text-3xl font-light">{t('dashboard.hello', { name: firstName })}</h1>
+        <h1 className="text-2xl sm:text-3xl font-light">{t(isCurator ? 'dashboard.helloFormal' : 'dashboard.hello', { name: firstName })}</h1>
         <p className="text-sm text-gray-600 mt-1 first-letter:uppercase">
           {today}{week !== null && ` · ${t('dashboard.week', { n: week, total: PROGRAM_WEEKS })}`}
         </p>

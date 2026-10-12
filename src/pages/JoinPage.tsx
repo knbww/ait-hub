@@ -205,11 +205,12 @@ function CodeEntry({ onFound }: { onFound: (check: CodeCheck) => void }) {
 /** Already signed in: join a track with a code (accounts from before tracks), or go in. */
 function SignedIn({ urlCode }: { urlCode: string }) {
   const { t } = useI18n()
-  const { profile, refreshProfile } = useAuth()
+  const { profile, refreshProfile, isStaff } = useAuth()
   const navigate = useNavigate()
   const [error, setError] = useState<unknown>(null)
   const [busy, setBusy] = useState(false)
-  const canClaim = Boolean(urlCode && profile && !profile.track_id)
+  // Staff without a track (director, curator) don't join one by scanning a code.
+  const canClaim = Boolean(urlCode && profile && !profile.track_id && !isStaff)
 
   const claim = async () => {
     setBusy(true)

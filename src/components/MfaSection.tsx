@@ -12,7 +12,7 @@ import { btnPrimary, btnSecondary, btnDanger, inputClass, sectionTitle } from '.
 /** Profile section for staff: turn the authenticator-app code on or off. */
 export function MfaSection() {
   const { t } = useI18n()
-  const { isOversight, refreshMfa } = useAuth()
+  const { isOversight, isCurator, refreshMfa } = useAuth()
   const [factorId, setFactorId] = useState<string | null | undefined>(undefined)
   const [setup, setSetup] = useState<TotpSetup | null>(null)
   const [code, setCode] = useState('')
@@ -55,7 +55,7 @@ export function MfaSection() {
   }
 
   const turnOff = async () => {
-    if (!factorId || !window.confirm(t('mfa.offConfirm'))) return
+    if (!factorId || !window.confirm(t(isCurator ? 'mfa.offConfirmCurator' : 'mfa.offConfirm'))) return
     setBusy(true)
     setError(null)
     const res = await disableTotp(factorId)
@@ -92,7 +92,7 @@ export function MfaSection() {
         </form>
       ) : (
         <>
-          <p className="text-sm text-gray-700 mt-1 mb-3">{isOversight ? t('mfa.offOversight') : t('mfa.offStaff')}</p>
+          <p className="text-sm text-gray-700 mt-1 mb-3">{t(isCurator ? 'mfa.offCurator' : isOversight ? 'mfa.offOversight' : 'mfa.offStaff')}</p>
           <button onClick={begin} disabled={busy} className={btnPrimary}>{t('mfa.turnOn')}</button>
         </>
       )}

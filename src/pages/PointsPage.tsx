@@ -14,7 +14,7 @@ import { useI18n } from '../context/i18nContext'
 import { useMembers } from '../hooks/useClub'
 import { useLeaderboard, usePointsJournal, usePointsTotal } from '../hooks/usePoints'
 import { awardPoints } from '../lib/pointsActions'
-import { POINT_CATEGORIES, TRACK_IDS, formatDate } from '../lib/club'
+import { POINT_CATEGORIES, TRACK_IDS, formatDate, shownGrade } from '../lib/club'
 import type { PointsCategory, PointsEntryRow, TrackId } from '../lib/db'
 import { btnPrimary, inputClass, labelClass, pageTitle, sectionTitle, segment } from '../lib/ui'
 
@@ -53,9 +53,10 @@ function AwardForm() {
   const [error, setError] = useState<unknown>(null)
   const [done, setDone] = useState(false)
 
-  // Who the viewer may award: director / curator — any active member; a lead — their track.
+  // Who the viewer may award: director / curator — any active pupil or lead; a lead — their track.
+  // The curator is staff, not a participant: she gets no AIT Points.
   const options = (members.data ?? []).filter(
-    (m) => m.status === 'active' && m.id !== profile?.id
+    (m) => m.status === 'active' && m.id !== profile?.id && m.role !== 'curator'
       && (isOversight || (m.role === 'member' && m.track_id === profile?.track_id)),
   )
 
@@ -84,7 +85,7 @@ function AwardForm() {
           <select className={inputClass} value={profileId} onChange={(e) => setProfileId(e.target.value)} required>
             <option value="" disabled>{t('points.award.pick')}</option>
             {options.map((m) => (
-              <option key={m.id} value={m.id}>{m.full_name}{m.grade ? `, ${t('common.gradeN', { n: m.grade })}` : ''}</option>
+              <option key={m.id} value={m.id}>{m.full_name}{shownGrade(m) ? `, ${t('common.gradeN', { n: shownGrade(m)! })}` : ''}</option>
             ))}
           </select>
         </div>

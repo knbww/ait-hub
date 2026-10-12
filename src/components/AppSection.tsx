@@ -3,6 +3,7 @@ import { BellRing, Smartphone } from 'lucide-react'
 import { GlassCard } from './GlassCard'
 import { ErrorText } from './DataState'
 import { useI18n } from '../context/i18nContext'
+import { useAuth } from '../context/authContext'
 import { isIos, isStandalone, promptInstall, useInstallAvailable } from '../lib/install'
 import { currentSubscription, disablePush, enablePush, pushSupported } from '../lib/push'
 import { btnPrimary, btnSecondary, sectionTitle } from '../lib/ui'
@@ -10,6 +11,7 @@ import { btnPrimary, btnSecondary, sectionTitle } from '../lib/ui'
 /** Profile: install the Hub as an app and turn notifications on for this device. */
 export function AppSection() {
   const { t } = useI18n()
+  const { isCurator } = useAuth()
   const canInstall = useInstallAvailable()
   const standalone = isStandalone()
   const [subscribed, setSubscribed] = useState<boolean | null>(null)
@@ -60,7 +62,7 @@ export function AppSection() {
             <p>{t('app.pushBlocked')}</p>
           ) : (
             <>
-              <p className="mb-2">{subscribed ? t('app.pushOn') : t('app.pushOff')}</p>
+              <p className="mb-2">{isCurator ? t(subscribed ? 'app.pushOnCurator' : 'app.pushOffCurator') : t(subscribed ? 'app.pushOn' : 'app.pushOff')}</p>
               {subscribed !== null && (
                 <button onClick={toggle} disabled={busy} className={subscribed ? btnSecondary : btnPrimary}>
                   {subscribed ? t('app.pushDisable') : t('app.pushEnable')}

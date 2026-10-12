@@ -26,7 +26,7 @@ import {
   adminSetPassword, deleteMember, exportMemberData, setMemberRole, setMemberStatus, setMemberTrack,
 } from '../lib/memberActions'
 import { downloadJson, stampedName } from '../lib/download'
-import { TRACK_IDS, formatDate } from '../lib/club'
+import { TRACK_IDS, formatDate, shownGrade } from '../lib/club'
 import type { ProfileRow, Role, TrackId } from '../lib/db'
 import { btnDanger, btnSecondary, chip, inputClass, labelClass, pageTitle, sectionTitle } from '../lib/ui'
 
@@ -35,10 +35,12 @@ const ROLES: Role[] = ['member', 'track_lead', 'director', 'curator']
 function ManagePanel({ member }: { member: ProfileRow }) {
   const { t } = useI18n()
   const navigate = useNavigate()
-  const { isDirector } = useAuth()
+  const { isDirector, role: myRole } = useAuth()
+  // The curator is staff, not a pupil: no works, AIT Points or track to manage.
+  const curator = member.role === 'curator'
   const priv = useMemberPrivate(member.id)
-  const works = useMySubmissions(member.id)
-  const journal = usePointsJournal(member.id, true, 50)
+  const works = useMySubmissions(curator ? undefined : member.id)
+  const journal = usePointsJournal(member.id, !curator, 50)
   const [role, setRole] = useState<Role>(member.role)
   const [track, setTrack] = useState<TrackId | ''>(member.track_id ?? '')
   const [busy, setBusy] = useState(false)
@@ -56,20 +58,22 @@ function ManagePanel({ member }: { member: ProfileRow }) {
   }
 
   const resetPassword = () => {
-    const password = window.prompt(t('member.manage.passwordPrompt'))
+    const password = window.prompt(t(curator ? 'member.manage.passwordPromptCurator' : 'member.manage.passwordPrompt'))
     if (password === null) return
-    void run(() => adminSetPassword(member.id, password), t('member.manage.passwordDone'))
+    void run(() => adminSetPassword(member.id, password), t(curator ? 'member.manage.passwordDoneCurator' : 'member.manage.passwordDone'))
   }
 
   const remove = async () => {
-    const typed = window.prompt(t('member.manage.deletePrompt', { name: member.full_name }))
+    const typed = window.prompt(t(curator ? 'member.manage.deletePromptCurator' : 'member.manage.deletePrompt', { name: member.full_name }))
     if (typed === null) return
     if (typed.trim() !== member.full_name) return setError('confirm_mismatch')
     setBusy(true)
     const res = await deleteMember(member.id, member.user_id)
     setBusy(false)
     if (res.error) return setError(res.error)
-    window.alert(res.data?.auth_deleted ? t('member.manage.deleted') : t('member.manage.deletedNoLogin'))
+    window.alert(res.data?.auth_deleted
+      ? t(curator ? 'member.manage.deletedCurator' : 'member.manage.deleted')
+      : t('member.manage.deletedNoLogin'))
     navigate('/manage', { replace: true })
   }
 
@@ -83,7 +87,7 @@ function ManagePanel({ member }: { member: ProfileRow }) {
   return (
     <GlassCard className="!border-[#750014]/30">
       <h2 className={sectionTitle}>{t('member.manage.title')}</h2>
-      <p className="text-xs text-gray-600 mb-3">{t('member.manage.hint')}</p>
+      <p className="text-xs text-gray-600 mb-3">{t(curator ? 'member.manage.hintCurator' : 'member.manage.hint')}</p>
 
       <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm mb-4">
         <div>
@@ -94,13 +98,15 @@ function ManagePanel({ member }: { member: ProfileRow }) {
           <dt className="text-xs text-gray-600">{t('join.form.telegram')}</dt>
           <dd>{priv.data?.telegram ? `@${priv.data.telegram}` : '—'}</dd>
         </div>
-        <div>
-          <dt className="text-xs text-gray-600">{t('member.manage.works')}</dt>
-          <dd>{t('member.manage.worksCount', {
-            total: submitted.length,
-            accepted: submitted.filter((s) => s.status === 'accepted').length,
-          })}</dd>
-        </div>
+        {!curator && (
+          <div>
+            <dt className="text-xs text-gray-600">{t('member.manage.works')}</dt>
+            <dd>{t('member.manage.worksCount', {
+              total: submitted.length,
+              accepted: submitted.filter((s) => s.status === 'accepted').length,
+            })}</dd>
+          </div>
+        )}
         <div>
           <dt className="text-xs text-gray-600">{t('member.manage.photo')}</dt>
           <dd>{priv.data?.photo_consent == null ? '—' : t(priv.data.photo_consent ? 'common.yes' : 'common.no')}</dd>
@@ -119,29 +125,34 @@ function ManagePanel({ member }: { member: ProfileRow }) {
                 className={btnSecondary}>{t('common.save')}</button>
             </div>
           </div>
-          <div>
-            <label className={labelClass}>{t('member.manage.track')}</label>
-            <div className="flex gap-2">
-              <select className={inputClass} value={track} onChange={(e) => setTrack(e.target.value as TrackId | '')}>
-                <option value="">—</option>
-                {TRACK_IDS.map((id) => <option key={id} value={id}>{t(`track.${id}`)}</option>)}
-              </select>
-              <button disabled={busy || track === (member.track_id ?? '')}
-                onClick={() => run(() => setMemberTrack(member.id, track || null), t('common.saved'))} className={btnSecondary}>
-                {t('common.save')}
-              </button>
+          {!curator && (
+            <div>
+              <label className={labelClass}>{t('member.manage.track')}</label>
+              <div className="flex gap-2">
+                <select className={inputClass} value={track} onChange={(e) => setTrack(e.target.value as TrackId | '')}>
+                  <option value="">—</option>
+                  {TRACK_IDS.map((id) => <option key={id} value={id}>{t(`track.${id}`)}</option>)}
+                </select>
+                <button disabled={busy || track === (member.track_id ?? '')}
+                  onClick={() => run(() => setMemberTrack(member.id, track || null), t('common.saved'))} className={btnSecondary}>
+                  {t('common.save')}
+                </button>
+              </div>
             </div>
-          </div>
+          )}
         </div>
       )}
 
       <div className="flex flex-wrap gap-2">
         <button onClick={download} className={btnSecondary}><Download className="w-4 h-4" /> {t('member.manage.download')}</button>
-        <button disabled={busy}
-          onClick={() => run(() => setMemberStatus(member.id, member.status === 'active' ? 'inactive' : 'active'), t('common.saved'))}
-          className={btnSecondary}>
-          {member.status === 'active' ? t('member.manage.deactivate') : t('member.manage.activate')}
-        </button>
+        {/* Access is switched by the director, or by a member's own track lead (set_member_status). */}
+        {(isDirector || myRole === 'track_lead') && (
+          <button disabled={busy}
+            onClick={() => run(() => setMemberStatus(member.id, member.status === 'active' ? 'inactive' : 'active'), t('common.saved'))}
+            className={btnSecondary}>
+            {member.status === 'active' ? t('member.manage.deactivate') : t('member.manage.activate')}
+          </button>
+        )}
         {isDirector && (
           <>
             <button disabled={busy} onClick={resetPassword} className={btnSecondary}><KeyRound className="w-4 h-4" /> {t('member.manage.password')}</button>
@@ -152,24 +163,28 @@ function ManagePanel({ member }: { member: ProfileRow }) {
       {error === 'confirm_mismatch' ? <p className="text-sm text-red-700 mt-2">{t('member.manage.confirmMismatch')}</p> : <ErrorText error={error} />}
       {notice && <p className="text-sm text-green-800 mt-2">{notice}</p>}
 
-      <h3 className="text-sm font-medium mt-5 mb-1">{t('member.manage.journal')}</h3>
-      <DataState isLoading={journal.isLoading} error={journal.error} onRetry={() => void journal.refetch()}
-        empty={(journal.data ?? []).length === 0} emptyText={t('points.noEntries')}>
-        <ul className="divide-y divide-white/50 text-sm">
-          {(journal.data ?? []).map((e) => (
-            <li key={e.id} className="py-2 flex justify-between gap-3">
-              <span className="min-w-0">
-                <span className="block break-words">{e.note}</span>
-                <span className="block text-xs text-gray-600">
-                  {t(`points.category.${e.category}`)} · {formatDate(e.created_at)}
-                  {e.awarder && ` · ${t('points.confirmedBy', { name: e.awarder.full_name })}`}
-                </span>
-              </span>
-              <span className={e.amount >= 0 ? 'text-green-800' : 'text-red-700'}>{e.amount > 0 ? `+${e.amount}` : e.amount}</span>
-            </li>
-          ))}
-        </ul>
-      </DataState>
+      {!curator && (
+        <>
+          <h3 className="text-sm font-medium mt-5 mb-1">{t('member.manage.journal')}</h3>
+          <DataState isLoading={journal.isLoading} error={journal.error} onRetry={() => void journal.refetch()}
+            empty={(journal.data ?? []).length === 0} emptyText={t('points.noEntries')}>
+            <ul className="divide-y divide-white/50 text-sm">
+              {(journal.data ?? []).map((e) => (
+                <li key={e.id} className="py-2 flex justify-between gap-3">
+                  <span className="min-w-0">
+                    <span className="block break-words">{e.note}</span>
+                    <span className="block text-xs text-gray-600">
+                      {t(`points.category.${e.category}`)} · {formatDate(e.created_at)}
+                      {e.awarder && ` · ${t('points.confirmedBy', { name: e.awarder.full_name })}`}
+                    </span>
+                  </span>
+                  <span className={e.amount >= 0 ? 'text-green-800' : 'text-red-700'}>{e.amount > 0 ? `+${e.amount}` : e.amount}</span>
+                </li>
+              ))}
+            </ul>
+          </DataState>
+        </>
+      )}
     </GlassCard>
   )
 }
@@ -242,6 +257,45 @@ function MemberWeeks({ member }: { member: ProfileRow }) {
   )
 }
 
+/** Projects the person takes part in. */
+function MemberProjects({ projects }: { projects: { id: string; title: string }[] }) {
+  const { t } = useI18n()
+  return (
+    <GlassCard>
+      <h2 className={sectionTitle}>{t('card.projects')}</h2>
+      {projects.length === 0 ? (
+        <p className="text-sm text-gray-700 mt-2">{t('member.noProjects')}</p>
+      ) : (
+        <ul className="mt-2 space-y-1">
+          {projects.map((p) => (
+            <li key={p.id}><Link to={`/projects/${p.id}`} className="text-sm hover:underline">{p.title}</Link></li>
+          ))}
+        </ul>
+      )}
+    </GlassCard>
+  )
+}
+
+/** In place of a pupil's stats: what the curator does, and for a member a way to write to her. */
+function CuratorAbout({ member }: { member: ProfileRow }) {
+  const { t } = useI18n()
+  const { profile: me, role } = useAuth()
+  // A member's own «Написать руководству» chat: the curator, the director and their track lead read it.
+  const canWrite = role === 'member' && me?.id !== member.id && member.status === 'active'
+  return (
+    <GlassCard>
+      <h2 className={sectionTitle}>{t('member.curator.title')}</h2>
+      <p className="text-sm text-gray-700 mt-1">{t('member.curator.text')}</p>
+      {canWrite && (
+        <div className="mt-4 space-y-1">
+          <OpenChatButton open={() => openLeadChat()} label={t('chat.writeLead')} />
+          <p className="text-xs text-gray-600">{t('member.curator.chatHint')}</p>
+        </div>
+      )}
+    </GlassCard>
+  )
+}
+
 export function MemberPage() {
   const { id } = useParams()
   const { t } = useI18n()
@@ -274,8 +328,8 @@ export function MemberPage() {
                 <div className="min-w-0">
                   <h1 className={pageTitle}>{m.full_name}</h1>
                   <div className="flex flex-wrap items-center gap-2 mt-1 text-sm text-gray-700">
-                    {m.grade && <span>{t('common.gradeN', { n: m.grade })}</span>}
-                    <TrackBadge track={m.track_id} short={false} />
+                    {shownGrade(m) && <span>{t('common.gradeN', { n: shownGrade(m)! })}</span>}
+                    {m.role !== 'curator' && <TrackBadge track={m.track_id} short={false} />}
                     {m.role !== 'member' && <span className={`${chip} bg-[#750014]/10 text-[#750014]`}>{t(`role.${m.role}`)}</span>}
                     {m.status === 'inactive' && <span className={`${chip} bg-gray-900/10`}>{t('member.inactive')}</span>}
                   </div>
@@ -287,76 +341,74 @@ export function MemberPage() {
               )}
             </GlassCard>
 
-            <StatsRow member={m} history={history.data ?? []} points={total.data ?? 0} />
+            {m.role === 'curator' ? (
+              <>
+                <CuratorAbout member={m} />
+                {memberProjects.length > 0 && <MemberProjects projects={memberProjects} />}
+              </>
+            ) : (
+              <>
+                <StatsRow member={m} history={history.data ?? []} points={total.data ?? 0} />
 
-            {ratingSeries(history.data ?? []).map((series) => (
-              <GlassCard key={series.track}>
-                <h2 className={`${sectionTitle} mb-2`}>{t('member.chart.title', { track: t(`track.${series.track}.short`) })}</h2>
-                <RatingChart points={series.points}
-                  label={t('member.chart.aria', { name: m.full_name, track: t(`track.${series.track}`) })} />
-              </GlassCard>
-            ))}
+                {ratingSeries(history.data ?? []).map((series) => (
+                  <GlassCard key={series.track}>
+                    <h2 className={`${sectionTitle} mb-2`}>{t('member.chart.title', { track: t(`track.${series.track}.short`) })}</h2>
+                    <RatingChart points={series.points}
+                      label={t('member.chart.aria', { name: m.full_name, track: t(`track.${series.track}`) })} />
+                  </GlassCard>
+                ))}
 
-            {(history.data ?? []).length > 0 && (
-              <GlassCard>
-                <h2 className={sectionTitle}>{t('member.results')}</h2>
-                <div className="overflow-x-auto -mx-1 mt-2">
-                  <table className="w-full text-sm min-w-[30rem]">
-                    <thead>
-                      <tr className="text-left text-xs text-gray-600">
-                        <th className="font-normal py-2 px-1">{t('member.col.date')}</th>
-                        <th className="font-normal py-2 px-1">{t('member.col.event')}</th>
-                        <th className="font-normal py-2 px-1">{t('member.col.place')}</th>
-                        <th className="font-normal py-2 px-1">{t('member.col.score')}</th>
-                        <th className="font-normal py-2 px-1 text-right">{t('member.col.delta')}</th>
-                      </tr>
-                    </thead>
-                    <tbody>
-                      {history.data!.map((r) => (
-                        <tr key={r.id} className="border-t border-white/60">
-                          <td className="py-2 px-1 whitespace-nowrap text-gray-700">{r.event ? formatDate(r.event.starts_at) : '—'}</td>
-                          <td className="py-2 px-1">
-                            <span className="flex items-center gap-2">{r.event && <TrackBadge track={r.event.track_id} />} {r.event?.title}</span>
-                          </td>
-                          <td className="py-2 px-1">{r.place ?? '—'}</td>
-                          <td className="py-2 px-1">{r.score ?? '—'}</td>
-                          <td className={`py-2 px-1 text-right font-medium ${r.rating_delta < 0 ? 'text-red-700' : 'text-green-800'}`}>
-                            {r.rating_delta > 0 ? `+${r.rating_delta}` : r.rating_delta}
-                          </td>
-                        </tr>
-                      ))}
-                    </tbody>
-                  </table>
+                {(history.data ?? []).length > 0 && (
+                  <GlassCard>
+                    <h2 className={sectionTitle}>{t('member.results')}</h2>
+                    <div className="overflow-x-auto -mx-1 mt-2">
+                      <table className="w-full text-sm min-w-[30rem]">
+                        <thead>
+                          <tr className="text-left text-xs text-gray-600">
+                            <th className="font-normal py-2 px-1">{t('member.col.date')}</th>
+                            <th className="font-normal py-2 px-1">{t('member.col.event')}</th>
+                            <th className="font-normal py-2 px-1">{t('member.col.place')}</th>
+                            <th className="font-normal py-2 px-1">{t('member.col.score')}</th>
+                            <th className="font-normal py-2 px-1 text-right">{t('member.col.delta')}</th>
+                          </tr>
+                        </thead>
+                        <tbody>
+                          {history.data!.map((r) => (
+                            <tr key={r.id} className="border-t border-white/60">
+                              <td className="py-2 px-1 whitespace-nowrap text-gray-700">{r.event ? formatDate(r.event.starts_at) : '—'}</td>
+                              <td className="py-2 px-1">
+                                <span className="flex items-center gap-2">{r.event && <TrackBadge track={r.event.track_id} />} {r.event?.title}</span>
+                              </td>
+                              <td className="py-2 px-1">{r.place ?? '—'}</td>
+                              <td className="py-2 px-1">{r.score ?? '—'}</td>
+                              <td className={`py-2 px-1 text-right font-medium ${r.rating_delta < 0 ? 'text-red-700' : 'text-green-800'}`}>
+                                {r.rating_delta > 0 ? `+${r.rating_delta}` : r.rating_delta}
+                              </td>
+                            </tr>
+                          ))}
+                        </tbody>
+                      </table>
+                    </div>
+                  </GlassCard>
+                )}
+
+                {(me?.id === m.id || canManage) && m.role === 'member' && m.track_id && <MemberWeeks member={m} />}
+
+                <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
+                  <GlassCard>
+                    <h2 className={sectionTitle}>{t('card.team')}</h2>
+                    {team ? (
+                      <p className="text-sm mt-2">
+                        <Link to={`/teams/${team.id}`} className="underline">{team.name}</Link> · {t('teams.count', { n: team.team_members?.length ?? 0, max: 5 })}
+                      </p>
+                    ) : (
+                      <p className="text-sm text-gray-700 mt-2">{t('member.noTeam')}</p>
+                    )}
+                  </GlassCard>
+                  <MemberProjects projects={memberProjects} />
                 </div>
-              </GlassCard>
+              </>
             )}
-
-            {(me?.id === m.id || canManage) && m.role === 'member' && m.track_id && <MemberWeeks member={m} />}
-
-            <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
-              <GlassCard>
-                <h2 className={sectionTitle}>{t('card.team')}</h2>
-                {team ? (
-                  <p className="text-sm mt-2">
-                    <Link to={`/teams/${team.id}`} className="underline">{team.name}</Link> · {t('teams.count', { n: team.team_members?.length ?? 0, max: 5 })}
-                  </p>
-                ) : (
-                  <p className="text-sm text-gray-700 mt-2">{t('member.noTeam')}</p>
-                )}
-              </GlassCard>
-              <GlassCard>
-                <h2 className={sectionTitle}>{t('card.projects')}</h2>
-                {memberProjects.length === 0 ? (
-                  <p className="text-sm text-gray-700 mt-2">{t('member.noProjects')}</p>
-                ) : (
-                  <ul className="mt-2 space-y-1">
-                    {memberProjects.map((p) => (
-                      <li key={p.id}><Link to={`/projects/${p.id}`} className="text-sm hover:underline">{p.title}</Link></li>
-                    ))}
-                  </ul>
-                )}
-              </GlassCard>
-            </div>
 
             {(m.github_username || m.codeforces_handle) && (
               <GlassCard>

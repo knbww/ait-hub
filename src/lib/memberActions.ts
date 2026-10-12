@@ -8,7 +8,7 @@ const MEMBER_KEYS = [['members'], ['member'], ['member-private'], ['points'], ['
 
 export interface MyProfileInput {
   full_name: string
-  /** null for director / curator: adults, no school grade. */
+  /** null for the curator (an adult) and for staff who never set one. */
   grade: number | null
   github_username: string
   codeforces_handle: string

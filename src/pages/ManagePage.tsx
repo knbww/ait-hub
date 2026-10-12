@@ -17,7 +17,7 @@ import { resolveReport } from '../lib/chatActions'
 import { setSchedule, shiftSchedule } from '../lib/programActions'
 import { supabase } from '../lib/supabase'
 import { downloadCsv, stampedName } from '../lib/download'
-import { PROGRAM_WEEKS, TRACK_IDS, formatDateTime, formatShortDay, parseDay, plural } from '../lib/club'
+import { PROGRAM_WEEKS, TRACK_IDS, formatDateTime, formatShortDay, parseDay, plural, shownGrade } from '../lib/club'
 import type { Role, TrackId } from '../lib/db'
 import { btnPrimary, btnSecondary, chip, inputClass, labelClass, pageTitle, sectionTitle, segment } from '../lib/ui'
 
@@ -65,8 +65,8 @@ function MembersTab() {
             <li key={m.id}>
               <Link to={`/members/${m.id}`} className="flex flex-wrap items-center gap-2 py-2.5 hover:bg-white/30 rounded-lg px-1">
                 <span className="flex-1 min-w-[10rem] text-sm">{m.full_name}</span>
-                {m.grade && <span className="text-xs text-gray-600">{t('common.gradeN', { n: m.grade })}</span>}
-                <TrackBadge track={m.track_id} />
+                {shownGrade(m) && <span className="text-xs text-gray-600">{t('common.gradeN', { n: shownGrade(m)! })}</span>}
+                {m.role !== 'curator' && <TrackBadge track={m.track_id} />}
                 {m.role !== 'member' && <span className={`${chip} bg-[#750014]/10 text-[#750014]`}>{t(`role.${m.role}`)}</span>}
                 {m.status === 'inactive' && <span className={`${chip} bg-gray-900/10`}>{t('member.inactive')}</span>}
               </Link>
@@ -198,9 +198,10 @@ function ExportTab() {
     if (kind === 'members') {
       downloadCsv(stampedName('ait-hub-members', 'csv'),
         [t('csv.name'), t('csv.grade'), t('csv.track'), t('csv.role'), t('csv.status'), t('csv.email'), t('csv.telegram'), t('csv.photo'), 'AIT Points', t('csv.joined')],
-        rows.map((r) => [r.full_name as string, r.grade as number, r.track as string, t(`role.${r.role}`),
+        // The curator is staff, not a pupil: no grade or AIT Points in her row.
+        rows.map((r) => [r.full_name as string, r.role === 'curator' ? null : r.grade as number, r.track as string, t(`role.${r.role}`),
           t(`status.${r.status}`), r.email as string, r.telegram ? `@${r.telegram}` : '', r.photo_consent as boolean | null,
-          r.points as number, String(r.joined_at).slice(0, 10)]))
+          r.role === 'curator' ? null : r.points as number, String(r.joined_at).slice(0, 10)]))
     } else if (kind === 'points') {
       downloadCsv(stampedName('ait-hub-ait-points', 'csv'),
         [t('csv.date'), t('csv.name'), t('csv.track'), 'AIP', t('csv.category'), t('csv.note'), t('csv.confirmedBy')],

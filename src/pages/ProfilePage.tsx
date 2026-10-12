@@ -1,8 +1,9 @@
 import { useRef, useState } from 'react'
 import type { ChangeEvent, FormEvent } from 'react'
 import { motion } from 'framer-motion'
-import { Camera, Download, LayoutGrid, LogOut } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { Camera, Download, Flag, LayoutGrid, LogOut, MessageCircle, Newspaper, Sparkles, TrendingUp, Users } from 'lucide-react'
+import type { LucideIcon } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
 import { GlassCard } from '../components/GlassCard'
 import { ErrorText } from '../components/DataState'
 import { Avatar } from '../components/Avatar'
@@ -14,13 +15,14 @@ import { useAuth } from '../context/authContext'
 import { useI18n } from '../context/i18nContext'
 import { useDevMode } from '../context/devModeContext'
 import { useMemberPrivate } from '../hooks/useManage'
+import { useReports } from '../hooks/useChats'
 import {
   changePassword, claimTrack, exportMemberData, removeAvatar, setPhotoConsent, updateMyProfile, updateMyTelegram, uploadAvatar,
 } from '../lib/memberActions'
 import { downloadJson, stampedName } from '../lib/download'
-import { GRADES } from '../lib/club'
+import { GRADES, shownGrade } from '../lib/club'
 import type { ProfileRow } from '../lib/db'
-import { btnPrimary, btnSecondary, inputClass, labelClass, pageTitle, sectionTitle } from '../lib/ui'
+import { btnPrimary, btnSecondary, chip, inputClass, labelClass, pageTitle, sectionTitle } from '../lib/ui'
 
 function Saved({ show }: { show: boolean }) {
   const { t } = useI18n()
@@ -66,9 +68,42 @@ function TrackSection({ profile }: { profile: ProfileRow }) {
   )
 }
 
+/** The curator's card in place of the pupils' track: what the role covers and where its work is. */
+function CuratorRoleSection() {
+  const { t } = useI18n()
+  const reports = useReports(true)
+  const open = (reports.data ?? []).filter((r) => r.status === 'open').length
+  const links: { to: string; label: string; icon: LucideIcon; count?: number }[] = [
+    { to: '/manage?tab=members', label: t('manage.tab.members'), icon: Users },
+    { to: '/manage?tab=reports', label: t('manage.tab.reports'), icon: Flag, count: open },
+    { to: '/chats', label: t('nav.chats'), icon: MessageCircle },
+    { to: '/progress', label: t('profile.curator.progress'), icon: TrendingUp },
+    { to: '/points', label: t('nav.points'), icon: Sparkles },
+    { to: '/news', label: t('nav.news'), icon: Newspaper },
+  ]
+  return (
+    <GlassCard>
+      <h2 className={sectionTitle}>{t('profile.curator.title')}</h2>
+      <p className="text-sm text-gray-700 mt-1">{t('profile.curator.text')}</p>
+      <ul className="grid grid-cols-2 sm:grid-cols-3 gap-2 mt-4">
+        {links.map(({ to, label, icon: Icon, count }) => (
+          <li key={to}>
+            <Link to={to} className="flex items-center gap-2 rounded-xl border border-white/70 bg-white/40 hover:bg-white/70 px-3 py-2.5 text-sm">
+              <Icon className="w-4 h-4 shrink-0 text-[#750014]" aria-hidden="true" />
+              <span className="min-w-0 truncate">{label}</span>
+              {!!count && <span className={`${chip} ml-auto bg-[#750014] text-white`}>{count}</span>}
+            </Link>
+          </li>
+        ))}
+      </ul>
+      <p className="text-xs text-gray-600 mt-3">{t('profile.curator.director')}</p>
+    </GlassCard>
+  )
+}
+
 function DetailsSection({ profile }: { profile: ProfileRow }) {
   const { t } = useI18n()
-  const { refreshProfile, isOversight } = useAuth()
+  const { refreshProfile, isCurator } = useAuth()
   const [name, setName] = useState(profile.full_name)
   const [grade, setGrade] = useState(profile.grade ? String(profile.grade) : '')
   const [github, setGithub] = useState(profile.github_username ?? '')
@@ -85,9 +120,10 @@ function DetailsSection({ profile }: { profile: ProfileRow }) {
     setSaved(false)
     const res = await updateMyProfile(profile.user_id, {
       full_name: name,
-      grade: isOversight ? profile.grade : Number(grade),
-      github_username: github,
-      codeforces_handle: codeforces,
+      // The curator keeps no grade; GitHub / Codeforces stay as they are (not shown to her).
+      grade: isCurator || !grade ? null : Number(grade),
+      github_username: isCurator ? (profile.github_username ?? '') : github,
+      codeforces_handle: isCurator ? (profile.codeforces_handle ?? '') : codeforces,
     })
     setBusy(false)
     if (res.error) return setError(res.error)
@@ -99,35 +135,42 @@ function DetailsSection({ profile }: { profile: ProfileRow }) {
     <GlassCard>
       <h2 className={sectionTitle}>{t('profile.details')}</h2>
       <form onSubmit={submit} className="space-y-3 mt-3">
-        <div className={isOversight ? '' : 'grid grid-cols-1 sm:grid-cols-[1fr_9rem] gap-3'}>
+        {isCurator ? (
           <div>
-            <label className={labelClass}>{t('join.form.name')}</label>
+            <label className={labelClass}>{t('profile.curator.name')}</label>
             <input className={inputClass} value={name} onChange={(e) => setName(e.target.value)} required maxLength={120} />
           </div>
-          {/* Director and curator are adults: no school grade. */}
-          {!isOversight && (
-            <div>
-              <label className={labelClass}>{t('join.form.grade')}</label>
-              <select className={inputClass} value={grade} onChange={(e) => setGrade(e.target.value)} required>
-                <option value="" disabled>{t('join.form.gradePick')}</option>
-                {GRADES.map((g) => <option key={g} value={g}>{t('common.gradeN', { n: g })}</option>)}
-              </select>
+        ) : (
+          <>
+            <div className="grid grid-cols-1 sm:grid-cols-[1fr_9rem] gap-3">
+              <div>
+                <label className={labelClass}>{t('join.form.name')}</label>
+                <input className={inputClass} value={name} onChange={(e) => setName(e.target.value)} required maxLength={120} />
+              </div>
+              <div>
+                <label className={labelClass}>{t('join.form.grade')}</label>
+                {/* Pupils must have one; staff added from the dashboard may have none. */}
+                <select className={inputClass} value={grade} onChange={(e) => setGrade(e.target.value)} required={profile.role === 'member'}>
+                  <option value="" disabled={profile.role === 'member'}>{t('join.form.gradePick')}</option>
+                  {GRADES.map((g) => <option key={g} value={g}>{t('common.gradeN', { n: g })}</option>)}
+                </select>
+              </div>
             </div>
-          )}
-        </div>
-        <p className="text-xs font-medium text-gray-600 pt-1">{t('profile.connected')}</p>
-        <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
-          <div>
-            <label className={labelClass}>GitHub</label>
-            <input className={inputClass} value={github} onChange={(e) => setGithub(e.target.value)} placeholder="username"
-              autoCapitalize="off" maxLength={39} />
-          </div>
-          <div>
-            <label className={labelClass}>Codeforces</label>
-            <input className={inputClass} value={codeforces} onChange={(e) => setCodeforces(e.target.value)} placeholder="handle"
-              autoCapitalize="off" maxLength={24} />
-          </div>
-        </div>
+            <p className="text-xs font-medium text-gray-600 pt-1">{t('profile.connected')}</p>
+            <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
+              <div>
+                <label className={labelClass}>GitHub</label>
+                <input className={inputClass} value={github} onChange={(e) => setGithub(e.target.value)} placeholder="username"
+                  autoCapitalize="off" maxLength={39} />
+              </div>
+              <div>
+                <label className={labelClass}>Codeforces</label>
+                <input className={inputClass} value={codeforces} onChange={(e) => setCodeforces(e.target.value)} placeholder="handle"
+                  autoCapitalize="off" maxLength={24} />
+              </div>
+            </div>
+          </>
+        )}
         <ErrorText error={error} />
         <div className="flex items-center gap-3">
           <button type="submit" disabled={busy} className={btnPrimary}>{t('common.save')}</button>
@@ -140,11 +183,12 @@ function DetailsSection({ profile }: { profile: ProfileRow }) {
 
 function ContactsSection({ profile, email }: { profile: ProfileRow; email: string | null | undefined }) {
   const { t } = useI18n()
+  const { isCurator } = useAuth()
   const priv = useMemberPrivate(profile.id)
   return (
     <GlassCard>
       <h2 className={sectionTitle}>{t('profile.contacts')}</h2>
-      <p className="text-xs text-gray-600 mt-1">{t('profile.contactsHint')}</p>
+      <p className="text-xs text-gray-600 mt-1">{t(isCurator ? 'profile.contactsHintCurator' : 'profile.contactsHint')}</p>
       <dl className="mt-3 text-sm">
         <dt className="text-xs text-gray-600">{t('join.form.email')}</dt>
         <dd className="mb-3 break-all">{email ?? '—'}</dd>
@@ -186,7 +230,7 @@ function TelegramForm({ profileId, initial }: { profileId: string; initial: stri
 
 function PhotoSection({ profile }: { profile: ProfileRow }) {
   const { t } = useI18n()
-  const { refreshProfile } = useAuth()
+  const { refreshProfile, isCurator } = useAuth()
   const priv = useMemberPrivate(profile.id)
   const fileRef = useRef<HTMLInputElement>(null)
   const [busy, setBusy] = useState(false)
@@ -213,8 +257,8 @@ function PhotoSection({ profile }: { profile: ProfileRow }) {
   return (
     <GlassCard>
       <div id="photo" className="scroll-mt-24" />
-      <h2 className={sectionTitle}>{t('profile.photo')}</h2>
-      <p className="text-sm text-gray-700 mt-1 mb-3">{t('join.form.photo')}</p>
+      <h2 className={sectionTitle}>{t(isCurator ? 'profile.curator.photo' : 'profile.photo')}</h2>
+      <p className="text-sm text-gray-700 mt-1 mb-3">{t(isCurator ? 'profile.curator.photoQuestion' : 'join.form.photo')}</p>
       <div className="grid grid-cols-2 gap-2 mb-3">
         {[true, false].map((v) => (
           <button key={String(v)} disabled={busy || !profile.user_id}
@@ -249,6 +293,7 @@ function PhotoSection({ profile }: { profile: ProfileRow }) {
 
 function PasswordSection() {
   const { t } = useI18n()
+  const { isCurator } = useAuth()
   const [password, setPassword] = useState('')
   const [repeat, setRepeat] = useState('')
   const [error, setError] = useState<unknown>(null)
@@ -270,6 +315,7 @@ function PasswordSection() {
   return (
     <GlassCard>
       <h2 className={sectionTitle}>{t('profile.password')}</h2>
+      {isCurator && <p className="text-sm text-gray-700 mt-1">{t('profile.curator.tempPassword')}</p>}
       <form onSubmit={submit} className="space-y-2 mt-3">
         <input className={inputClass} type="password" value={password} onChange={(e) => setPassword(e.target.value)}
           placeholder={t('profile.newPassword')} autoComplete="new-password" minLength={8} required />
@@ -288,7 +334,7 @@ function PasswordSection() {
 export function ProfilePage() {
   const { t } = useI18n()
   const navigate = useNavigate()
-  const { session, profile, signOut, isStaff } = useAuth()
+  const { session, profile, signOut, isStaff, isCurator } = useAuth()
   const { isDevMode, setDevMode } = useDevMode()
   const [exportError, setExportError] = useState<unknown>(null)
 
@@ -309,18 +355,33 @@ export function ProfilePage() {
             <h1 className={pageTitle}>{profile.full_name}</h1>
             <p className="text-sm text-gray-700">
               {t(`role.${profile.role}`)}
-              {profile.grade ? ` · ${t('common.gradeN', { n: profile.grade })}` : ''}
+              {shownGrade(profile) ? ` · ${t('common.gradeN', { n: shownGrade(profile)! })}` : ''}
             </p>
           </div>
         </div>
       </GlassCard>
 
-      <TrackSection profile={profile} />
-      <DetailsSection key={profile.id} profile={profile} />
-      <ContactsSection profile={profile} email={session?.user.email} />
-      <PhotoSection profile={profile} />
-      <PasswordSection />
-      {isStaff && <MfaSection />}
+      {isCurator ? (
+        // The curator is an adult on the club's staff: her role, then security (she starts with a
+        // temporary password), contacts and name — no track, grade or coding profiles.
+        <>
+          <CuratorRoleSection />
+          <PasswordSection />
+          <MfaSection />
+          <ContactsSection profile={profile} email={session?.user.email} />
+          <DetailsSection key={profile.id} profile={profile} />
+          <PhotoSection profile={profile} />
+        </>
+      ) : (
+        <>
+          <TrackSection profile={profile} />
+          <DetailsSection key={profile.id} profile={profile} />
+          <ContactsSection profile={profile} email={session?.user.email} />
+          <PhotoSection profile={profile} />
+          <PasswordSection />
+          {isStaff && <MfaSection />}
+        </>
+      )}
       <AppSection />
 
       <GlassCard>
