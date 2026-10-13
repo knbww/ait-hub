@@ -116,9 +116,9 @@ function ManagePanel({ member }: { member: ProfileRow }) {
       {isDirector && (
         <div className="grid grid-cols-1 sm:grid-cols-2 gap-3 mb-4">
           <div>
-            <label className={labelClass}>{t('member.manage.role')}</label>
+            <label className={labelClass} htmlFor="m-role">{t('member.manage.role')}</label>
             <div className="flex gap-2">
-              <select className={inputClass} value={role} onChange={(e) => setRole(e.target.value as Role)}>
+              <select id="m-role" className={inputClass} value={role} onChange={(e) => setRole(e.target.value as Role)}>
                 {ROLES.map((r) => <option key={r} value={r}>{t(`role.${r}`)}</option>)}
               </select>
               <button disabled={busy || role === member.role} onClick={() => run(() => setMemberRole(member.id, role), t('common.saved'))}
@@ -127,9 +127,9 @@ function ManagePanel({ member }: { member: ProfileRow }) {
           </div>
           {!curator && (
             <div>
-              <label className={labelClass}>{t('member.manage.track')}</label>
+              <label className={labelClass} htmlFor="m-track">{t('member.manage.track')}</label>
               <div className="flex gap-2">
-                <select className={inputClass} value={track} onChange={(e) => setTrack(e.target.value as TrackId | '')}>
+                <select id="m-track" className={inputClass} value={track} onChange={(e) => setTrack(e.target.value as TrackId | '')}>
                   <option value="">—</option>
                   {TRACK_IDS.map((id) => <option key={id} value={id}>{t(`track.${id}`)}</option>)}
                 </select>

@@ -91,7 +91,8 @@ const EDITS = {
 // The research lists carry a few notes meant for whoever compiles the catalog (field names,
 // "N days left" as of the day of research); members get the facts.
 const TIDY = [
-  [/\s*Срочно:[^.]*\./g, ''],
+  // A sentence ends at a dot followed by a space or the end — not at the dots inside a date.
+  [/\s*Срочно:.*?\.(?=\s|$)/g, ''],
   [/\s*На 10 октября 2026 до дедлайна[^.]*\./g, ''],
   [/\s*На 10\.10\.2026 страница для учеников[^.]*\./g, ''],
   [/ — поэтому region указан как online, хотя финал проходит за рубежом/g, ''],

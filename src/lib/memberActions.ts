@@ -1,6 +1,7 @@
 import { supabase } from './supabase'
 import { notConfigured, refresh, rpc } from './mutate'
 import { clearWorkFolder } from './workFiles'
+import { shrinkPhoto } from './images'
 import type { Result } from './mutate'
 import type { Role, TrackId } from './db'
 
@@ -60,13 +61,20 @@ export async function setPhotoConsent(profileId: string, userId: string, consent
   return { data: null, error: null }
 }
 
+/** The photo is re-drawn at 512 px first — which also drops what a phone writes into the file
+ * (location, camera) — then replaces the previous one. */
 export async function uploadAvatar(userId: string, file: File, previousPath: string | null): Promise<Result> {
   if (!supabase) return notConfigured()
-  const ext = (file.name.split('.').pop() || 'jpg').toLowerCase().replace(/[^a-z0-9]/g, '') || 'jpg'
-  const path = `${userId}/avatar-${Date.now()}.${ext}`
+  let photo
+  try {
+    photo = await shrinkPhoto(file, 512)
+  } catch (error) {
+    return { data: null, error }
+  }
+  const path = `${userId}/avatar-${Date.now()}.${photo.ext}`
   const { error: uploadError } = await supabase.storage
     .from('avatars')
-    .upload(path, file, { contentType: file.type, upsert: false })
+    .upload(path, photo.blob, { contentType: photo.blob.type, upsert: false })
   if (uploadError) return { data: null, error: uploadError }
   const { error } = await supabase.from('profiles').update({ avatar_path: path }).eq('user_id', userId)
   if (error) return { data: null, error }

@@ -1,9 +1,10 @@
-import { Suspense, lazy } from 'react'
+import { Suspense, lazy, useEffect } from 'react'
 import type { ComponentType, ReactNode } from 'react'
 import { AnimatePresence } from 'framer-motion'
 import { Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { PageLoading, RequireAuth, RequireStaff } from './components/RequireAuth'
 import { reloadForNewVersion } from './lib/staleVersion'
+import { useI18n } from './context/i18nContext'
 
 // Route-level code splitting: each page becomes its own lazily-loaded chunk. A chunk that is
 // gone because a newer version was published meanwhile reloads the page once.
@@ -36,8 +37,34 @@ const NotFoundPage = page(() => import('./pages/NotFoundPage'), 'NotFoundPage')
 
 const auth = (node: ReactNode) => <RequireAuth>{node}</RequireAuth>
 
+/** The browser tab says which page is open (and screen readers announce it). */
+const TITLES: [RegExp, string][] = [
+  [/^\/$/, 'nav.home'],
+  [/^\/news/, 'nav.news'],
+  [/^\/opportunities/, 'nav.opportunities'],
+  [/^\/program/, 'nav.program'],
+  [/^\/calendar/, 'nav.calendar'],
+  [/^\/points/, 'nav.points'],
+  [/^\/rating/, 'nav.rating'],
+  [/^\/teams/, 'nav.teams'],
+  [/^\/projects/, 'nav.projects'],
+  [/^\/chats/, 'nav.chats'],
+  [/^\/progress/, 'card.progress'],
+  [/^\/profile/, 'nav.profile'],
+  [/^\/members/, 'title.member'],
+  [/^\/manage/, 'nav.manage'],
+  [/^\/join/, 'nav.join'],
+  [/^\/login/, 'nav.signIn'],
+]
+
 export function AnimatedRoutes() {
   const location = useLocation()
+  const { t } = useI18n()
+
+  useEffect(() => {
+    const key = TITLES.find(([pattern]) => pattern.test(location.pathname))?.[1]
+    document.title = key ? `${t(key)} · AIT Hub` : 'AIT Hub'
+  }, [location.pathname, t])
 
   return (
     <AnimatePresence mode="wait">

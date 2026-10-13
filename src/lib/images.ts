@@ -14,7 +14,7 @@ function toBlob(canvas: HTMLCanvasElement, type: string, quality: number): Promi
 }
 
 /** Throws `photo_unreadable` for files the browser can't open (HEIC on desktop, broken files). */
-export async function shrinkPhoto(file: File): Promise<ShrunkPhoto> {
+export async function shrinkPhoto(file: File, maxSide = MAX_SIDE): Promise<ShrunkPhoto> {
   const url = URL.createObjectURL(file)
   try {
     const img = new Image()
@@ -25,7 +25,7 @@ export async function shrinkPhoto(file: File): Promise<ShrunkPhoto> {
       throw new Error('photo_unreadable')
     }
     // Browsers apply the EXIF rotation when drawing, so portrait shots stay upright.
-    const scale = Math.min(1, MAX_SIDE / Math.max(img.naturalWidth, img.naturalHeight))
+    const scale = Math.min(1, maxSide / Math.max(img.naturalWidth, img.naturalHeight))
     const canvas = document.createElement('canvas')
     canvas.width = Math.max(1, Math.round(img.naturalWidth * scale))
     canvas.height = Math.max(1, Math.round(img.naturalHeight * scale))

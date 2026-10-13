@@ -58,7 +58,7 @@ function TrackSection({ profile }: { profile: ProfileRow }) {
           <p className="text-sm text-gray-700">{t('prompt.track')}</p>
           <div className="flex gap-2">
             <input className={`${inputClass} uppercase tracking-widest`} value={code} onChange={(e) => setCode(e.target.value)}
-              placeholder="ABCD2345" maxLength={12} required />
+              placeholder="ABCD2345" maxLength={12} required aria-label={t('join.code.label')} />
             <button type="submit" className={btnPrimary}>{t('profile.join')}</button>
           </div>
           <ErrorText error={error} />
@@ -148,9 +148,9 @@ function DetailsSection({ profile }: { profile: ProfileRow }) {
                 <input className={inputClass} value={name} onChange={(e) => setName(e.target.value)} required maxLength={120} />
               </div>
               <div>
-                <label className={labelClass}>{t('join.form.grade')}</label>
+                <label className={labelClass} htmlFor="p-grade">{t('join.form.grade')}</label>
                 {/* Pupils must have one; staff added from the dashboard may have none. */}
-                <select className={inputClass} value={grade} onChange={(e) => setGrade(e.target.value)} required={profile.role === 'member'}>
+                <select id="p-grade" className={inputClass} value={grade} onChange={(e) => setGrade(e.target.value)} required={profile.role === 'member'}>
                   <option value="" disabled={profile.role === 'member'}>{t('join.form.gradePick')}</option>
                   {GRADES.map((g) => <option key={g} value={g}>{t('common.gradeN', { n: g })}</option>)}
                 </select>
@@ -159,13 +159,13 @@ function DetailsSection({ profile }: { profile: ProfileRow }) {
             <p className="text-xs font-medium text-gray-600 pt-1">{t('profile.connected')}</p>
             <div className="grid grid-cols-1 sm:grid-cols-2 gap-3">
               <div>
-                <label className={labelClass}>GitHub</label>
-                <input className={inputClass} value={github} onChange={(e) => setGithub(e.target.value)} placeholder="username"
+                <label className={labelClass} htmlFor="p-github">GitHub</label>
+                <input id="p-github" className={inputClass} value={github} onChange={(e) => setGithub(e.target.value)} placeholder="username"
                   autoCapitalize="off" maxLength={39} />
               </div>
               <div>
-                <label className={labelClass}>Codeforces</label>
-                <input className={inputClass} value={codeforces} onChange={(e) => setCodeforces(e.target.value)} placeholder="handle"
+                <label className={labelClass} htmlFor="p-codeforces">Codeforces</label>
+                <input id="p-codeforces" className={inputClass} value={codeforces} onChange={(e) => setCodeforces(e.target.value)} placeholder="handle"
                   autoCapitalize="off" maxLength={24} />
               </div>
             </div>
@@ -217,9 +217,9 @@ function TelegramForm({ profileId, initial }: { profileId: string; initial: stri
 
   return (
     <form onSubmit={submit} className="space-y-2">
-      <label className={labelClass}>{t('join.form.telegram')}</label>
+      <label className={labelClass} htmlFor="p-telegram">{t('join.form.telegram')}</label>
       <div className="flex gap-2">
-        <input className={inputClass} value={value} onChange={(e) => setValue(e.target.value)} placeholder="@username" maxLength={64} autoCapitalize="off" />
+        <input id="p-telegram" className={inputClass} value={value} onChange={(e) => setValue(e.target.value)} placeholder="@username" maxLength={64} autoCapitalize="off" />
         <button type="submit" className={btnSecondary}>{t('common.save')}</button>
       </div>
       <ErrorText error={error} />
@@ -317,10 +317,12 @@ function PasswordSection() {
       <h2 className={sectionTitle}>{t('profile.password')}</h2>
       {isCurator && <p className="text-sm text-gray-700 mt-1">{t('profile.curator.tempPassword')}</p>}
       <form onSubmit={submit} className="space-y-2 mt-3">
-        <input className={inputClass} type="password" value={password} onChange={(e) => setPassword(e.target.value)}
-          placeholder={t('profile.newPassword')} autoComplete="new-password" minLength={8} required />
-        <input className={inputClass} type="password" value={repeat} onChange={(e) => setRepeat(e.target.value)}
-          placeholder={t('profile.repeatPassword')} autoComplete="new-password" required />
+        <label className={labelClass} htmlFor="p-password">{t('profile.newPassword')}</label>
+        <input id="p-password" className={inputClass} type="password" value={password} onChange={(e) => setPassword(e.target.value)}
+          autoComplete="new-password" minLength={8} required />
+        <label className={labelClass} htmlFor="p-repeat">{t('profile.repeatPassword')}</label>
+        <input id="p-repeat" className={inputClass} type="password" value={repeat} onChange={(e) => setRepeat(e.target.value)}
+          autoComplete="new-password" required />
         {error === 'mismatch' ? <p className="text-sm text-red-700">{t('profile.mismatch')}</p> : <ErrorText error={error} />}
         <div className="flex items-center gap-3">
           <button type="submit" className={btnSecondary}>{t('profile.changePassword')}</button>

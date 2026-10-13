@@ -16,6 +16,7 @@ import { useReports } from '../hooks/useChats'
 import { resolveReport } from '../lib/chatActions'
 import { setSchedule, shiftSchedule } from '../lib/programActions'
 import { supabase } from '../lib/supabase'
+import { messages } from '../lib/messages'
 import { downloadCsv, stampedName } from '../lib/download'
 import { PROGRAM_WEEKS, TRACK_IDS, formatDateTime, formatShortDay, parseDay, plural, shownGrade } from '../lib/club'
 import type { Role, TrackId } from '../lib/db'
@@ -42,13 +43,14 @@ function MembersTab() {
   return (
     <GlassCard>
       <div className="grid grid-cols-1 sm:grid-cols-3 gap-2 mb-3">
-        <input className={inputClass} value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('manage.search')} />
-        <select className={inputClass} value={track} onChange={(e) => setTrack(e.target.value as TrackId | 'all' | 'none')}>
+        <input className={inputClass} value={query} onChange={(e) => setQuery(e.target.value)} placeholder={t('manage.search')}
+          aria-label={t('manage.search')} type="search" />
+        <select className={inputClass} value={track} aria-label={t('member.manage.track')} onChange={(e) => setTrack(e.target.value as TrackId | 'all' | 'none')}>
           <option value="all">{t('manage.allTracks')}</option>
           {TRACK_IDS.map((id) => <option key={id} value={id}>{t(`track.${id}`)}</option>)}
           <option value="none">{t('manage.noTrack')}</option>
         </select>
-        <select className={inputClass} value={role} onChange={(e) => setRole(e.target.value as Role | 'all')}>
+        <select className={inputClass} value={role} onChange={(e) => setRole(e.target.value as Role | 'all')} aria-label={t('member.manage.role')}>
           <option value="all">{t('manage.allRoles')}</option>
           {(['member', 'track_lead', 'director', 'curator'] as Role[]).map((r) => <option key={r} value={r}>{t(`role.${r}`)}</option>)}
         </select>
@@ -131,12 +133,12 @@ function ScheduleTab() {
         <p className="text-sm text-gray-700 mt-1 mb-3">{t('schedule.buildHint')}</p>
         <form onSubmit={build} className="grid grid-cols-1 sm:grid-cols-[1fr_8rem_auto] gap-3 items-end">
           <div>
-            <label className={labelClass}>{t('schedule.start')}</label>
-            <input className={inputClass} type="date" value={start} onChange={(e) => setStart(e.target.value)} required />
+            <label className={labelClass} htmlFor="s-start">{t('schedule.start')}</label>
+            <input id="s-start" className={inputClass} type="date" value={start} onChange={(e) => setStart(e.target.value)} required />
           </div>
           <div>
-            <label className={labelClass}>{t('schedule.lastWeek')}</label>
-            <input className={inputClass} type="number" min={1} max={36} value={lastWeek} onChange={(e) => setLastWeek(e.target.value)} required />
+            <label className={labelClass} htmlFor="s-last">{t('schedule.lastWeek')}</label>
+            <input id="s-last" className={inputClass} type="number" min={1} max={36} value={lastWeek} onChange={(e) => setLastWeek(e.target.value)} required />
           </div>
           <button type="submit" disabled={busy} className={btnPrimary}>{t('schedule.buildButton')}</button>
         </form>
@@ -147,12 +149,12 @@ function ScheduleTab() {
         <p className="text-sm text-gray-700 mt-1 mb-3">{t('schedule.shiftHint')}</p>
         <form onSubmit={shift} className="grid grid-cols-2 sm:grid-cols-[1fr_1fr_auto] gap-3 items-end">
           <div>
-            <label className={labelClass}>{t('schedule.fromWeek')}</label>
-            <input className={inputClass} type="number" min={1} max={36} value={fromWeek} onChange={(e) => setFromWeek(e.target.value)} required />
+            <label className={labelClass} htmlFor="s-from">{t('schedule.fromWeek')}</label>
+            <input id="s-from" className={inputClass} type="number" min={1} max={36} value={fromWeek} onChange={(e) => setFromWeek(e.target.value)} required />
           </div>
           <div>
-            <label className={labelClass}>{t('schedule.days')}</label>
-            <select className={inputClass} value={days} onChange={(e) => setDays(e.target.value)}>
+            <label className={labelClass} htmlFor="s-days">{t('schedule.days')}</label>
+            <select id="s-days" className={inputClass} value={days} onChange={(e) => setDays(e.target.value)}>
               {[7, 14, -7].map((d) => <option key={d} value={d}>{t('schedule.daysOption', { n: d > 0 ? `+${d}` : d })}</option>)}
             </select>
           </div>
@@ -297,7 +299,12 @@ function AuditTab() {
         <ul className="divide-y divide-white/50">
           {(log.data ?? []).map((row) => {
             const d = row.details as Record<string, string | number | null>
-            const extra = [d.full_name, d.title, d.track && t(`track.${d.track}.short`), d.from && d.to && `${d.from} → ${d.to}`]
+            // Roles and statuses are stored as codes: show them in words.
+            const word = (v: string | number | null) =>
+              typeof v === 'string' && messages[`role.${v}`] ? t(`role.${v}`)
+                : typeof v === 'string' && messages[`status.${v}`] ? t(`status.${v}`)
+                  : typeof v === 'string' && messages[`track.${v}`] ? t(`track.${v}`) : v
+            const extra = [d.full_name, d.title, d.track && t(`track.${d.track}.short`), d.from && d.to && `${word(d.from)} → ${word(d.to)}`]
               .filter(Boolean).join(' · ')
             return (
               <li key={row.id} className="py-2 text-sm">

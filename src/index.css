@@ -40,6 +40,44 @@
   }
 }
 
+/* Background colour (components/AnimatedBackground): transforms on the compositor, long gentle
+   cycles. Paused while the tab is hidden; still on weak devices and for reduced motion. */
+.app-bg {
+  position: fixed;
+  inset: 0;
+  z-index: -1;
+  overflow: hidden;
+  background: #f8f9fa;
+}
+.app-blob {
+  position: absolute;
+  border-radius: 9999px;
+  filter: blur(110px);
+  opacity: 0.6;
+  will-change: transform;
+  animation: 48s ease-in-out infinite alternate;
+}
+.app-blob-1 { width: 32vw; height: 32vw; left: 10%; top: 6%; background: #1b263b; animation-name: blob-1; }
+.app-blob-2 { width: 35vw; height: 35vw; right: 5%; top: 14%; background: #4a5568; animation-name: blob-2; animation-duration: 40s; }
+.app-blob-3 { width: 45vw; height: 45vw; left: 25%; top: 35%; background: #8957e5; filter: blur(130px); animation-name: blob-3; animation-duration: 56s; }
+.app-blob-4 { width: 30vw; height: 30vw; right: 6%; bottom: 4%; background: #c5a059; animation-name: blob-2; animation-duration: 52s; animation-direction: alternate-reverse; }
+.app-blob-5 { width: 30vw; height: 30vw; left: 4%; bottom: 6%; background: #00b5ad; animation-name: blob-1; animation-duration: 44s; animation-direction: alternate-reverse; }
+@keyframes blob-1 { to { transform: translate3d(30vw, 22vh, 0) scale(1.06); } }
+@keyframes blob-2 { to { transform: translate3d(-12vw, 10vh, 0) scale(0.94); } }
+@keyframes blob-3 { to { transform: translate3d(-14vw, 8vh, 0) scale(1.08); } }
+.bg-paused .app-blob,
+.bg-still .app-blob {
+  animation-play-state: paused;
+}
+@media (max-width: 767px) {
+  .app-blob { filter: blur(80px); }
+  .app-blob-1, .app-blob-2, .app-blob-4, .app-blob-5 { width: 60vw; height: 60vw; }
+  .app-blob-3 { width: 75vw; height: 75vw; }
+}
+@media (prefers-reduced-motion: reduce) {
+  .app-blob { animation: none; }
+}
+
 /* Thin accent scrollbar on desktop browsers that support styling it. */
 @supports (scrollbar-color: auto) {
   html {

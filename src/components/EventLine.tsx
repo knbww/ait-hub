@@ -30,7 +30,8 @@ export function EventLine({ event, compact = false }: { event: EventRow; compact
         )}
       </div>
       <p className={`text-sm font-normal ${cancelled ? 'line-through' : ''}`}>
-        <span className="text-gray-500">{t(`event.type.${event.type}`)}:</span> {event.title}
+        <span className={`${chip} bg-gray-900/5 text-gray-700 mr-1.5 align-[1px]`}>{t(`event.type.${event.type}`)}</span>
+        {event.title}
       </p>
       {!compact && (event.location || event.responsible) && (
         <div className="flex flex-wrap gap-x-4 gap-y-1 mt-1 text-xs text-gray-600">

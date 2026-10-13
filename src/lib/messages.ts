@@ -47,6 +47,7 @@ export const messages: Record<string, string> = {
   'nav.news': 'Новости',
   'nav.opportunities': 'Конкурсы',
   'nav.chats': 'Чаты',
+  'title.member': 'Участник',
   'nav.program': 'Программа',
   'nav.calendar': 'Календарь',
   'nav.points': 'AIT Points',

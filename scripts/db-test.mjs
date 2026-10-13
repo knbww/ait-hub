@@ -217,6 +217,8 @@ async function freshScenario() {
     'select string_agg(key, \',\') from public.opportunities where hidden', [], 'beginit')
   await expectEqual('content: every entry names its sources', db, pg,
     'select count(*)::int from public.opportunities where cardinality(sources) = 0', [], 0)
+  await expectEqual('content: no leftovers of research notes', db, pg,
+    `select count(*)::int from public.opportunities where notes ~ '^[0-9]' or notes ~ 'до дедлайна [0-9]+ д'`, [], 0)
   await expectEqual('content: loading it is idempotent', db, pg,
     `select count(distinct key)::int from public.opportunities`, [], 44)
 
