@@ -11,7 +11,7 @@ export function useJoinCodes(enabled: boolean) {
       if (!supabase) return []
       const { data, error } = await supabase
         .from('join_codes')
-        .select('code, track_id, active, created_at')
+        .select('code, track_id, active, created_at, expires_at, max_uses, uses')
         .eq('active', true)
       if (error) throw error
       return data as JoinCodeRow[]

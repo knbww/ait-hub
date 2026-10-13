@@ -59,6 +59,7 @@ type Notice =
   | { action: 'team_request'; request_id: string }
   | { action: 'message'; message_id: string }
   | { action: 'report'; report_id: string }
+  | { action: 'joined' }
 
 /** Fire and forget: tell the push function what just happened. */
 export function notify(notice: Notice) {

@@ -1,7 +1,7 @@
 import { useState } from 'react'
 import { motion } from 'framer-motion'
 import { Link, useNavigate, useParams } from 'react-router-dom'
-import { ArrowLeft, Download, ExternalLink, KeyRound, Trash2 } from 'lucide-react'
+import { ArrowLeft, Check, Download, ExternalLink, KeyRound, Trash2, X } from 'lucide-react'
 import { GlassCard } from '../components/GlassCard'
 import { DataState, ErrorText } from '../components/DataState'
 import { Avatar } from '../components/Avatar'
@@ -23,7 +23,7 @@ import { useProjects, useTeams } from '../hooks/useTeams'
 import { useMySubmissions, useProgramWeeks } from '../hooks/useProgram'
 import { summarize } from '../lib/progress'
 import {
-  adminSetPassword, deleteMember, exportMemberData, setMemberRole, setMemberStatus, setMemberTrack,
+  createResetCode, decideJoin, deleteMember, exportMemberData, setMemberRole, setMemberStatus, setMemberTrack,
 } from '../lib/memberActions'
 import { downloadJson, stampedName } from '../lib/download'
 import { TRACK_IDS, formatDate, shownGrade } from '../lib/club'
@@ -57,10 +57,16 @@ function ManagePanel({ member }: { member: ProfileRow }) {
     if (ok) setNotice(ok)
   }
 
-  const resetPassword = () => {
-    const password = window.prompt(t(curator ? 'member.manage.passwordPromptCurator' : 'member.manage.passwordPrompt'))
-    if (password === null) return
-    void run(() => adminSetPassword(member.id, password), t(curator ? 'member.manage.passwordDoneCurator' : 'member.manage.passwordDone'))
+  // A one-time code instead of a password chosen by someone else: the member sets their own.
+  const [resetCode, setResetCode] = useState<string | null>(null)
+  const issueResetCode = async () => {
+    setBusy(true)
+    setError(null)
+    setResetCode(null)
+    const res = await createResetCode(member.id)
+    setBusy(false)
+    if (res.error) return setError(res.error)
+    setResetCode(res.data)
   }
 
   const remove = async () => {
@@ -143,10 +149,26 @@ function ManagePanel({ member }: { member: ProfileRow }) {
         </div>
       )}
 
+      {member.status === 'pending' && (
+        <div className="flex flex-wrap items-center gap-2 mb-4 p-3 rounded-2xl bg-[#750014]/5 border border-[#750014]/20">
+          <p className="text-sm flex-1 basis-48">{t('pending.memberPage')}</p>
+          <button disabled={busy} onClick={() => run(() => decideJoin(member.id, true), t('pending.approved'))} className={btnSecondary}>
+            <Check className="w-4 h-4" /> {t('pending.approve')}
+          </button>
+          <button disabled={busy}
+            onClick={() => window.confirm(t('pending.rejectConfirm')) && void run(() => decideJoin(member.id, false), t('common.saved'))}
+            className={btnSecondary}>
+            <X className="w-4 h-4" /> {t('pending.reject')}
+          </button>
+        </div>
+      )}
       <div className="flex flex-wrap gap-2">
         <button onClick={download} className={btnSecondary}><Download className="w-4 h-4" /> {t('member.manage.download')}</button>
+        <button disabled={busy} onClick={() => void issueResetCode()} className={btnSecondary}>
+          <KeyRound className="w-4 h-4" /> {t('reset.issue')}
+        </button>
         {/* Access is switched by the director, or by a member's own track lead (set_member_status). */}
-        {(isDirector || myRole === 'track_lead') && (
+        {member.status !== 'pending' && (isDirector || myRole === 'track_lead') && (
           <button disabled={busy}
             onClick={() => run(() => setMemberStatus(member.id, member.status === 'active' ? 'inactive' : 'active'), t('common.saved'))}
             className={btnSecondary}>
@@ -154,12 +176,16 @@ function ManagePanel({ member }: { member: ProfileRow }) {
           </button>
         )}
         {isDirector && (
-          <>
-            <button disabled={busy} onClick={resetPassword} className={btnSecondary}><KeyRound className="w-4 h-4" /> {t('member.manage.password')}</button>
-            <button disabled={busy} onClick={remove} className={btnDanger}><Trash2 className="w-4 h-4" /> {t('member.manage.delete')}</button>
-          </>
+          <button disabled={busy} onClick={remove} className={btnDanger}><Trash2 className="w-4 h-4" /> {t('member.manage.delete')}</button>
         )}
       </div>
+      {resetCode && (
+        <div className="mt-3 p-4 rounded-2xl bg-white/70 border border-white">
+          <p className="text-xs text-gray-600">{t('reset.codeFor', { name: member.full_name })}</p>
+          <p className="text-3xl font-mono tracking-[0.25em] my-1 select-all">{resetCode}</p>
+          <p className="text-sm text-gray-700">{t('reset.codeHint')}</p>
+        </div>
+      )}
       {error === 'confirm_mismatch' ? <p className="text-sm text-red-700 mt-2">{t('member.manage.confirmMismatch')}</p> : <ErrorText error={error} />}
       {notice && <p className="text-sm text-green-800 mt-2">{notice}</p>}
 

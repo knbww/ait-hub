@@ -28,6 +28,26 @@ function Blocked({ title, text }: { title: string; text: string }) {
   )
 }
 
+/** Joined with a code; the track's lead hasn't confirmed them yet. */
+function Pending() {
+  const { t } = useI18n()
+  const { profile, refreshProfile, signOut } = useAuth()
+  return (
+    <div className="max-w-md mx-auto">
+      <GlassCard className="text-center">
+        <h1 className="text-2xl font-light mb-2">{t('auth.pending.title')}</h1>
+        <p className="text-sm text-gray-700 mb-5">
+          {t('auth.pending.text', { track: profile?.track_id ? t(`track.${profile.track_id}`) : '' })}
+        </p>
+        <div className="flex flex-wrap justify-center gap-2">
+          <button onClick={() => void refreshProfile()} className={btnPrimary}>{t('auth.pending.check')}</button>
+          <button onClick={() => void signOut()} className={btnSecondary}>{t('common.signOut')}</button>
+        </div>
+      </GlassCard>
+    </div>
+  )
+}
+
 function LoadFailed({ error }: { error: unknown }) {
   const { t } = useI18n()
   const { refreshProfile } = useAuth()
@@ -51,6 +71,7 @@ export function RequireAuth({ children }: { children: ReactNode }) {
   if (mfaPending) return <MfaPrompt />
   if (profileError) return <LoadFailed error={profileError} />
   if (!profile) return <Blocked title={t('auth.noProfile.title')} text={t('auth.noProfile.text')} />
+  if (profile.status === 'pending') return <Pending />
   if (profile.status !== 'active') return <Blocked title={t('auth.inactive.title')} text={t('auth.inactive.text')} />
   return <>{children}</>
 }

@@ -3,7 +3,8 @@
 
 export type Role = 'member' | 'track_lead' | 'director' | 'curator'
 export type TrackId = 'ai' | 'algo' | 'startup'
-export type MemberStatus = 'active' | 'inactive'
+/** pending: joined with a code, waits for the lead (or director / curator) to confirm. */
+export type MemberStatus = 'pending' | 'active' | 'inactive'
 
 export interface ProfileRow {
   id: string
@@ -236,6 +237,11 @@ export interface JoinCodeRow {
   track_id: TrackId
   active: boolean
   created_at: string
+  /** The code stops working then (null: never — only very old codes). */
+  expires_at: string | null
+  /** At most this many sign-ups (null: no limit). */
+  max_uses: number | null
+  uses: number
 }
 
 export interface NewsRow {

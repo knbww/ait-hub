@@ -546,6 +546,22 @@ begin
     ('de000000-0000-4000-b000-000000000003', 'lead_ai', 'Можно, удачи на олимпиаде! Отметь в комментарии к работе, что сдаёшь позже.', 2700)
   ) as m(chat, author, body, ago);
 
+  -- A newcomer who joined with the AI code yesterday and waits for the lead to confirm them.
+  insert into auth.users (instance_id, id, aud, role, email, encrypted_password, email_confirmed_at,
+                          raw_app_meta_data, raw_user_meta_data, created_at, updated_at,
+                          confirmation_token, recovery_token, email_change_token_new, email_change)
+  values ('00000000-0000-0000-0000-000000000000', 'de000000-0000-4000-8000-000000000310', 'authenticated',
+          'authenticated', 'erasyl@demo.aitclub.org', extensions.crypt('demo-ait-2026', extensions.gen_salt('bf')), now(),
+          '{"provider": "email", "providers": ["email"]}'::jsonb,
+          jsonb_build_object('full_name', 'Ерасыл Нуриев', 'grade', 8, 'photo_consent', true,
+                             'join_code', (select code from public.join_codes where track_id = 'ai' and active)),
+          now() - interval '1 day', now(), '', '', '', '');
+  insert into auth.identities (id, user_id, provider_id, provider, identity_data, last_sign_in_at, created_at, updated_at)
+  values (gen_random_uuid(), 'de000000-0000-4000-8000-000000000310', 'de000000-0000-4000-8000-000000000310', 'email',
+          jsonb_build_object('sub', 'de000000-0000-4000-8000-000000000310', 'email', 'erasyl@demo.aitclub.org',
+                             'email_verified', true, 'phone_verified', false),
+          now(), now() - interval '1 day', now());
+
   -- ── Audit trail ───────────────────────────────────────────────────────────────
   insert into public.audit_log (actor_id, action, target_id, details, created_at) values
     (pg_temp.pid('director'), 'schedule_set', null, '{"last_week": 36}', pg_temp.at(1, 0, '08:00') - interval '7 days'),

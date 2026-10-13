@@ -114,9 +114,6 @@ export const setMemberTrack = (profileId: string, trackId: TrackId | null) =>
 export const setMemberStatus = (profileId: string, status: 'active' | 'inactive') =>
   rpc('set_member_status', { p_profile: profileId, p_status: status }, MEMBER_KEYS)
 
-export const adminSetPassword = (profileId: string, password: string) =>
-  rpc('admin_set_password', { p_profile: profileId, p_password: password })
-
 /** Full deletion on request: photos and work files first (Storage API), then everything else
  * in one call. */
 export async function deleteMember(profileId: string, userId: string | null): Promise<Result<{ auth_deleted: boolean }>> {
@@ -125,5 +122,20 @@ export async function deleteMember(profileId: string, userId: string | null): Pr
   return rpc<{ auth_deleted: boolean }>('delete_member', { p_profile: profileId }, MEMBER_KEYS)
 }
 
-export const rotateJoinCode = (trackId: TrackId) =>
-  rpc<string>('rotate_join_code', { p_track: trackId }, [['join-codes']])
+/** A new code for the track: works for `days` days, for at most `maxUses` sign-ups when given. */
+export const rotateJoinCode = (trackId: TrackId, days = 14, maxUses: number | null = null) =>
+  rpc<string>('rotate_join_code', { p_track: trackId, p_days: days, p_max_uses: maxUses }, [['join-codes']])
+
+/** Let a newcomer in, or turn them away (the account is switched off). */
+export const decideJoin = (profileId: string, approve: boolean) =>
+  rpc('decide_join', { p_profile: profileId, p_approve: approve }, [...MEMBER_KEYS, ['pending-members']])
+
+/** A one-time code (15 minutes) the member enters at /reset to set a new password. */
+export const createResetCode = (profileId: string) => rpc<string>('create_reset_code', { p_profile: profileId })
+
+/** Signed out: email + code + new password. */
+export async function resetPasswordWithCode(email: string, code: string, password: string): Promise<Result> {
+  const res = await rpc<string>('reset_password_with_code', { p_email: email.trim(), p_code: code.trim(), p_password: password })
+  if (res.error) return { data: null, error: res.error }
+  return res.data === 'ok' ? { data: null, error: null } : { data: null, error: new Error('invalid_reset_code') }
+}

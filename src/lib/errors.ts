@@ -44,6 +44,9 @@ const DB_CODES = [
   'file_type',
   'file_too_big',
   'file_empty',
+  'invalid_reset_code',
+  'not_pending',
+  'invalid_code_terms',
 ] as const
 
 function rawMessage(error: unknown): string {

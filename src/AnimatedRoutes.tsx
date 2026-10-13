@@ -16,6 +16,7 @@ const page = <K extends string>(load: () => Promise<Record<K, ComponentType>>, n
 
 const JoinPage = page(() => import('./pages/JoinPage'), 'JoinPage')
 const LoginPage = page(() => import('./pages/LoginPage'), 'LoginPage')
+const ResetPage = page(() => import('./pages/ResetPage'), 'ResetPage')
 const DashboardPage = page(() => import('./pages/DashboardPage'), 'DashboardPage')
 const ProgramPage = page(() => import('./pages/ProgramPage'), 'ProgramPage')
 const CalendarPage = page(() => import('./pages/CalendarPage'), 'CalendarPage')
@@ -55,6 +56,7 @@ const TITLES: [RegExp, string][] = [
   [/^\/manage/, 'nav.manage'],
   [/^\/join/, 'nav.join'],
   [/^\/login/, 'nav.signIn'],
+  [/^\/reset/, 'reset.title'],
 ]
 
 export function AnimatedRoutes() {
@@ -72,6 +74,7 @@ export function AnimatedRoutes() {
         <Routes location={location} key={location.pathname.startsWith('/chats') ? '/chats' : location.pathname}>
           <Route path="/join" element={<JoinPage />} />
           <Route path="/login" element={<LoginPage />} />
+          <Route path="/reset" element={<ResetPage />} />
 
           <Route path="/" element={auth(<DashboardPage />)} />
           <Route path="/program" element={auth(<ProgramPage />)} />

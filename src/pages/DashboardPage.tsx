@@ -8,6 +8,7 @@ import { Info } from 'lucide-react'
 import { cardVariants, pageVariants } from '../lib/animations'
 import { SortableCard } from '../components/SortableCard'
 import { GlassCard } from '../components/GlassCard'
+import { PendingMembers } from '../components/PendingMembers'
 import { useDevMode } from '../context/devModeContext'
 import { useAuth } from '../context/authContext'
 import { useI18n } from '../context/i18nContext'
@@ -136,6 +137,7 @@ export function DashboardPage() {
       </motion.div>
 
       <ProfilePrompts />
+      <PendingMembers />
 
       {isDevMode && hiddenCards.length > 0 && (
         <GlassCard className="mb-6">

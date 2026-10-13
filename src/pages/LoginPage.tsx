@@ -106,7 +106,10 @@ export function LoginPage() {
           </>
         )}
         <div className="mt-5 space-y-2 text-sm text-gray-700 text-center">
-          <p>{t('login.forgot')}</p>
+          <p>
+            <Link to="/reset" className="underline text-gray-900">{t('login.forgotLink')}</Link>{' '}
+            <span className="text-gray-600">{t('login.forgotHint')}</span>
+          </p>
           <p>
             {t('login.noAccount')}{' '}
             <Link to="/join" className="underline text-gray-900">{t('nav.join')}</Link>

@@ -8,6 +8,7 @@ import { getAssurance } from '../lib/mfa'
 import type { Assurance } from '../lib/mfa'
 import { AuthContext } from './authContext'
 import type { AuthValue, SignUpInput } from './authContext'
+import { notify } from '../lib/push'
 
 const PROFILE_COLUMNS =
   'id, user_id, full_name, role, grade, track_id, cohort_id, avatar_path, ' +
@@ -149,6 +150,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
       },
     })
     if (error) return { error }
+    // The track's lead hears about the newcomer and confirms them (the profile waits as «pending»).
+    if (data.session) notify({ action: 'joined' })
     return { error: null, needsConfirmation: !data.session }
   }, [])
 

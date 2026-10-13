@@ -258,6 +258,12 @@ async function freshScenario() {
   await signUp(U.startup1, 'startup1@example.com', meta(codes.startup, { full_name: 'Стартап 1' }))
   await signUp(U.inactive, 'inactive@example.com', meta(codes.ai, { full_name: 'Неактивный' }))
 
+  // Everyone who joins with a code waits for confirmation; the rest of the checks start with
+  // them let in (the confirmation itself is checked at the end).
+  await expectEqual('join: newcomers wait for confirmation', db, pg,
+    `select count(*)::int from public.profiles where status = 'pending'`, [], 13)
+  await run(db, pg, `update public.profiles set status = 'active' where status = 'pending'`)
+
   await run(db, pg, `update public.profiles set role = 'director', track_id = null where user_id = $1`, [U.dir])
   await run(db, pg, `update public.profiles set role = 'curator', track_id = null, grade = null where user_id = $1`, [U.cur])
   await run(db, pg, `update public.profiles set role = 'track_lead' where user_id in ($1, $2)`, [U.leadAi, U.leadAlgo])
@@ -882,6 +888,65 @@ async function freshScenario() {
      where action in ('role_changed', 'password_reset', 'member_deleted', 'join_code_rotated', 'schedule_set',
                       'status_changed', 'event_completed', 'export_members')`, [], 10)
 
+  // ── Joining: codes end, newcomers wait ────────────────────────────────────
+  const signUpSql = 'insert into auth.users (id, email, raw_user_meta_data) values ($1, $2, $3)'
+  const aiCode = await value(db, pg, `select code from public.join_codes where track_id = 'ai' and active`)
+  const late = '30000000-0000-0000-0000-0000000000a1'
+  await signUp(late, 'late@example.com', meta(aiCode, { full_name: 'Новичок' }))
+  const lateP = await pid(late)
+  await expectEqual('join: a newcomer is pending', db, pg, 'select status from public.profiles where id = $1', [lateP], 'pending')
+  await expectEqual('join: and sees only themselves', db, late, 'select count(*)::int from public.profiles', [], 1)
+  await expectEqual('join: no news, no calendar', db, late,
+    'select ((select count(*) from public.news) + (select count(*) from public.events))::int', [], 0)
+  await run(db, pg, `update public.profiles set role = 'track_lead' where id = $1`, [lateP])
+  await expectError('codes: an unconfirmed lead cannot replace them', db, late, `select public.rotate_join_code('ai')`, [], /forbidden/)
+  await run(db, pg, `update public.profiles set role = 'member' where id = $1`, [lateP])
+  await expectEqual('join: members don\'t see them yet', db, U.ai2, 'select count(*)::int from public.profiles where id = $1', [lateP], 0)
+  await expectEqual('join: their lead does', db, l, 'select count(*)::int from public.profiles where id = $1', [lateP], 1)
+  await expectError('join: another track\'s lead cannot let them in', db, U.leadAlgo, 'select public.decide_join($1, true)', [lateP], /forbidden/)
+  await expectError('join: nor can members', db, U.ai2, 'select public.decide_join($1, true)', [lateP], /forbidden/)
+  await expectOk('join: their lead lets them in', db, l, 'select public.decide_join($1, true)', [lateP])
+  await expectEqual('join: now everyone sees them', db, U.ai2, 'select count(*)::int from public.profiles where id = $1', [lateP], 1)
+  await expectError('join: only pending ones', db, l, 'select public.decide_join($1, false)', [lateP], /not_pending/)
+  await expectEqual('join: the decision is logged', db, U.cur,
+    `select count(*)::int from public.audit_log where action = 'join_approved' and target_id = $1`, [lateP], 1)
+  await expectEqual('codes: sign-ups are counted', db, pg, 'select uses from public.join_codes where code = $1', [aiCode], 1)
+  await run(db, pg, `update public.join_codes set expires_at = now() - interval '1 minute' where code = $1`, [aiCode])
+  await expectEqual('codes: an expired code resolves to nothing', db, 'anon', 'select count(*)::int from public.check_join_code($1)', [aiCode], 0)
+  await expectError('codes: and lets nobody in', db, pg, signUpSql,
+    ['30000000-0000-0000-0000-0000000000a2', 'x6@example.com', meta(aiCode)], /invalid_join_code/)
+  const limited = await value(db, l, `select public.rotate_join_code('ai', 7, 1)`)
+  await expectEqual('codes: a new code ends when told', db, pg,
+    `select expires_at::date - now()::date from public.join_codes where code = $1`, [limited], 7)
+  await expectOk('codes: a limited code lets one in', db, pg, signUpSql,
+    ['30000000-0000-0000-0000-0000000000a3', 'x7@example.com', meta(limited)])
+  await expectError('codes: and then runs out', db, pg, signUpSql,
+    ['30000000-0000-0000-0000-0000000000a4', 'x8@example.com', meta(limited)], /invalid_join_code/)
+  await expectError('codes: terms are checked', db, l, `select public.rotate_join_code('ai', 120)`, [], /invalid_code_terms/)
+
+  // ── A forgotten password: a one-time code ─────────────────────────────────
+  const resetSql = 'select public.reset_password_with_code($1, $2, $3)'
+  await expectError('reset: members cannot issue codes', db, U.ai3, 'select public.create_reset_code($1)', [P.ai2], /forbidden/)
+  await expectError('reset: nor another track\'s lead', db, U.leadAlgo, 'select public.create_reset_code($1)', [P.ai2], /forbidden/)
+  await expectError('reset: a code needs the second factor', db, noMfa(l), 'select public.create_reset_code($1)', [P.ai2], /mfa_required/)
+  const resetCode = await value(db, l, 'select public.create_reset_code($1)', [P.ai2])
+  await expectEqual('reset: only a hash is kept', db, pg,
+    'select code_hash <> $2 and code_hash like $3 from public.password_reset_codes where profile_id = $1', [P.ai2, resetCode, '$2%'], true)
+  await expectError('reset: nobody reads the codes', db, l, 'select * from public.password_reset_codes', [], DENIED)
+  await expectEqual('reset: a wrong code is refused', db, 'anon', resetSql, ['ai2@example.com', 'WRONG234', 'новый-пароль-1'], 'invalid')
+  await expectEqual('reset: an unknown email looks the same', db, 'anon', resetSql, ['nobody@example.com', resetCode, 'новый-пароль-1'], 'invalid')
+  await expectError('reset: the new password needs 8+ characters', db, 'anon', resetSql, ['ai2@example.com', resetCode, 'short'], /weak_password/)
+  await expectEqual('reset: the right code works (any case)', db, 'anon', resetSql,
+    [' AI2@example.com ', resetCode.toLowerCase(), 'новый-пароль-1'], 'ok')
+  await expectEqual('reset: the password is the member\'s own', db, pg,
+    `select encrypted_password = extensions.crypt('новый-пароль-1', encrypted_password) from auth.users where id = $1`, [U.ai2], true)
+  await expectEqual('reset: the code is used up', db, 'anon', resetSql, ['ai2@example.com', resetCode, 'другой-пароль-2'], 'invalid')
+  const resetCode2 = await value(db, l, 'select public.create_reset_code($1)', [P.ai2])
+  for (let i = 1; i <= 5; i++) await value(db, 'anon', resetSql, ['ai2@example.com', `WRONG00${i}`, 'новый-пароль-3'])
+  await expectEqual('reset: five wrong tries cancel the code', db, 'anon', resetSql, ['ai2@example.com', resetCode2, 'новый-пароль-3'], 'invalid')
+  await expectEqual('reset: issuing a code is logged', db, U.cur,
+    `select count(*)::int from public.audit_log where action = 'reset_code_issued' and target_id = $1`, [P.ai2], 2)
+
   await db.close()
 }
 
@@ -896,12 +961,14 @@ async function seedScenario() {
     record('seed: applies cleanly', false, e.message)
   }
   const pg = 'postgres'
-  await expectEqual('seed: 30 demo accounts with profiles', db, pg,
-    `select count(*)::int from public.profiles p join auth.users u on u.id = p.user_id where u.email like '%@demo.aitclub.org'`, [], 30)
+  await expectEqual('seed: 31 demo accounts with profiles', db, pg,
+    `select count(*)::int from public.profiles p join auth.users u on u.id = p.user_id where u.email like '%@demo.aitclub.org'`, [], 31)
+  await expectEqual('seed: one newcomer waits for the lead', db, pg,
+    `select string_agg(full_name, ',') from public.profiles where status = 'pending'`, [], 'Ерасыл Нуриев')
   await expectEqual('seed: staff roles', db, pg,
     `select string_agg(role, ',' order by role) from public.profiles where role <> 'member'`, [], 'curator,director,track_lead,track_lead,track_lead')
   await expectEqual('seed: every account can sign in by email', db, pg,
-    `select count(*)::int from auth.identities where provider = 'email'`, [], 30)
+    `select count(*)::int from auth.identities where provider = 'email'`, [], 31)
   await expectEqual('seed: the demo year is at week 17', db, pg,
     `select week_number from public.cohort_weeks where starts_on = date_trunc('week', current_date)::date`, [], 17)
   await expectEqual('seed: works in every past week', db, pg,
@@ -977,6 +1044,7 @@ async function staffScenario() {
 
   await invite('pupil@example.com', 'director', 'Не директор', 'Temp-Pass-4')
   await addUser(S(4), 'pupil@example.com', 'Temp-Pass-4', { join_code: code, full_name: 'Ученик', grade: 9, photo_consent: true })
+  await run(db, pg, `update public.profiles set status = 'active' where user_id = $1`, [S(4)])
   await expectEqual('staff: signing up with a join code ignores the invite', db, pg,
     'select role from public.profiles where user_id = $1', [S(4)], 'member')
 
@@ -1001,6 +1069,7 @@ async function staffScenario() {
   await run(db, pg, `update public.profiles set role = 'director', track_id = null where user_id = $1`, [S(4)])
   const fresh = await value(db, pg, `select code from public.join_codes where active and track_id = 'ai'`)
   await addUser(S(5), 'teacher@example.com', 'Temp-Pass-8', { join_code: fresh, full_name: 'Учитель', grade: 11, photo_consent: true })
+  await run(db, pg, `update public.profiles set status = 'active' where user_id = $1`, [S(5)])
   const teacher = await value(db, pg, 'select id from public.profiles where user_id = $1', [S(5)])
   await expectOk('curator: the director promotes a pupil account', db, S(4), `select public.set_member_role($1, 'curator')`, [teacher])
   await expectEqual('curator: promotion clears the grade and the track', db, pg,

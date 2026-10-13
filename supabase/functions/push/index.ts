@@ -1,5 +1,5 @@
 // Web Push for AIT Hub. Called by the Hub right after an action — a work reviewed, a news post,
-// a request to join a team, a chat message, a report — and once a day by GitHub Actions for tomorrow's deadline and events
+// a request to join a team, a chat message, a report, a newcomer — and once a day by GitHub Actions for tomorrow's deadline and events
 // and for the deadlines of competitions members saved.
 // Each call is checked: the caller must be whoever did the action (their session), the daily run
 // must carry CRON_SECRET. Payloads say what happened and where to look; no contact data.
@@ -175,6 +175,21 @@ async function onReport(me: string, reportId: string) {
   return reply(200, { sent })
 }
 
+async function onJoined(me: string) {
+  const { data: p } = await admin.from('profiles').select('id, full_name, grade, track_id, status, created_at').eq('id', me).single()
+  // Only a newcomer, right after joining.
+  if (!p || p.status !== 'pending' || Date.now() - Date.parse(p.created_at) > 10 * 60 * 1000) return reply(403, { error: 'forbidden' })
+  const { data: staff } = await admin.from('profiles').select('id').eq('status', 'active')
+    .or(`role.in.(director,curator),and(role.eq.track_lead,track_id.eq.${p.track_id})`)
+  const sent = await send((staff ?? []).map((s) => s.id as string), {
+    title: 'Новая заявка в клуб',
+    body: [p.full_name, p.grade ? `${p.grade} класс` : null, p.track_id ? TRACK_SHORT[p.track_id] : null].filter(Boolean).join(' · '),
+    url: `${SITE}/members/${p.id}`,
+    tag: `join-${p.id}`,
+  })
+  return reply(200, { sent })
+}
+
 /** Evening reminders (Petropavl time, UTC+5): tomorrow's deadline and tomorrow's events. */
 async function daily() {
   const local = (offsetDays: number) => new Date(Date.now() + 5 * 3600_000 + offsetDays * 86_400_000).toISOString().slice(0, 10)
@@ -256,5 +271,6 @@ Deno.serve(async (req) => {
   if (body.action === 'team_request' && body.request_id) return onTeamRequest(me, body.request_id)
   if (body.action === 'message' && body.message_id) return onMessage(me, body.message_id)
   if (body.action === 'report' && body.report_id) return onReport(me, body.report_id)
+  if (body.action === 'joined') return onJoined(me)
   return reply(400, { error: 'bad_request' })
 })
