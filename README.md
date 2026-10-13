@@ -132,10 +132,8 @@ update public.profiles set role = 'director', track_id = null where user_id = '<
 
 - **Адрес** — `https://hub.aitclub.org` (домен `aitclub.org`, DNS в Cloudflare). Переменная сборки
   `VITE_PUBLIC_ORIGIN` задаёт адрес для QR-кодов и перенаправляет со старого `ait-hub.pages.dev`.
-- **Сайт клуба** — статическая страница из [`site/`](site), отдельный проект Cloudflare Pages
-  `ait-club` (`https://ait-club.pages.dev`), выкладка — `npm run deploy:site`. Домены `aitclub.org`
-  и `www.aitclub.org` переносятся на него в панели Cloudflare (Pages → проект → Custom domains);
-  пока они на `ait-hub`, корень домена перенаправляет в Hub.
+- **Сайт клуба** — `https://aitclub.org` (и `www`): статическая страница из [`site/`](site),
+  отдельный проект Cloudflare Pages `ait-club`, выкладка — `npm run deploy:site`.
 - **Фронтенд** — Cloudflare Pages, проект `ait-hub`. После зелёного CI задание `deploy` в
   [`ci.yml`](.github/workflows/ci.yml) собирает и выкладывает `main`. Для него нужны секреты
   репозитория `CLOUDFLARE_API_TOKEN` (права Pages: Edit) и `CLOUDFLARE_ACCOUNT_ID` и переменные
