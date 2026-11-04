@@ -39,7 +39,7 @@ export class ErrorBoundary extends Component<Props, State> {
 
     return (
       <div className="min-h-screen flex items-center justify-center p-8 text-center bg-gradient-to-br from-gray-100 via-[#750014]/5 to-[#00B5AD]/10">
-        <div className="max-w-md backdrop-blur-[40px] bg-white/60 border-2 border-white/80 rounded-3xl p-10 shadow-[0_8px_32px_0_rgba(31,38,135,0.2)]">
+        <div className="max-w-md backdrop-blur-[40px] bg-white/60 border-2 border-white/80 rounded-3xl p-10 shadow-[0_8px_32px_0_rgba(50,30,30,0.2)]">
                     <h1 className="text-3xl font-light mb-2">{c.title}</h1>
           <p className="text-sm text-gray-600 mb-4">{c.text}</p>
           {this.state.message && (

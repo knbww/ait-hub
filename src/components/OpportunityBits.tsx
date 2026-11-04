@@ -46,7 +46,7 @@ export function DeadlineChip({ o, large = false }: { o: OpportunityRow; large?: 
   const s = deadlineState(o)
   const size = large ? 'text-sm px-3 py-1' : ''
   if (s.kind === 'open') {
-    const tone = s.days <= 7 ? 'bg-[#a3203a]/10 text-[#a3203a]' : s.days <= 30 ? 'bg-amber-500/15 text-amber-900' : 'bg-gray-900/5 text-gray-700'
+    const tone = s.days <= 7 ? 'bg-[#750014]/10 text-[#750014]' : s.days <= 30 ? 'bg-amber-500/15 text-amber-900' : 'bg-gray-900/5 text-gray-700'
     return (
       <span className={`${chip} ${tone} ${size}`}>
         <Clock className="w-3 h-3" />

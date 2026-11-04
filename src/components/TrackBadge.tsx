@@ -2,10 +2,11 @@ import { useI18n } from '../context/i18nContext'
 import type { TrackId } from '../lib/db'
 import { chip } from '../lib/ui'
 
+// One accent for the club: the three directions share MIT Red and are told apart by their name.
 const COLORS: Record<TrackId, string> = {
-  ai: 'bg-violet-600/10 text-violet-800',
-  algo: 'bg-sky-600/10 text-sky-800',
-  startup: 'bg-amber-600/15 text-amber-800',
+  ai: 'bg-[#750014]/10 text-[#750014]',
+  algo: 'bg-[#750014]/10 text-[#750014]',
+  startup: 'bg-[#750014]/10 text-[#750014]',
 }
 
 export function TrackBadge({ track, short = true }: { track: TrackId | null | undefined; short?: boolean }) {

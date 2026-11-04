@@ -1,22 +1,33 @@
 @import "tailwindcss" source(".");
 
-/* The club site shares the Hub's look: frosted glass over slowly drifting colour, the club's
-   maroon as the one accent, a rounded face (SF Rounded on Apple devices, Nunito elsewhere). */
+/* The club site shares the Hub's material — frosted glass over slowly drifting colour — and the
+   tokens of the "AIT Club" design system: Manrope, the club's warm neutrals, MIT Red (#750014) as
+   the one accent. Keep these in step with src/index.css. */
 @theme {
-  --color-gray-500: oklch(0.49 0.027 264.364);
-  --color-gray-600: oklch(0.41 0.03 256.802);
+  --font-sans: 'Manrope Variable', system-ui, -apple-system, 'Segoe UI', Roboto, Arial, sans-serif;
+  --color-gray-50: #faf9f6;
+  --color-gray-100: #f1efea;
+  --color-gray-200: #e4e0d8;
+  --color-gray-300: #d3cec5;
+  --color-gray-400: #a9a49c;
+  --color-gray-500: #67615b;
+  --color-gray-600: #57514b;
+  --color-gray-700: #4a4540;
+  --color-gray-800: #2e2a26;
+  --color-gray-900: #141414;
+  --color-gray-950: #0b0a09;
 }
 
 @layer base {
   html {
     -webkit-text-size-adjust: 100%;
-    background-color: #f8f9fa;
+    background-color: #f3f2ee;
     scroll-behavior: smooth;
     scroll-padding-top: 6rem;
   }
   html, body {
-    font-family: ui-rounded, 'SF Pro Rounded', 'Nunito Variable', system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
-    color: #111827;
+    font-family: var(--font-sans);
+    color: #141414;
   }
   body {
     margin: 0;
@@ -36,8 +47,9 @@
   inset: 0;
   z-index: -1;
   overflow: hidden;
-  background: #f8f9fa;
+  background: #f3f2ee;
 }
+/* The club's palette only: graphite and silver, MIT Red, the coral edge of the club's glow. */
 .blob {
   position: absolute;
   border-radius: 9999px;
@@ -45,10 +57,10 @@
   opacity: 0.55;
   will-change: transform;
 }
-.blob-1 { width: 38vw; height: 38vw; left: 5%; top: 2%; background: #1b263b; animation: drift-1 22s ease-in-out infinite; }
-.blob-2 { width: 34vw; height: 34vw; right: 2%; top: 18%; background: #8957e5; animation: drift-2 26s ease-in-out infinite; }
-.blob-3 { width: 30vw; height: 30vw; left: 30%; top: 55%; background: #c5a059; animation: drift-3 24s ease-in-out infinite; }
-.blob-4 { width: 26vw; height: 26vw; right: 20%; bottom: -8%; background: #750014; opacity: 0.35; animation: drift-1 30s ease-in-out infinite reverse; }
+.blob-1 { width: 38vw; height: 38vw; left: 5%; top: 2%; background: #40464c; opacity: 0.38; animation: drift-1 22s ease-in-out infinite; }
+.blob-2 { width: 34vw; height: 34vw; right: 2%; top: 18%; background: #750014; opacity: 0.4; animation: drift-2 26s ease-in-out infinite; }
+.blob-3 { width: 30vw; height: 30vw; left: 30%; top: 55%; background: #e8794a; opacity: 0.45; animation: drift-3 24s ease-in-out infinite; }
+.blob-4 { width: 26vw; height: 26vw; right: 20%; bottom: -8%; background: #8b959e; animation: drift-1 30s ease-in-out infinite reverse; }
 @keyframes drift-1 { 50% { transform: translate(18vw, 12vh) scale(1.08); } }
 @keyframes drift-2 { 50% { transform: translate(-14vw, 16vh) scale(0.92); } }
 @keyframes drift-3 { 50% { transform: translate(-10vw, -14vh) scale(1.1); } }
@@ -65,7 +77,7 @@
   -webkit-backdrop-filter: blur(40px);
   backdrop-filter: blur(40px);
   border: 2px solid rgb(255 255 255 / 0.8);
-  box-shadow: 0 8px 32px 0 rgb(31 38 135 / 0.12);
+  box-shadow: 0 8px 32px 0 rgb(50 30 30 / 0.12);
 }
 .nav-link {
   padding: 0.4rem 0.75rem;
@@ -110,7 +122,7 @@
   font-weight: 600;
 }
 .accent-text {
-  background: linear-gradient(100deg, #750014 10%, #a3203a 50%, #8957e5 90%);
+  background: linear-gradient(100deg, #750014 10%, #b3242f 90%);
   -webkit-background-clip: text;
   background-clip: text;
   color: transparent;
@@ -130,7 +142,7 @@
   border: 1.5px dashed rgb(117 0 20 / 0.22);
   animation: spin 60s linear infinite;
 }
-.orbit::after { inset: 24%; border-color: rgb(137 87 229 / 0.25); animation-duration: 40s; animation-direction: reverse; }
+.orbit::after { inset: 24%; border-color: rgb(139 149 158 / 0.4); animation-duration: 40s; animation-direction: reverse; }
 .orbit-core {
   position: absolute;
   inset: 35%;
@@ -152,7 +164,7 @@
   border-radius: 1.1rem;
   background: rgb(255 255 255 / 0.72);
   border: 2px solid #fff;
-  box-shadow: 0 14px 40px -16px rgb(31 38 135 / 0.35);
+  box-shadow: 0 14px 40px -16px rgb(50 30 30 / 0.35);
   -webkit-backdrop-filter: blur(24px);
   backdrop-filter: blur(24px);
   font-size: 0.85rem;
@@ -184,7 +196,7 @@
 
 /* ── Tracks ─────────────────────────────────────────────────────────────────── */
 .track { border-radius: 1.75rem; padding: 1.6rem; display: flex; flex-direction: column; transition: transform 0.35s, box-shadow 0.35s; }
-.track:hover { transform: translateY(-4px); box-shadow: 0 24px 50px -24px rgb(31 38 135 / 0.4); }
+.track:hover { transform: translateY(-4px); box-shadow: 0 24px 50px -24px rgb(50 30 30 / 0.4); }
 .track-icon { width: 3rem; height: 3rem; border-radius: 1rem; display: grid; place-items: center; font-weight: 700; }
 .track-title { font-size: 1.3rem; margin-top: 1.1rem; }
 .track-text { color: #374151; font-size: 0.95rem; margin-top: 0.6rem; }
@@ -195,7 +207,7 @@
 
 /* ── Timeline ───────────────────────────────────────────────────────────────── */
 .timeline { position: relative; display: grid; gap: 1rem; padding-left: 1.8rem; }
-.timeline::before { content: ''; position: absolute; left: 0.55rem; top: 0.6rem; bottom: 0.6rem; width: 2px; background: linear-gradient(#750014, #8957e5, #c5a059); opacity: 0.4; border-radius: 2px; }
+.timeline::before { content: ''; position: absolute; left: 0.55rem; top: 0.6rem; bottom: 0.6rem; width: 2px; background: linear-gradient(#750014, #b3242f, #8b959e); opacity: 0.4; border-radius: 2px; }
 .timeline-item { position: relative; padding: 1.1rem 1.25rem; border-radius: 1.25rem; background: rgb(255 255 255 / 0.4); border: 2px solid rgb(255 255 255 / 0.85); }
 .timeline-item h3 { font-size: 1.05rem; }
 .timeline-item p { color: #374151; font-size: 0.93rem; margin-top: 0.3rem; }
@@ -207,7 +219,7 @@
 .feature b { font-weight: 600; }
 .feature span { color: #374151; font-size: 0.92rem; }
 .shots { position: relative; padding-bottom: 2.5rem; }
-.shot { margin: 0; border-radius: 1.25rem; overflow: hidden; border: 2px solid #fff; box-shadow: 0 30px 70px -30px rgb(31 38 135 / 0.55); background: #fff; }
+.shot { margin: 0; border-radius: 1.25rem; overflow: hidden; border: 2px solid #fff; box-shadow: 0 30px 70px -30px rgb(50 30 30 / 0.55); background: #fff; }
 .shot img { display: block; width: 100%; height: auto; }
 .shot-desktop { transform: perspective(1400px) rotateY(-6deg) rotateX(2deg); transition: transform 0.6s; }
 .shots:hover .shot-desktop { transform: none; }
