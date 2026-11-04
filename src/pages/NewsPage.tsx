@@ -302,7 +302,7 @@ function Comments({ post, canModerate }: { post: NewsRow; canModerate: boolean }
                       <div className={`rounded-2xl rounded-tl-md px-3 py-2 border ${mine ? 'bg-white/70 border-white/90' : 'bg-white/45 border-white/70'}`}>
                         <p className="text-xs mb-0.5">
                           <Link to={`/members/${c.author_id}`} className="font-medium hover:underline">{name}</Link>
-                          <span className="text-gray-600"> · {formatAgo(c.created_at)}</span>
+                          <span className="text-gray-600">, {formatAgo(c.created_at)}</span>
                         </p>
                         <LinkifiedText text={c.body} className="text-sm text-gray-800" />
                       </div>
@@ -368,7 +368,7 @@ function NewsItem({ post, canEdit, onEdit, openComments }: {
           )}
           <span className="text-xs text-gray-600">{formatDate(post.published_at)}</span>
           <TrackBadge track={post.track_id} />
-          <span className="text-xs text-gray-600">· {post.author?.full_name ?? t('news.fromClub')}</span>
+          <span className="text-xs text-gray-600">{post.author?.full_name ?? t('news.fromClub')}</span>
         </div>
         <h2 className="text-lg sm:text-xl font-normal mb-2">{post.title}</h2>
         <LinkifiedText text={post.body} className="text-sm text-gray-800" />

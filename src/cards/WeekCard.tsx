@@ -52,10 +52,10 @@ export function WeekCard() {
     body = (
       <div className="space-y-3">
         <div>
-          <p className="text-xs uppercase tracking-wider text-gray-500">
-            {t('week.number', { n: week.week_number })} · {formatShortDay(startsOn)} – {formatShortDay(deadline)}
-          </p>
           <h3 className="text-xl font-normal">{week.title}</h3>
+          <p className="text-sm text-gray-600 mt-1">
+            {t('week.number', { n: week.week_number })}, {formatShortDay(startsOn)} – {formatShortDay(deadline)}
+          </p>
         </div>
         <div className="flex flex-wrap items-center gap-2 text-sm">
           <SubmissionBadge status={submission?.status} />

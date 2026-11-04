@@ -97,7 +97,7 @@ function Inbox({ activeId }: { activeId: string | undefined }) {
                       <span className="truncate text-sm">
                         <span className="font-medium">{title}</span>
                         {c.kind !== 'lead' && (
-                          <span className={active ? 'text-white/60' : 'text-gray-500'}> · {t(`chat.kindShort.${c.kind}`)}</span>
+                          <span className={active ? 'text-white/60' : 'text-gray-500'}>, {t(`chat.kindShort.${c.kind}`)}</span>
                         )}
                       </span>
                       {c.last_message_at && (

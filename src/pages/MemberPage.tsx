@@ -200,8 +200,8 @@ function ManagePanel({ member }: { member: ProfileRow }) {
                   <span className="min-w-0">
                     <span className="block break-words">{e.note}</span>
                     <span className="block text-xs text-gray-600">
-                      {t(`points.category.${e.category}`)} · {formatDate(e.created_at)}
-                      {e.awarder && ` · ${t('points.confirmedBy', { name: e.awarder.full_name })}`}
+                      {t(`points.category.${e.category}`)}, {formatDate(e.created_at)}
+                      {e.awarder && `, ${t('points.confirmedBy', { name: e.awarder.full_name })}`}
                     </span>
                   </span>
                   <span className={e.amount >= 0 ? 'text-green-800' : 'text-red-700'}>{e.amount > 0 ? `+${e.amount}` : e.amount}</span>
@@ -272,7 +272,7 @@ function MemberWeeks({ member }: { member: ProfileRow }) {
       <h2 className={sectionTitle}>{t('member.weeks')}</h2>
       <p className="text-sm text-gray-700 mb-3">
         {t('progress.weeksAccepted', { n: s.accepted, total: s.due })}
-        {s.milestones.length > 0 && ` · ${t('progress.milestonesDone', { n: s.milestones.filter((x) => x.state === 'accepted').length, total: s.milestones.length })}`}
+        {s.milestones.length > 0 && `, ${t('progress.milestonesDone', { n: s.milestones.filter((x) => x.state === 'accepted').length, total: s.milestones.length })}`}
       </p>
       <DataState isLoading={program.isLoading || schedule.isLoading || works.isLoading}
         error={program.error ?? schedule.error ?? works.error}
@@ -425,7 +425,7 @@ export function MemberPage() {
                     <h2 className={sectionTitle}>{t('card.team')}</h2>
                     {team ? (
                       <p className="text-sm mt-2">
-                        <Link to={`/teams/${team.id}`} className="underline">{team.name}</Link> · {t('teams.count', { n: team.team_members?.length ?? 0, max: 5 })}
+                        <Link to={`/teams/${team.id}`} className="underline">{team.name}</Link>, {t('teams.count', { n: team.team_members?.length ?? 0, max: 5 })}
                       </p>
                     ) : (
                       <p className="text-sm text-gray-700 mt-2">{t('member.noTeam')}</p>
@@ -442,12 +442,12 @@ export function MemberPage() {
                 <div className="flex flex-wrap gap-2 mt-2">
                   {m.github_username && (
                     <a href={`https://github.com/${m.github_username}`} target="_blank" rel="noreferrer" className={btnSecondary}>
-                      <ExternalLink className="w-4 h-4" /> GitHub · {m.github_username}
+                      <ExternalLink className="w-4 h-4" /> GitHub: {m.github_username}
                     </a>
                   )}
                   {m.codeforces_handle && (
                     <a href={`https://codeforces.com/profile/${m.codeforces_handle}`} target="_blank" rel="noreferrer" className={btnSecondary}>
-                      <ExternalLink className="w-4 h-4" /> Codeforces · {m.codeforces_handle}
+                      <ExternalLink className="w-4 h-4" /> Codeforces: {m.codeforces_handle}
                     </a>
                   )}
                 </div>

@@ -132,7 +132,7 @@ export function DashboardPage() {
       <motion.div variants={cardVariants} className="mb-5 px-1">
         <h1 className="text-2xl sm:text-3xl font-light">{t(isCurator ? 'dashboard.helloFormal' : 'dashboard.hello', { name: firstName })}</h1>
         <p className="text-sm text-gray-600 mt-1 first-letter:uppercase">
-          {today}{week !== null && ` · ${t('dashboard.week', { n: week, total: PROGRAM_WEEKS })}`}
+          {today}{week !== null && `, ${t('dashboard.week', { n: week, total: PROGRAM_WEEKS })}`}
         </p>
       </motion.div>
 

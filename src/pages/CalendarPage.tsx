@@ -198,7 +198,7 @@ function EventItem({ event, canEdit, onEdit }: { event: EventRow; canEdit: boole
             <div>
               <p className="text-xs font-medium text-gray-600 mb-1">
                 {t('calendar.rules')}
-                {event.rules_published_at && ` · ${t('calendar.rulesPublished', { date: formatDateTime(event.rules_published_at) })}`}
+                {event.rules_published_at && `, ${t('calendar.rulesPublished', { date: formatDateTime(event.rules_published_at) })}`}
               </p>
               {event.rules && <LinkifiedText text={event.rules} />}
               {event.rules_url && (

@@ -57,12 +57,12 @@ function MemberProgress({ track, s }: { track: TrackId; s: ProgressSummary }) {
 
       {current && (
         <GlassCard>
-          <p className="text-xs uppercase tracking-wider text-gray-500">
-            {t('week.number', { n: current.week.week_number })}
-            {current.deadline && ` · ${t('deadlines.until', { date: formatShortDay(current.deadline) })}`}
-            {left !== null && left >= 0 && ` · ${left === 0 ? t('week.dueToday') : tp('week.dueIn', left)}`}
-          </p>
           <h2 className={sectionTitle}>{current.week.title}</h2>
+          <p className="text-sm text-gray-600 mt-1">
+            {t('week.number', { n: current.week.week_number })}
+            {current.deadline && `, ${t('deadlines.until', { date: formatShortDay(current.deadline) })}`}
+            {left !== null && left >= 0 && `, ${left === 0 ? t('week.dueToday') : tp('week.dueIn', left)}`}
+          </p>
           {handInLine(current.week.assignment) && (
             <p className="text-sm text-gray-800 mt-2">
               <span className="font-medium">{t('progress.handIn')}</span> {handInLine(current.week.assignment)}
@@ -80,7 +80,7 @@ function MemberProgress({ track, s }: { track: TrackId; s: ProgressSummary }) {
             {s.needsWork.map((w) => (
               <li key={w.week.id} className="text-sm">
                 <Link to={`/program#week-${w.week.week_number}`} className="underline">
-                  {t('week.number', { n: w.week.week_number })} · {w.week.title}
+                  {t('week.number', { n: w.week.week_number })}, {w.week.title}
                 </Link>
                 {w.work?.feedback && <LinkifiedText text={w.work.feedback} className="text-gray-700 mt-1" />}
               </li>

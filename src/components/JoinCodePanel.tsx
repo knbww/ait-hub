@@ -63,7 +63,7 @@ function NewCodeDialog({ code, onClose }: { code: JoinCodeRow; onClose: () => vo
   )
 }
 
-/** «до 27 октября · вступили 3 из 40», or what's wrong with the code. */
+/** «до 27 октября, вступили 3 из 40», or what's wrong with the code. */
 function CodeTerms({ code }: { code: JoinCodeRow }) {
   const { t } = useI18n()
   // Checked when the list was loaded; a code that runs out meanwhile shows on the next load.
@@ -76,7 +76,7 @@ function CodeTerms({ code }: { code: JoinCodeRow }) {
   const uses = code.max_uses ? t('codes.usesOf', { n: code.uses, max: code.max_uses }) : t('codes.uses', { n: code.uses })
   return (
     <p className="text-xs text-gray-600 mb-2">
-      {code.expires_at ? `${t('codes.until', { date: formatDate(code.expires_at) })} · ` : ''}{uses}
+      {code.expires_at ? `${t('codes.until', { date: formatDate(code.expires_at) })}, ` : ''}{uses}
     </p>
   )
 }

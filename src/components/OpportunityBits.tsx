@@ -40,7 +40,7 @@ export function OpportunityBadges({ o }: { o: OpportunityRow }) {
   )
 }
 
-/** «до 13 октября · 3 дня», «старт 14 ноября», «приём закрыт» or «сроки — в описании». */
+/** «до 13 октября, 3 дня», «старт 14 ноября», «приём закрыт» or «сроки — в описании». */
 export function DeadlineChip({ o, large = false }: { o: OpportunityRow; large?: boolean }) {
   const { t, tp } = useI18n()
   const s = deadlineState(o)
@@ -50,7 +50,7 @@ export function DeadlineChip({ o, large = false }: { o: OpportunityRow; large?: 
     return (
       <span className={`${chip} ${tone} ${size}`}>
         <Clock className="w-3 h-3" />
-        {t('opp.until', { date: formatDay(o.deadline!) })} · {s.days === 0 ? t('opp.today') : tp('opp.daysLeft', s.days)}
+        {t('opp.until', { date: formatDay(o.deadline!) })}, {s.days === 0 ? t('opp.today') : tp('opp.daysLeft', s.days)}
       </span>
     )
   }
