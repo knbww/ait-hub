@@ -182,9 +182,9 @@ const hero = document.getElementById('hero'), cv = document.getElementById('fiel
 const gv = document.getElementById('grid'), gtx = gv.getContext('2d');
 let W = 0, H = 0, dpr = 1, fs = 9, cw = 5.4, chh = 11, cols = 0, rows = 0, dens = null, accA = null, mark = null, CX = 0, CY = 0, S = 1, R = 90;
 let shapes = [], cur = 0, nxt = 0, phase = 'hold', holdStart = 0, tStart = 0, running = false, raf = 0, ready = false;
-const HOLD = 5200, MORPH = 2000, GUEST_IN = 600, GUEST_HOLD = 1300, GUEST_OUT = 1000;
+const HOLD = 5200, MORPH = 2000, GUEST_IN = 600, GUEST_HOLD = 2000, GUEST_OUT = 1000;
 let morphDur = MORPH, after = -1, bag = [];
-let mx = -1e5, my = -1e5;
+let mx = -1e5, my = -1e5, area = { l: 0, r: 0, t: 0, b: 0 }, SMAX = 200;
 
 function drawGrid() {
   if (!W) return;
@@ -199,10 +199,27 @@ function resize() {
   ctx.font = fs + 'px ' + MONO; cw = Math.max(4, ctx.measureText('M').width); chh = Math.round(fs * 1.15);
   cols = Math.ceil(W / cw); rows = Math.ceil(H / chh);
   dens = new Float32Array(cols * rows); accA = new Uint8Array(cols * rows); mark = new Uint8Array(cols * rows);
-  if (mob) { S = W * 0.3; CX = W * 0.5; CY = 70 + W * 0.4; R = 64; }
-  else { S = Math.min(W * 0.17, H * 0.3); CX = W * 0.73; CY = H * 0.46; R = 92; }
+  // The figures live in the free part of the hero: right of the text and above the caption card on a
+  // computer, above the heading on a phone. Each figure is centred and fitted there by its own size.
+  const hr = hero.getBoundingClientRect(), k0 = hr.width ? W / hr.width : 1;
+  const rel = el => { const r = el.getBoundingClientRect(); return { l: (r.left - hr.left) * k0, r: (r.right - hr.left) * k0, t: (r.top - hr.top) * k0, b: (r.bottom - hr.top) * k0 }; };
+  const copy = rel(document.querySelector('.hero-copy')), card = rel(document.querySelector('.now')), h1 = rel(document.querySelector('.hero h1'));
+  if (mob) { area = { l: 16, r: W - 16, t: 78, b: Math.max(150, h1.t - 18) }; R = 64; SMAX = W * 0.36; }
+  else { area = { l: Math.min(copy.r + 56, W * 0.62), r: W - Math.max(32, W * 0.035), t: 104, b: Math.max(H * 0.5, card.t - 28) }; R = 92; SMAX = Math.min(H * 0.34, 320); }
+  CX = (area.l + area.r) / 2; CY = (area.t + area.b) / 2; S = Math.min(SMAX, (area.r - area.l) / 2);
   drawGrid(); kick();
 }
+// A figure's extent, ignoring the stray 1% of points on each side.
+function boxOf(sh) {
+  if (sh.box) return sh.box;
+  const q = (arr, t) => arr[Math.min(arr.length - 1, Math.max(0, (arr.length * t) | 0))];
+  const xs = [], ys = [];
+  for (let i = 0; i < sh.n; i += 4) { xs.push(sh.P[i * 3]); ys.push(sh.P[i * 3 + 1]); }
+  xs.sort((a, b) => a - b); ys.sort((a, b) => a - b);
+  const x0 = q(xs, 0.01), x1 = q(xs, 0.99), y0 = q(ys, 0.01), y1 = q(ys, 0.99);
+  return (sh.box = { cx: (x0 + x1) / 2, cy: (y0 + y1) / 2, hw: Math.max(0.2, (x1 - x0) / 2), hh: Math.max(0.2, (y1 - y0) / 2) });
+}
+const fitScale = b => Math.min(SMAX, (area.r - area.l) / 2 / (b.hw * 1.12), (area.b - area.t) / 2 / (b.hh * 1.12));
 
 function setCaption(i) {
   const box = document.getElementById('nowText');
@@ -252,6 +269,9 @@ function draw(now) {
   const ep = ease(p), amp = META[cur].rot + (META[nxt].rot - META[cur].rot) * (phase === 'morph' ? ep : 0);
   const ry = reduce ? 0.35 * amp : Math.sin(now * 0.00035) * amp, rx = 0.1;
   const cyr = Math.cos(ry), syr = Math.sin(ry), cxr = Math.cos(rx), sxr = Math.sin(rx), f = 3.2;
+  // centre and scale glide from one figure's box to the next one's
+  const bA = boxOf(shapes[cur]), bB = boxOf(shapes[phase === 'morph' ? nxt : cur]), m = phase === 'morph' ? ep : 0;
+  const ox = bA.cx + (bB.cx - bA.cx) * m, oy = bA.cy + (bB.cy - bA.cy) * m, Sd = fitScale(bA) + (fitScale(bB) - fitScale(bA)) * m;
   dens.fill(0); accA.fill(0);
   for (let i = 0; i < N; i++) {
     const a3 = i * 3;
@@ -261,8 +281,9 @@ function draw(now) {
       x += (B.P[a3] - x) * lt; y += (B.P[a3 + 1] - y) * lt; z += (B.P[a3 + 2] - z) * lt;
       const bump = Math.sin(lt * Math.PI); y += Math.sin(i * 12.9898) * 0.1 * bump; z += Math.cos(i * 78.233) * 0.25 * bump;
     }
+    x -= ox; y -= oy;
     const X = x * cyr + z * syr; let Z = -x * syr + z * cyr; const Y = y * cxr - Z * sxr; Z = y * sxr + Z * cxr;
-    const sc = f / (f + Z), px = CX + X * S * sc, py = CY - Y * S * sc;
+    const sc = f / (f + Z), px = CX + X * Sd * sc, py = CY - Y * Sd * sc;
     if (px < 0 || py < 0) continue;
     const c = (px / cw) | 0, r = (py / chh) | 0;
     if (c >= cols || r >= rows) continue;
@@ -327,7 +348,7 @@ function drawThumb(canvas, shape, tone, rot) {
   c.setTransform(k, 0, 0, k, 0, 0); c.fillStyle = t.bg; c.fillRect(0, 0, w, h);
   const f2 = w < 240 ? 5 : 6; c.font = f2 + 'px ' + MONO; c.textBaseline = 'top';
   const cw2 = c.measureText('M').width, ch2 = Math.round(f2 * 1.2), C = Math.ceil(w / cw2), Rw = Math.ceil(h / ch2);
-  const d = new Float32Array(C * Rw), a = new Uint8Array(C * Rw), s = w * 0.34, cx = w / 2, cy = h * 0.47;
+  const d = new Float32Array(C * Rw), a = new Uint8Array(C * Rw), s = Math.min(w * 0.34, h * 0.4), cx = w / 2, cy = h * 0.47;
   const cr = Math.cos(rot), sr = Math.sin(rot);
   for (let i = 0; i < shape.n; i++) {
     const x = shape.P[i * 3], y = shape.P[i * 3 + 1], z = shape.P[i * 3 + 2];
@@ -426,6 +447,9 @@ stage.addEventListener('wheel', e => {
   clearTimeout(snapT); snapT = setTimeout(() => { stage.classList.remove('dragging'); focus = Math.round(clamp(focus, 0, plates.length - 1)); layout(); }, 140);
 }, { passive: false });
 const drawPlates = () => plates.forEach((el, i) => drawThumb(el.querySelector('canvas'), thumbShapes[i], POSTS[i].tone, 0.45 + i * 0.06));
+// The direction cards wear the hero's figures as covers.
+let coverShapes = [];
+const drawCovers = () => document.querySelectorAll('canvas[data-cover]').forEach(c => { if (coverShapes.length) drawThumb(c, coverShapes[+c.dataset.cover], c.dataset.tone, 0.5); });
 
 /* ---------- basement: Gosper's glider guns as the background, and a cat that follows the cursor ---------- */
 const base = document.getElementById('basement'), lc = document.getElementById('life'), lx = lc.getContext('2d');
@@ -548,9 +572,9 @@ function start() {
   const go = () => {
     shapes = [hands(N), neural(N), tree(N), bars(N), logo(img, N), ...GUESTS.map(gs => gs.make(N))];
     const small = [hands(3200), neural(3200), tree(3200), bars(3200), logo(img, 3200)];
-    thumbShapes = POSTS.map(p => small[p.shape]);
+    thumbShapes = POSTS.map(p => small[p.shape]); coverShapes = small;
     ready = true; holdStart = performance.now();
-    resize(); layout(); drawPlates(); lifeReset();
+    resize(); layout(); drawPlates(); drawCovers(); lifeReset();
     const parrot = META.find(m => m.frames), all = [];
     let k = 1; all[0] = shapes[META.indexOf(parrot)];
     const more = () => { all[k] = parrotFrame(k, N); if (++k < 10) setTimeout(more, 60); else parrot.frames = all; };
@@ -560,8 +584,11 @@ function start() {
   imgs.forEach(im => { if (im.complete && im.naturalWidth) { if (--left === 0) go(); } else im.addEventListener('load', () => { if (--left === 0) go(); }, { once: true }); });
 }
 let rT = 0;
-window.addEventListener('resize', () => { clearTimeout(rT); rT = setTimeout(() => { resize(); layout(); if (thumbShapes.length) drawPlates(); lifeReset(); }, 120); });
+window.addEventListener('resize', () => { clearTimeout(rT); rT = setTimeout(() => { resize(); layout(); if (thumbShapes.length) { drawPlates(); drawCovers(); } lifeReset(); }, 120); });
 (document.fonts && document.fonts.load ? document.fonts.load('9px "JetBrains Mono Variable"').catch(() => {}) : Promise.resolve()).then(start, start);
+
+// dev only: lets a test script show any figure or guest
+if (import.meta.env.DEV) window.__ait = { goTo, guest: i => { after = 1; goTo(MAIN + i, 600, false); } }
 
 const buildEl = document.getElementById('build')
 if (buildEl) buildEl.textContent = __BUILD__

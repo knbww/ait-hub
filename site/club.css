@@ -41,7 +41,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 @media (max-width: 760px) { .bar nav, .bar .login { display: none; } .bar-in { justify-content: space-between; } }
 
 /* Hero */
-.hero { position: relative; overflow: hidden; min-height: min(860px, 94vh);
+.hero { position: relative; overflow: hidden; min-height: clamp(640px, 100svh, 1040px);
   /* the red glow stays inside the hero; the paper fades out at the bottom into the site's drifting colour */
   background: radial-gradient(circle 420px at 74% 36%, var(--blob-red), transparent),
     linear-gradient(var(--paper) 70%, rgb(243 242 238 / 0)); }
@@ -77,7 +77,7 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 /* News */
 .news { padding-block: 96px 40px; }
 .news-head { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 16px 32px; }
-.news h2 { margin: 10px 0 0; font-weight: 300; font-size: clamp(32px, 4vw, 52px); letter-spacing: -0.03em; line-height: 1.05; }
+.news h2, .sec h2 { margin: 10px 0 0; font-weight: 300; font-size: clamp(32px, 4vw, 52px); letter-spacing: -0.03em; line-height: 1.05; }
 .news-hint { margin: 0; color: var(--muted); font-size: 14px; max-width: 30em; }
 .stage { position: relative; height: 560px; margin-top: 28px; perspective: 1700px; overflow: hidden; touch-action: pan-y; user-select: none; border-radius: 28px; }
 .stack { position: absolute; left: 6%; top: 132px; transform-style: preserve-3d; }
@@ -141,3 +141,70 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .b-bottom .wrap { display: flex; flex-wrap: wrap; justify-content: space-between; gap: 8px; padding-block: 16px calc(18px + env(safe-area-inset-bottom, 0px)); grid-template-columns: none; font-size: 12px; color: var(--b-muted); }
 @media (max-width: 860px) { .basement .wrap { grid-template-columns: 1fr; } }
 body:has(.hero) { padding-top: 0; }
+
+/* Sections under the news: the same paper, headings and hairlines as the hero and the news.
+   Glass is kept for the direction cards; everything else is lines on paper. */
+.sec { padding-block: 112px 0; }
+.sec h2 { margin: 0; }
+.sec h3 { margin: 0; }
+.sec-head { display: flex; flex-wrap: wrap; align-items: end; justify-content: space-between; gap: 16px 48px; }
+.sec-lead { margin: 0; color: var(--body); font-size: 16px; line-height: 1.6; max-width: 34em; }
+
+.tracks { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 20px; margin-top: 40px; }
+.track-card { border-radius: 26px; overflow: hidden; display: flex; flex-direction: column; transition: transform .35s, box-shadow .35s; }
+.track-card:hover { transform: translateY(-4px); box-shadow: 0 30px 60px -28px rgb(50 30 30 / .45); }
+.track-cover { display: block; width: 100%; height: 200px; }
+.track-body { padding: 22px 24px 24px; display: flex; flex-direction: column; gap: 12px; flex: 1; }
+.track-body h3 { font-size: 21px; font-weight: 600; letter-spacing: -0.01em; }
+.track-body p { margin: 0; color: var(--body); font-size: 15px; line-height: 1.55; }
+.track-body ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; }
+.track-body li { padding: 9px 0 9px 18px; border-top: 1px solid var(--hair); font-size: 14px; line-height: 1.45; color: var(--ink); position: relative; }
+.track-body li::before { content: ""; position: absolute; left: 2px; top: 16px; width: 6px; height: 6px; background: var(--red); }
+.track-body .track-tools { margin-top: auto; padding-top: 6px; font: 12.5px/1.5 var(--mono); color: var(--muted); }
+
+.year { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr); gap: 40px 72px; align-items: start; }
+.year-head { position: sticky; top: 120px; display: flex; flex-direction: column; gap: 18px; }
+.year-list { margin: 0; padding: 0; list-style: none; border-bottom: 1px solid var(--hair); }
+.year-list li { display: grid; grid-template-columns: 190px minmax(0, 1fr); gap: 6px 24px; padding: 22px 0; border-top: 1px solid var(--hair); }
+.year-list .when { font: 13px/1.6 var(--mono); color: var(--muted); padding-top: 2px; }
+.year-list h3 { font-size: 19px; font-weight: 600; letter-spacing: -0.01em; }
+.year-list p { margin: 6px 0 0; color: var(--body); font-size: 15px; line-height: 1.55; }
+.year-list .is-end h3 { color: var(--accent-text); }
+
+.hub { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr); gap: 40px 64px; align-items: center; margin-top: 40px; }
+.hub-list { margin: 0; padding: 0; list-style: none; border-bottom: 1px solid var(--hair); }
+.hub-list li { display: flex; flex-direction: column; gap: 4px; padding: 16px 0; border-top: 1px solid var(--hair); }
+.hub-list b { font-weight: 600; font-size: 16px; }
+.hub-list span { color: var(--body); font-size: 14.5px; line-height: 1.5; }
+
+.join-panel { background: #141414; color: #f3f2ee; border-radius: 32px; padding: clamp(28px, 5vw, 56px); display: flex; flex-direction: column; gap: 32px;
+  background-image: radial-gradient(circle 520px at 88% 0%, rgb(117 0 20 / .55), transparent); }
+.join-panel h2 { color: #f3f2ee; }
+.join-steps { margin: 0; padding: 0; list-style: none; display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 0 28px; }
+.join-steps li { display: flex; flex-direction: column; gap: 6px; padding-top: 18px; border-top: 1px solid rgb(243 242 238 / .18); }
+.join-steps .n { font: 600 13px/1 var(--mono); color: #e2687a; margin-bottom: 8px; }
+.join-steps b { font-weight: 600; font-size: 17px; }
+.join-steps span:last-child { color: #c9c4bb; font-size: 14.5px; line-height: 1.5; }
+.btn-light { border: 1px solid rgb(243 242 238 / .5); color: #f3f2ee; }
+.btn-light:hover { background: #f3f2ee; color: #141414; }
+
+.faq-list { max-width: 900px; }
+.faq-list { margin-top: 32px; border-bottom: 1px solid var(--hair); }
+.faq-list details { border-top: 1px solid var(--hair); }
+.faq-list summary { cursor: pointer; list-style: none; padding: 20px 0; font-size: 18px; display: flex; justify-content: space-between; gap: 16px; }
+.faq-list summary::-webkit-details-marker { display: none; }
+.faq-list summary::after { content: '+'; color: var(--red); font: 400 22px/1 var(--mono); transition: transform .25s; }
+.faq-list details[open] summary::after { transform: rotate(45deg); }
+.faq-list p { margin: 0; padding: 0 0 20px; color: var(--body); max-width: 40em; line-height: 1.6; }
+
+@media (max-width: 960px) {
+  .tracks { grid-template-columns: 1fr; }
+  .year, .hub { grid-template-columns: 1fr; }
+  .year-head { position: static; }
+  .join-steps { grid-template-columns: 1fr; gap: 20px; }
+}
+@media (max-width: 760px) {
+  .sec { padding-block: 80px 0; }
+  .year-list li { grid-template-columns: 1fr; }
+  .track-cover { height: 170px; }
+}
