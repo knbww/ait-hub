@@ -61,3 +61,37 @@ jobs:
       - name: Deploy to Cloudflare Pages
         if: steps.check.outputs.ready == 'true'
         run: npx --yes wrangler@4.40.0 pages deploy dist --project-name=ait-hub --branch=main --commit-dirty=true
+
+  # Publishes the club site (site/ → Cloudflare Pages project ait-club, aitclub.org) from main.
+  # Needs only the two Cloudflare secrets; skipped with a warning while they are not set.
+  deploy-site:
+    needs: verify
+    if: github.event_name == 'push' && github.ref == 'refs/heads/main'
+    runs-on: ubuntu-latest
+    env:
+      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    steps:
+      - name: Check deploy settings
+        id: check
+        run: |
+          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+            echo "::warning::Cloudflare secrets are not set — site deploy skipped. Run npm run deploy:site locally."
+            echo "ready=false" >> "$GITHUB_OUTPUT"
+          else
+            echo "ready=true" >> "$GITHUB_OUTPUT"
+          fi
+      - uses: actions/checkout@v5
+        if: steps.check.outputs.ready == 'true'
+      - uses: actions/setup-node@v5
+        if: steps.check.outputs.ready == 'true'
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci
+        if: steps.check.outputs.ready == 'true'
+      - run: npx vite build --config vite.site.config.ts
+        if: steps.check.outputs.ready == 'true'
+      - name: Deploy the club site to Cloudflare Pages
+        if: steps.check.outputs.ready == 'true'
+        run: npx --yes wrangler@4.40.0 pages deploy dist-site --project-name=ait-club --branch=main --commit-dirty=true
