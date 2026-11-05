@@ -107,7 +107,7 @@ export function RatingChart({ points, label }: { points: RatingPoint[]; label: s
         <div className={`pointer-events-none absolute z-10 -translate-x-1/2 ${tipBelow ? '' : '-translate-y-full'} rounded-xl bg-white/95 shadow-lg border border-white px-3 py-2 text-xs text-gray-800 w-44`}
           style={{ left: tipLeft, top: tipBelow ? y(tip.total) + 14 : y(tip.total) - 10 }}>
           <p className="font-medium leading-snug">{tip.title}</p>
-          <p className="text-gray-600">{formatDate(tip.date)}{tip.place ? ` · ${t('member.place', { n: tip.place })}` : ''}</p>
+          <p className="text-gray-600">{formatDate(tip.date)}{tip.place ? `, ${t('member.place', { n: tip.place })}` : ''}</p>
           <p className="mt-1">{tip.delta > 0 ? '+' : ''}{tip.delta} → {tip.total}</p>
         </div>
       )}

@@ -71,7 +71,7 @@ export function ProjectsPage() {
                 <div className="flex flex-wrap items-center gap-1.5 text-xs text-gray-600">
                   {tracksOf(p).map((tr) => <TrackBadge key={tr} track={tr} />)}
                   <span>{t('projects.members', { n: p.project_members?.length ?? 0 })}</span>
-                  {p.team && <span>· {p.team.name}</span>}
+                  {p.team && <span>{p.team.name}</span>}
                 </div>
               </GlassCard>
             </Link>

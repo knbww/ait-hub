@@ -305,12 +305,12 @@ function WeekItem({ week, startsOn, isCurrent, upcoming, manage, submission, ope
       <div id={`week-${week.week_number}`} className="scroll-mt-24" />
       <button onClick={onToggle} className="w-full flex items-start justify-between gap-3 text-left" aria-expanded={open}>
         <div className="min-w-0">
-          <p className="text-xs uppercase tracking-wider text-gray-500">
-            {t('week.number', { n: week.week_number })}
-            {startsOn && deadline && ` · ${formatShortDay(startsOn)} – ${formatShortDay(deadline)}`}
-            {isCurrent && <span className="ml-2 normal-case tracking-normal text-[#750014]">{t('program.now')}</span>}
-          </p>
           <h3 className="text-lg font-normal">{week.title}</h3>
+          <p className="text-sm text-gray-600 mt-0.5">
+            {t('week.number', { n: week.week_number })}
+            {startsOn && deadline && `, ${formatShortDay(startsOn)} – ${formatShortDay(deadline)}`}
+            {isCurrent && <span className="ml-2 text-[#750014]">{t('program.now')}</span>}
+          </p>
         </div>
         <div className="flex items-center gap-2 shrink-0">
           {!manage && !upcoming && <SubmissionBadge status={submission?.status} />}
@@ -349,8 +349,8 @@ function WeekItem({ week, startsOn, isCurrent, upcoming, manage, submission, ope
           {deadline && left !== null && !manage && (
             <p className="text-sm text-gray-700">
               {t('deadlines.until', { date: formatShortDay(deadline) })}
-              {left > 0 && ` · ${tp('week.dueIn', left)}`}
-              {left === 0 && ` · ${t('week.dueToday')}`}
+              {left > 0 && `, ${tp('week.dueIn', left)}`}
+              {left === 0 && `, ${t('week.dueToday')}`}
             </p>
           )}
           {manage ? (
@@ -497,7 +497,7 @@ export function ProgramPage() {
           <div className="space-y-3">
             {grid.length > 0 && <GlassCard><WeekGrid weeks={grid} /></GlassCard>}
             {now.map(renderWeek)}
-            {ahead.length > 0 && <h2 className="text-sm uppercase tracking-wider text-gray-600 pt-2 px-1">{t('program.ahead')}</h2>}
+            {ahead.length > 0 && <h2 className="text-base font-semibold text-gray-800 pt-2 px-1">{t('program.ahead')}</h2>}
             {aheadShown.map(renderWeek)}
             {ahead.length > aheadShown.length && (
               <button type="button" onClick={() => setShowAllAhead(true)} className={`${btnSecondary} w-full`}>
@@ -506,7 +506,7 @@ export function ProgramPage() {
             )}
             {past.length > 0 && (
               <button type="button" onClick={() => setShowPast((v) => !v)} aria-expanded={showPast}
-                className="flex w-full items-center justify-between gap-2 text-sm uppercase tracking-wider text-gray-600 pt-2 px-1">
+                className="flex w-full items-center justify-between gap-2 text-base font-semibold text-gray-800 pt-2 px-1">
                 {t('program.pastN', { n: past.length })}
                 <ChevronDown className={`w-4 h-4 transition-transform ${showPast ? 'rotate-180' : ''}`} />
               </button>

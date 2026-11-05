@@ -16,7 +16,7 @@ export function NotFoundPage() {
       exit="exit"
       className="max-w-xl mx-auto"
     >
-      <GlassCard className="text-center py-14 shadow-[0_8px_32px_0_rgba(31,38,135,0.2)]">
+      <GlassCard className="text-center py-14 shadow-[0_8px_32px_0_rgba(50,30,30,0.2)]">
         <motion.div
           animate={{ y: [0, -16, 0], rotate: [0, -6, 6, 0] }}
           transition={{ duration: 4, repeat: Infinity, ease: 'easeInOut' }}
@@ -25,7 +25,7 @@ export function NotFoundPage() {
           🛸
         </motion.div>
 
-        <div className="text-[7rem] leading-none font-black bg-gradient-to-r from-[#750014] via-purple-500 to-[#00B5AD] bg-clip-text text-transparent mb-4">
+        <div className="text-[7rem] leading-none font-black bg-gradient-to-r from-[#750014] to-[#b3242f] bg-clip-text text-transparent mb-4">
           404
         </div>
 

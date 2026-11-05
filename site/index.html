@@ -24,6 +24,7 @@
        "logo": "https://aitclub.org/aitlogo.png", "description": "Технологический клуб для школьников 7–12 классов: искусственный интеллект, алгоритмы и стартап-инженерия."}
     </script>
     <script type="module" src="./main.ts"></script>
+    <script type="module" src="./club.js"></script>
   </head>
   <body>
     <div class="bg" aria-hidden="true">
@@ -33,68 +34,68 @@
       <span class="blob blob-4"></span>
     </div>
 
-    <header class="sticky top-2 sm:top-4 z-50 px-3 sm:px-6">
-      <nav class="glass max-w-6xl mx-auto rounded-2xl px-3 sm:px-4 py-2 flex items-center gap-3" aria-label="Разделы">
-        <a href="#top" class="shrink-0" aria-label="AIT Club — в начало">
-          <img src="/aitlogo.png" alt="AIT Club" class="h-9 sm:h-10 w-auto mix-blend-multiply" />
-        </a>
-        <div class="hidden md:flex items-center gap-1 flex-1 text-sm">
-          <a class="nav-link" href="#tracks">Направления</a>
-          <a class="nav-link" href="#year">Как устроен год</a>
-          <a class="nav-link" href="#hub">AIT Hub</a>
-          <a class="nav-link" href="#join">Как вступить</a>
-          <a class="nav-link" href="#faq">Вопросы</a>
-        </div>
-        <div class="flex-1 md:hidden"></div>
-        <a class="hidden sm:inline-flex text-sm text-gray-700 underline-offset-4 hover:underline px-2" href="https://hub.aitclub.org/login">Войти</a>
-        <a class="btn btn-accent !min-h-[40px] !px-4" href="#join">Вступить</a>
-      </nav>
+    <header class="bar">
+      <div class="bar-in glass">
+        <a href="#top" aria-label="AIT Club — в начало"><img src="/img/ait-black.png" alt="AIT Club" width="380" height="207" /></a>
+        <nav aria-label="Разделы">
+          <a href="#tracks">Направления</a>
+          <a href="#year">Как устроен год</a>
+          <a href="#news">Новости</a>
+          <a href="#hub">AIT Hub</a>
+        </nav>
+        <a class="login" href="https://hub.aitclub.org/login">Войти</a>
+        <a class="btn btn-accent" href="#join">Вступить</a>
+      </div>
     </header>
 
     <main id="top">
-      <!-- Hero -->
-      <section class="px-4 sm:px-6 pt-12 sm:pt-20 pb-12 sm:pb-20">
-        <div class="max-w-6xl mx-auto grid lg:grid-cols-[1.15fr_1fr] gap-10 lg:gap-14 items-center">
-          <div>
-            <p class="reveal kicker">Технологический клуб для 7–12 классов</p>
-            <h1 class="reveal text-[2.6rem] leading-[1.05] sm:text-[3.5rem] font-light tracking-tight mt-4">
-              Понимать технологии<br /> <span class="accent-text">и строить свои</span>
-            </h1>
-            <p class="reveal text-lg text-gray-700 mt-6 max-w-xl">
-              Искусственный интеллект, олимпиадные алгоритмы и стартап-инженерия. Участник выбирает одно направление
-              и весь учебный год работает над настоящими задачами: проекты гарвардского CS50 AI, контесты на Codeforces,
-              собственный продукт с первыми пользователями.
-            </p>
-            <div class="reveal flex flex-wrap gap-3 mt-8">
+      <!-- Hero: an ASCII field that draws what each direction teaches (club.js) -->
+      <section class="hero" id="hero" aria-label="AIT Club">
+        <canvas id="grid" aria-hidden="true"></canvas>
+        <canvas id="field" aria-hidden="true"></canvas>
+        <div class="wrap">
+          <div class="hero-copy">
+            <h1>Понимать технологии <span>и строить свои</span></h1>
+            <p class="lead">AIT Club — технологический клуб НИШ Петропавловска для 7–12 классов. Искусственный интеллект, алгоритмы и стартап-инженерия: одно направление на год и результат, который можно проверить и объяснить.</p>
+            <div class="cta">
               <a class="btn btn-accent" href="#join">Как вступить</a>
-              <a class="btn btn-ghost" href="#tracks">Направления →</a>
+              <a class="btn btn-ghost" href="#news">Новости клуба</a>
             </div>
-            <ul class="reveal flex flex-wrap gap-2 mt-8 text-sm" aria-label="Коротко о клубе">
-              <li class="chip">3 направления</li>
-              <li class="chip">36 недель</li>
-              <li class="chip">занятие + практикум каждую неделю</li>
-              <li class="chip">с нуля</li>
-              <li class="chip">бесплатно</li>
-            </ul>
+            <ul class="facts" aria-label="Коротко о клубе"><li>3 направления</li><li>36 недель</li><li>с нуля</li><li>бесплатно</li></ul>
           </div>
-          <div class="reveal relative" aria-hidden="true">
-            <div class="orbit">
-              <div class="orbit-card orbit-card-1">
-                <span class="orbit-icon bg-violet-600/10 text-violet-800">AI</span>
-                <span><b>Искусственный интеллект</b><br /><small>12 проектов CS50 AI</small></span>
-              </div>
-              <div class="orbit-card orbit-card-2">
-                <span class="orbit-icon bg-sky-600/10 text-sky-800">{ }</span>
-                <span><b>Алгоритмы</b><br /><small>C++ · Codeforces · CSES</small></span>
-              </div>
-              <div class="orbit-card orbit-card-3">
-                <span class="orbit-icon bg-amber-600/15 text-amber-800">↗</span>
-                <span><b>Стартап-инженерия</b><br /><small>MVP · пользователи · питч</small></span>
-              </div>
-              <div class="orbit-core">
-                <img src="/aitlogo.png" alt="" class="w-28 sm:w-32 mix-blend-multiply" />
-              </div>
+        </div>
+        <aside class="now glass" aria-live="polite">
+          <div class="now-text" id="nowText">
+            <p class="now-name" id="nowName">Строить своё</p>
+            <p class="now-dir" id="nowDir">По мотивам «Сотворения Адама» Микеланджело</p>
+            <p class="now-note" id="nowNote"><i>Красным</i> искра между рукой человека и тем, что он создаёт</p>
+          </div>
+          <div class="dots" id="dots"></div>
+          <p class="hint">Наведите на фигуру, чтобы увидеть, из чего она сделана</p>
+        </aside>
+      </section>
+
+      <!-- News: plates you pull out of a stack (club.js) -->
+      <section class="news" id="news">
+        <div class="wrap">
+          <div class="news-head">
+            <h2>Что происходит в AIT Club</h2>
+            <p class="news-hint">Наведите на пластину, и она выдвинется. Нажмите, чтобы прочитать. Листайте стрелками или перетаскиванием.</p>
+          </div>
+          <div class="stage" id="stage" tabindex="0" aria-label="Лента новостей">
+            <div class="stack" id="stack"></div>
+            <div class="detail glass" id="detail" hidden aria-live="polite">
+              <canvas class="detail-thumb" id="detailThumb" aria-hidden="true"></canvas>
+              <p class="when" id="dDate"></p>
+              <h3 id="dTitle"></h3>
+              <p class="detail-text" id="dText"></p>
+              <button class="btn btn-ghost close" id="dClose" type="button">Закрыть</button>
             </div>
+          </div>
+          <div class="stage-ctl">
+            <button class="round" id="prev" type="button" aria-label="Предыдущая новость">←</button>
+            <button class="round" id="next" type="button" aria-label="Следующая новость">→</button>
+            <span class="pips" id="pips" aria-hidden="true"></span>
           </div>
         </div>
       </section>
@@ -102,12 +103,11 @@
       <!-- Tracks -->
       <section id="tracks" class="section">
         <div class="max-w-6xl mx-auto">
-          <p class="reveal kicker">Направления</p>
           <h2 class="reveal section-title">Три направления — выберите одно на год</h2>
           <p class="reveal section-lead">Одно направление, чтобы хватило времени сделать его по-настоящему. Знать Python или C++ заранее не нужно — нужна готовность работать каждую неделю.</p>
           <div class="grid md:grid-cols-3 gap-4 sm:gap-5 mt-10">
             <article class="reveal track glass">
-              <div class="track-icon bg-violet-600/10 text-violet-800">AI</div>
+              <div class="track-icon bg-[#750014]/10 text-[#750014]">AI</div>
               <h3 class="track-title">Искусственный интеллект</h3>
               <p class="track-text">Как ИИ устроен внутри. Основа — гарвардский курс CS50’s Introduction to AI with Python: поиск, логика, вероятности, оптимизация, машинное обучение, нейросети и языковые модели.</p>
               <ul class="track-list">
@@ -115,10 +115,10 @@
                 <li>Турниры ботов по заранее объявленным правилам</li>
                 <li>Python с нуля</li>
               </ul>
-              <p class="track-tools">Python · CS50 AI</p>
+              <p class="track-tools">Python, CS50 AI</p>
             </article>
             <article class="reveal track glass">
-              <div class="track-icon bg-sky-600/10 text-sky-800">{ }</div>
+              <div class="track-icon bg-[#750014]/10 text-[#750014]">{ }</div>
               <h3 class="track-title">Алгоритмы и олимпиады</h3>
               <p class="track-text">Олимпиадные задачи: придумать алгоритм, оценить его до того, как писать код, и написать без ошибок.</p>
               <ul class="track-list">
@@ -126,10 +126,10 @@
                 <li>Ежемесячные рейтинговые контесты клуба на Codeforces</li>
                 <li>Подготовка к республиканской олимпиаде по информатике</li>
               </ul>
-              <p class="track-tools">C++ · CSES · Codeforces · USACO Guide</p>
+              <p class="track-tools">C++, CSES, Codeforces, USACO Guide</p>
             </article>
             <article class="reveal track glass">
-              <div class="track-icon bg-amber-600/15 text-amber-800">↗</div>
+              <div class="track-icon bg-[#750014]/10 text-[#750014]">↗</div>
               <h3 class="track-title">Стартап-инженерия</h3>
               <p class="track-text">От проблемы до продукта, которым пользуются, — своими руками: интервью с клиентами, лендинг, MVP на React, первые пользователи, рост и питч.</p>
               <ul class="track-list">
@@ -137,7 +137,7 @@
                 <li>Питч-разборы с экспертами и Demo Day</li>
                 <li>Full Stack Open и практики LaunchX</li>
               </ul>
-              <p class="track-tools">React · Full Stack Open · LaunchX</p>
+              <p class="track-tools">React, Full Stack Open, LaunchX</p>
             </article>
           </div>
         </div>
@@ -147,7 +147,6 @@
       <section id="year" class="section">
         <div class="max-w-6xl mx-auto grid lg:grid-cols-[1fr_1.2fr] gap-10 items-start">
           <div class="lg:sticky lg:top-28">
-            <p class="reveal kicker">Учебный год</p>
             <h2 class="reveal section-title">Как устроен год</h2>
             <p class="reveal section-lead">36 недель, две встречи в каждой. Сертификат в конце года — за сделанное, а не за посещение: проекты, решённые задачи, работающий продукт.</p>
           </div>
@@ -189,7 +188,6 @@
       <!-- Hub -->
       <section id="hub" class="section">
         <div class="max-w-6xl mx-auto">
-          <p class="reveal kicker">AIT Hub</p>
           <h2 class="reveal section-title">Всё, что нужно на неделе, — в одном месте</h2>
           <p class="reveal section-lead">AIT Hub — рабочее место участника клуба: задания и материалы недели, сдача работ и отзывы, рейтинги, команды, проекты и каталог конкурсов. Работает в браузере и ставится на телефон как приложение.</p>
           <div class="grid lg:grid-cols-[1fr_1.35fr] gap-8 mt-10 items-center">
@@ -216,7 +214,6 @@
       <section id="join" class="section">
         <div class="max-w-6xl mx-auto">
           <div class="reveal glass join rounded-[2rem] p-6 sm:p-10 lg:p-14">
-            <p class="kicker">Как вступить</p>
             <h2 class="section-title">Три шага</h2>
             <ol class="grid md:grid-cols-3 gap-4 mt-8">
               <li class="step"><span class="step-n">1</span><b>Приходите на встречу клуба</b><span>Руководитель направления покажет код вступления или QR-код.</span></li>
@@ -234,7 +231,6 @@
       <!-- FAQ -->
       <section id="faq" class="section pb-24">
         <div class="max-w-3xl mx-auto">
-          <p class="reveal kicker">Вопросы</p>
           <h2 class="reveal section-title">Частые вопросы</h2>
           <div class="mt-8 space-y-3">
             <details class="reveal faq glass">
@@ -266,11 +262,37 @@
       </section>
     </main>
 
-    <footer class="px-4 sm:px-6 pb-10">
-      <div class="glass max-w-6xl mx-auto rounded-2xl px-5 py-4 flex flex-wrap items-center justify-between gap-3 text-sm text-gray-700">
-        <span>© <span data-year>2026</span> AIT Club</span>
-        <a class="underline underline-offset-4" href="https://hub.aitclub.org">AIT Hub</a>
+    <!-- Basement: everything unofficial — communities, code, Conway's Life and the cat (club.js) -->
+    <footer class="basement" id="basement">
+      <canvas id="life" aria-hidden="true"></canvas>
+      <div class="wrap">
+        <div>
+          <h2>Подвал</h2>
+          <p style="margin-top: 12px; max-width: 34em">Здесь живёт всё, что не попадает в официальные тексты: сообщества, код и то, чем развлекаются те, кто делает сайт.</p>
+          <p style="margin-top: 12px; max-width: 34em">На фоне игра «Жизнь» Конвея. Вдоль верхнего края работают планерные ружья Госпера: они бесконечно выпускают «планеры», которые летят вниз по диагонали. Нажмите в любом месте, чтобы запустить свой.</p>
+          <p class="b-life" id="lifeStat" style="margin-top: 16px">Поколение <b>0</b>, живых клеток <b>0</b></p>
+        </div>
+        <div>
+          <h3>Сообщества</h3>
+          <ul class="b-list">
+            <li><b>Telegram-канал клуба</b></li>
+            <li><b>Чат клуба в WhatsApp</b></li>
+            <li><b>Алгоритмы в WhatsApp</b></li>
+            <li><b>IT-сообщество</b><span>открытые события</span></li>
+          </ul>
+        </div>
+        <div>
+          <h3>Для разработчиков</h3>
+          <ul class="b-list">
+            <li><b>Репозиторий</b><span><a href="https://github.com/knbww/ait-hub">knbww/ait-hub</a></span></li>
+            <li><b>Стек</b><span>React, Vite, Supabase</span></li>
+            <li><b>Шрифты</b><span>Manrope, JetBrains Mono</span></li>
+            <li><b>Сборка</b><span id="build"></span></li>
+          </ul>
+        </div>
       </div>
+      <canvas class="cat" id="cat" aria-hidden="true"></canvas>
+      <div class="b-bottom"><div class="wrap"><span>© <span data-year>2026</span> AIT Club</span><a href="https://hub.aitclub.org">AIT Hub</a></div></div>
     </footer>
   </body>
 </html>

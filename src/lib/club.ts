@@ -148,7 +148,7 @@ export function fromLocalInput(value: string): string {
   return new Date(value).toISOString()
 }
 
-/** Russian plural: 1 участник · 2 участника · 5 участников. */
+/** Russian plural: 1 участник, 2 участника, 5 участников. */
 export function plural(n: number, one: string, few: string, many: string): string {
   const mod10 = Math.abs(n) % 10
   const mod100 = Math.abs(n) % 100

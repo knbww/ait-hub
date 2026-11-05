@@ -31,7 +31,7 @@ export function WeekGrid({ weeks, linkable = true }: { weeks: WeekProgress[]; li
     <div>
       <ol className="grid grid-cols-9 sm:grid-cols-12 gap-1.5">
         {weeks.map((w) => {
-          const title = `${t('week.number', { n: w.week.week_number })} · ${w.week.title} · ${t(`progress.state.${w.state}`)}`
+          const title = `${t('week.number', { n: w.week.week_number })}, ${w.week.title}, ${t(`progress.state.${w.state}`)}`
           const cell = `relative aspect-square rounded-md text-[11px] sm:text-xs tabular-nums flex items-center justify-center ${STYLE[w.state]}`
           const mark = MARK[w.state]
           return (

@@ -48,10 +48,10 @@ export function DeadlinesCard() {
                 <Link to={`/program#week-${week.week_number}`}
                   className="flex items-start justify-between gap-3 p-3 rounded-2xl border border-white/50 bg-white/20 hover:bg-white/40 transition-colors">
                   <span className="min-w-0">
-                    <span className="block text-sm truncate">{t('week.number', { n: week.week_number })} · {week.title}</span>
+                    <span className="block text-sm truncate">{t('week.number', { n: week.week_number })}, {week.title}</span>
                     <span className={`block text-xs ${left < 0 ? 'text-red-700' : 'text-gray-600'}`}>
                       {t('deadlines.until', { date: formatShortDay(deadline) })}
-                      {left < 0 ? ` · ${t('deadlines.overdue')}` : left === 0 ? ` · ${t('week.dueToday')}` : ` · ${tp('week.dueIn', left)}`}
+                      {left < 0 ? `, ${t('deadlines.overdue')}` : left === 0 ? `, ${t('week.dueToday')}` : `, ${tp('week.dueIn', left)}`}
                     </span>
                   </span>
                   <SubmissionBadge status={subs.data?.get(week.id)?.status} />

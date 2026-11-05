@@ -264,8 +264,8 @@ function ReportsTab() {
                   {t(`reports.status.${r.status}`)}
                 </span>
                 <span>{formatDateTime(r.created_at)}</span>
-                <span>· {t('reports.author', { name: r.author?.full_name ?? '—' })}</span>
-                <span>· {t('reports.reporter', { name: r.reporter?.full_name ?? '—' })}</span>
+                <span>{t('reports.author', { name: r.author?.full_name ?? '—' })}</span>
+                <span>{t('reports.reporter', { name: r.reporter?.full_name ?? '—' })}</span>
               </div>
               <blockquote className="text-sm text-gray-900 whitespace-pre-wrap break-words border-l-2 border-gray-900/20 pl-3">{r.excerpt}</blockquote>
               {r.reason && <p className="text-sm text-gray-700 mt-2">{t('reports.reason', { reason: r.reason })}</p>}
@@ -305,15 +305,15 @@ function AuditTab() {
                 : typeof v === 'string' && messages[`status.${v}`] ? t(`status.${v}`)
                   : typeof v === 'string' && messages[`track.${v}`] ? t(`track.${v}`) : v
             const extra = [d.full_name, d.title, d.track && t(`track.${d.track}.short`), d.from && d.to && `${word(d.from)} → ${word(d.to)}`]
-              .filter(Boolean).join(' · ')
+              .filter(Boolean).join(', ')
             return (
               <li key={row.id} className="py-2 text-sm">
                 <p>
                   <span className="font-normal">{row.actor?.full_name ?? t('audit.system')}</span>{' '}
                   <span className="text-gray-700">{t(`audit.${row.action}`)}</span>
-                  {row.target_id && <> · <Link to={`/members/${row.target_id}`} className="underline">{t('audit.target')}</Link></>}
+                  {row.target_id && <>, <Link to={`/members/${row.target_id}`} className="underline">{t('audit.target')}</Link></>}
                 </p>
-                <p className="text-xs text-gray-600">{formatDateTime(row.created_at)}{extra && ` · ${extra}`}</p>
+                <p className="text-xs text-gray-600">{formatDateTime(row.created_at)}{extra && `, ${extra}`}</p>
               </li>
             )
           })}

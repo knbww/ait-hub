@@ -222,7 +222,7 @@ export function TeamsPage() {
       <DataState isLoading={teams.isLoading} error={teams.error} onRetry={() => void teams.refetch()}>
         {myTeam && (
           <>
-            <h2 className="text-sm uppercase tracking-wider text-gray-600 px-1">{t('teams.mine')}</h2>
+            <h2 className="text-base font-semibold text-gray-800 px-1">{t('teams.mine')}</h2>
             <TeamCardFull team={myTeam} manage={canManage(myTeam)} mine requests={requestsFor(myTeam)} />
           </>
         )}
@@ -230,7 +230,7 @@ export function TeamsPage() {
           <GlassCard><p className="text-sm text-gray-700">{t('week.noTrack')}</p></GlassCard>
         ) : (
           <>
-            <h2 className="text-sm uppercase tracking-wider text-gray-600 px-1 pt-2">
+            <h2 className="text-base font-semibold text-gray-800 px-1 pt-2">
               {t('teams.ofTrack', { track: t(`track.${track}`) })}
             </h2>
             {trackTeams.length === 0 ? (
@@ -246,7 +246,7 @@ export function TeamsPage() {
                         <h3 className="text-lg font-normal"><Link to={`/teams/${tm.id}`} className="hover:underline">{tm.name}</Link></h3>
                         {tm.goal && <p className="text-sm text-gray-700">{tm.goal}</p>}
                         <p className="text-xs text-gray-600 mt-1">
-                          {tm.team_members?.map((m) => m.profile?.full_name).join(', ')} · {t('teams.count', { n: tm.team_members?.length ?? 0, max: TEAM_LIMIT })}
+                          {tm.team_members?.map((m) => m.profile?.full_name).join(', ')}, {t('teams.count', { n: tm.team_members?.length ?? 0, max: TEAM_LIMIT })}
                         </p>
                       </div>
                       {!myTeam && !isStaff && <JoinButton team={tm} pending={myPending.has(tm.id)} />}

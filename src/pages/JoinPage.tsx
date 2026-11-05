@@ -280,8 +280,7 @@ export function JoinPage() {
     <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit" className="max-w-6xl mx-auto space-y-10 sm:space-y-16 pt-2 sm:pt-6">
       <section className="grid grid-cols-1 lg:grid-cols-[1.1fr_1fr] gap-6 lg:gap-12 items-center">
         <motion.div variants={cardVariants} className="px-1">
-          <p className="text-xs font-semibold tracking-[0.14em] uppercase text-[#750014]">{t('join.hub.kicker')}</p>
-          <h1 className="text-4xl sm:text-5xl font-light tracking-tight leading-[1.08] mt-3">
+          <h1 className="text-4xl sm:text-5xl font-light tracking-tight leading-[1.08]">
             {t('join.hub.title')} <span className="text-[#750014]">{t('join.hub.titleAccent')}</span>
           </h1>
           <p className="text-base sm:text-lg text-gray-700 mt-5 max-w-xl">{t('join.hub.lead')}</p>

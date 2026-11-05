@@ -21,7 +21,7 @@ function OpportunityCard({ o }: { o: OpportunityRow }) {
   return (
     <motion.article layout initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} exit={{ opacity: 0, scale: 0.97 }}
       transition={{ type: 'spring', stiffness: 380, damping: 32 }}
-      className="group relative flex flex-col gap-2 rounded-3xl border-2 border-white/80 bg-white/30 backdrop-blur-[40px] p-4 sm:p-5 shadow-[0_8px_32px_0_rgba(31,38,135,0.12)] hover:bg-white/45 hover:-translate-y-0.5 transition-[background-color,transform]">
+      className="group relative flex flex-col gap-2 rounded-3xl border-2 border-white/80 bg-white/30 backdrop-blur-[40px] p-4 sm:p-5 shadow-[0_8px_32px_0_rgba(50,30,30,0.12)] hover:bg-white/45 hover:-translate-y-0.5 transition-[background-color,transform]">
       <div className="flex items-start justify-between gap-2">
         <OpportunityBadges o={o} />
         <span className="relative z-10 -mt-1 -mr-1"><SaveButton o={o} /></span>

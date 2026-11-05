@@ -28,8 +28,8 @@ function Journal({ entries, showMember }: { entries: PointsEntryRow[]; showMembe
             {showMember && e.member && <p className="font-normal">{e.member.full_name}</p>}
             <p className="break-words">{e.note}</p>
             <p className="text-xs text-gray-600">
-              {t(`points.category.${e.category}`)} · {formatDate(e.created_at)}
-              {e.awarder && ` · ${t('points.confirmedBy', { name: e.awarder.full_name })}`}
+              {t(`points.category.${e.category}`)}, {formatDate(e.created_at)}
+              {e.awarder && `, ${t('points.confirmedBy', { name: e.awarder.full_name })}`}
             </p>
           </div>
           <span className={`text-sm font-medium tabular-nums ${e.amount >= 0 ? 'text-green-800' : 'text-red-700'}`}>

@@ -46,7 +46,7 @@ export function Navbar() {
   const inbox = useInbox(Boolean(profile))
   const unread = (inbox.data ?? []).reduce((sum, c) => sum + c.unread, 0)
 
-  const toolbar = 'backdrop-blur-[40px] bg-white/50 border border-white/70 shadow-[0_8px_32px_0_rgba(31,38,135,0.12)]'
+  const toolbar = 'backdrop-blur-[40px] bg-white/50 border border-white/70 shadow-[0_8px_32px_0_rgba(50,30,30,0.12)]'
 
   return (
     <>

@@ -357,7 +357,7 @@ export function ProfilePage() {
             <h1 className={pageTitle}>{profile.full_name}</h1>
             <p className="text-sm text-gray-700">
               {t(`role.${profile.role}`)}
-              {shownGrade(profile) ? ` · ${t('common.gradeN', { n: shownGrade(profile)! })}` : ''}
+              {shownGrade(profile) ? `, ${t('common.gradeN', { n: shownGrade(profile)! })}` : ''}
             </p>
           </div>
         </div>

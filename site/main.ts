@@ -1,4 +1,4 @@
-import '@fontsource-variable/nunito'
+import '@fontsource-variable/manrope'
 import './site.css'
 
 // Blocks fade in as they scroll into view, a little after one another within a row.

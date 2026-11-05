@@ -50,7 +50,7 @@ export function PendingMembers() {
                 <span className="flex flex-wrap items-center gap-1.5 text-xs text-gray-600 mt-0.5">
                   {m.grade && t('common.gradeN', { n: m.grade })}
                   <TrackBadge track={m.track_id} />
-                  <span>· {t('pending.joined', { ago: formatAgo(m.created_at) })}</span>
+                  <span>{t('pending.joined', { ago: formatAgo(m.created_at) })}</span>
                 </span>
               </Link>
               <div className="flex gap-2">

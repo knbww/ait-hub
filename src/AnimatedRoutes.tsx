@@ -65,7 +65,7 @@ export function AnimatedRoutes() {
 
   useEffect(() => {
     const key = TITLES.find(([pattern]) => pattern.test(location.pathname))?.[1]
-    document.title = key ? `${t(key)} · AIT Hub` : 'AIT Hub'
+    document.title = key ? `${t(key)} — AIT Hub` : 'AIT Hub'
   }, [location.pathname, t])
 
   return (
