@@ -63,7 +63,9 @@ self.addEventListener('push', (event) => {
 
 self.addEventListener('notificationclick', (event) => {
   event.notification.close()
-  const target = (event.notification.data && event.notification.data.url) || '/'
+  // Only ever into the Hub, whatever a notification says.
+  const wanted = new URL((event.notification.data && event.notification.data.url) || '/', self.location.origin)
+  const target = wanted.origin === self.location.origin ? wanted.href : `${self.location.origin}/`
   event.waitUntil((async () => {
     const windows = await self.clients.matchAll({ type: 'window', includeUncontrolled: true })
     for (const client of windows) {

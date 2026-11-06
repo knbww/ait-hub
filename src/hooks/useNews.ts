@@ -74,15 +74,9 @@ export function usePhotoRefusals(enabled: boolean) {
     enabled,
     queryFn: async () => {
       if (!supabase) return []
-      const { data, error } = await supabase
-        .from('member_private')
-        .select('photo_consent, profile:profiles!inner(full_name, status)')
-        .or('photo_consent.is.null,photo_consent.eq.false')
-        .eq('profile.status', 'active')
+      const { data, error } = await supabase.rpc('photo_refusals')
       if (error) throw error
-      return (data as unknown as { profile: { full_name: string } }[])
-        .map((r) => r.profile.full_name)
-        .sort((a, b) => a.localeCompare(b, 'ru'))
+      return ((data ?? []) as string[]).sort((a, b) => a.localeCompare(b, 'ru'))
     },
   })
 }

@@ -26,6 +26,7 @@ import {
   createResetCode, decideJoin, deleteMember, exportMemberData, setMemberRole, setMemberStatus, setMemberTrack,
 } from '../lib/memberActions'
 import { downloadJson, stampedName } from '../lib/download'
+import { isDemo } from '../lib/demo'
 import { TRACK_IDS, formatDate, shownGrade } from '../lib/club'
 import type { ProfileRow, Role, TrackId } from '../lib/db'
 import { btnDanger, btnSecondary, chip, inputClass, labelClass, pageTitle, sectionTitle } from '../lib/ui'
@@ -35,7 +36,7 @@ const ROLES: Role[] = ['member', 'track_lead', 'director', 'curator']
 function ManagePanel({ member }: { member: ProfileRow }) {
   const { t } = useI18n()
   const navigate = useNavigate()
-  const { isDirector, role: myRole } = useAuth()
+  const { isDirector, mfaVerified, role: myRole } = useAuth()
   // The curator is staff, not a pupil: no works, AIT Points or track to manage.
   const curator = member.role === 'curator'
   const priv = useMemberPrivate(member.id)
@@ -95,6 +96,7 @@ function ManagePanel({ member }: { member: ProfileRow }) {
       <h2 className={sectionTitle}>{t('member.manage.title')}</h2>
       <p className="text-xs text-gray-600 mb-3">{t(curator ? 'member.manage.hintCurator' : 'member.manage.hint')}</p>
 
+      {!mfaVerified && !isDemo && <p className="text-xs text-amber-900 mb-3">{t('member.contactsNeedMfa')}</p>}
       <dl className="grid grid-cols-1 sm:grid-cols-2 gap-3 text-sm mb-4">
         <div>
           <dt className="text-xs text-gray-600">{t('join.form.email')}</dt>

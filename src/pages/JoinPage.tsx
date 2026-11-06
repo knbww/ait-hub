@@ -14,6 +14,7 @@ import { useI18n } from '../context/i18nContext'
 import { supabase } from '../lib/supabase'
 import { claimTrack } from '../lib/memberActions'
 import { GRADES } from '../lib/club'
+import { MIN_PASSWORD_LENGTH, isLeakedPassword, isWeakPassword } from '../lib/passwords'
 import { btnAccent, btnPrimary, btnSecondary, inputClass, labelClass } from '../lib/ui'
 import logo from '../assets/aitlogo.png'
 
@@ -68,11 +69,15 @@ function SignUpForm({ code, trackTitle, onReset }: { code: string; trackTitle: s
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
-    if (password.length < 8) return setError('weak_password')
+    if (isWeakPassword(password)) return setError('weak_password')
     if (!photo) return setError('photo_choice')
     if (captchaSiteKey && !captcha) return setError('captcha_needed')
     setBusy(true)
     setError(null)
+    if (await isLeakedPassword(password)) {
+      setBusy(false)
+      return setError('leaked_password')
+    }
     const res = await signUp({
       email,
       password,
@@ -133,7 +138,7 @@ function SignUpForm({ code, trackTitle, onReset }: { code: string; trackTitle: s
       <div>
         <label className={labelClass} htmlFor="j-pass">{t('join.form.password')}</label>
         <input id="j-pass" type="password" className={inputClass} value={password}
-          onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" minLength={8} required />
+          onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" minLength={MIN_PASSWORD_LENGTH} required />
         <p className="text-xs text-gray-500 mt-1">{t('join.form.passwordHint')}</p>
       </div>
       <fieldset>
