@@ -14,7 +14,7 @@ import { useI18n } from '../context/i18nContext'
 import { supabase } from '../lib/supabase'
 import { claimTrack } from '../lib/memberActions'
 import { GRADES } from '../lib/club'
-import { btnPrimary, btnSecondary, inputClass, labelClass } from '../lib/ui'
+import { btnAccent, btnPrimary, btnSecondary, inputClass, labelClass } from '../lib/ui'
 import logo from '../assets/aitlogo.png'
 
 interface CodeCheck {
@@ -156,7 +156,7 @@ function SignUpForm({ code, trackTitle, onReset }: { code: string; trackTitle: s
       ) : (
         <ErrorText error={error} />
       )}
-      <button type="submit" disabled={busy} className={`${btnPrimary} w-full`}>
+      <button type="submit" disabled={busy} className={`${btnAccent} w-full`}>
         {busy ? t('common.wait') : t('join.form.submit')}
       </button>
     </form>
@@ -191,7 +191,7 @@ function CodeEntry({ onFound }: { onFound: (check: CodeCheck) => void }) {
         <input id="j-code" className={`${inputClass} uppercase tracking-widest`} value={code}
           onChange={(e) => setCode(e.target.value)} placeholder="ABCD2345" autoCapitalize="characters"
           autoComplete="off" required maxLength={12} />
-        <button type="submit" disabled={busy || !code.trim()} className={btnPrimary}>
+        <button type="submit" disabled={busy || !code.trim()} className={btnAccent}>
           <ArrowRight className="w-4 h-4" />
           <span className="sr-only">{t('join.code.next')}</span>
         </button>

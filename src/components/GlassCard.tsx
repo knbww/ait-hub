@@ -14,7 +14,7 @@ export function GlassCard({ className = '', children }: GlassCardProps) {
   return (
     <motion.div
       variants={cardVariants}
-      className={`backdrop-blur-[40px] bg-white/25 border-2 border-white/80 rounded-3xl p-4 sm:p-6 shadow-[0_8px_32px_0_rgba(50,30,30,0.15)] ${className}`}
+      className={`backdrop-blur-[40px] bg-white/[0.38] border-2 border-white/80 rounded-[26px] p-4 sm:p-6 shadow-[0_8px_32px_0_rgba(50,30,30,0.12)] ${className}`}
     >
       {children}
     </motion.div>

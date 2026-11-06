@@ -8,10 +8,12 @@ export const inputClass =
 export const labelClass = 'block text-xs font-medium text-gray-600 mb-1'
 
 const buttonBase =
-  'inline-flex items-center justify-center gap-2 rounded-xl text-sm font-normal transition-all duration-200 ' +
+  'inline-flex items-center justify-center gap-2 rounded-[14px] text-sm font-normal transition-all duration-200 ' +
   'disabled:opacity-50 disabled:pointer-events-none min-h-[44px] sm:min-h-[38px] px-4 py-2'
 
 export const btnPrimary = `${buttonBase} bg-gray-900 text-white hover:bg-black active:scale-[0.98]`
+/** The one red call to action on a screen, as on aitclub.org (Join, Submit). */
+export const btnAccent = `${buttonBase} bg-[#750014] text-white shadow-[0_10px_30px_-10px_rgba(117,0,20,0.7)] hover:bg-[#5c0010] active:scale-[0.98]`
 export const btnSecondary = `${buttonBase} border border-gray-900 text-gray-900 hover:bg-gray-900 hover:text-white active:scale-[0.98]`
 export const btnGhost = `${buttonBase} text-gray-700 hover:bg-white/60`
 export const btnDanger = `${buttonBase} border border-red-600 text-red-700 hover:bg-red-600 hover:text-white`
@@ -22,8 +24,9 @@ export const btnSmall =
 export const chip = 'inline-flex items-center gap-1 text-xs px-2 py-0.5 rounded-full whitespace-nowrap'
 export const accent = '#750014'
 
-export const pageTitle = 'text-2xl sm:text-3xl font-light'
-export const sectionTitle = 'text-lg sm:text-xl font-light'
+// Headings as on aitclub.org: light, large, tightly tracked.
+export const pageTitle = 'text-[32px] sm:text-[44px] font-light tracking-[-0.03em] leading-[1.05] mb-2'
+export const sectionTitle = 'text-xl sm:text-2xl font-light tracking-[-0.02em]'
 
 /** Segmented control (tabs / filters). */
 export const segment = (active: boolean) =>

@@ -8,7 +8,7 @@ import { useAuth } from '../context/authContext'
 import { useI18n } from '../context/i18nContext'
 import { useChatLive, useInbox } from '../hooks/useChats'
 import { Modal } from './Modal'
-import logo from '../assets/aitlogo.png'
+import logo from '../assets/ait-mark.png'
 
 interface NavItem {
   key: string
@@ -46,14 +46,15 @@ export function Navbar() {
   const inbox = useInbox(Boolean(profile))
   const unread = (inbox.data ?? []).reduce((sum, c) => sum + c.unread, 0)
 
-  const toolbar = 'backdrop-blur-[40px] bg-white/50 border border-white/70 shadow-[0_8px_32px_0_rgba(50,30,30,0.12)]'
+  const toolbar = 'backdrop-blur-[40px] bg-white/[0.52] border-2 border-white/90 shadow-[0_14px_44px_rgba(50,30,30,0.12)]'
 
   return (
     <>
       <header className="max-w-7xl mx-auto mb-5 sm:mb-8 sticky top-2 sm:top-4 z-50">
-        <div className={`${toolbar} rounded-2xl px-3 sm:px-4 py-2 flex items-center gap-3`}>
-          <Link to={session ? '/' : '/join'} className="shrink-0" aria-label="AIT Hub">
-            <img src={logo} alt="AIT Hub" className="h-9 sm:h-10 w-auto" style={{ mixBlendMode: 'multiply' }} />
+        <div className={`${toolbar} rounded-[22px] pl-[18px] pr-2 py-2 flex items-center gap-3`}>
+          <Link to={session ? '/' : '/join'} className="shrink-0 flex items-center gap-2 py-2" aria-label="AIT Hub">
+            <img src={logo} alt="" className="h-[22px] w-auto" />
+            <span className="text-[15px] font-medium text-gray-700">Hub</span>
           </Link>
 
           {session ? (
@@ -65,8 +66,8 @@ export function Navbar() {
                     to={item.path}
                     end={item.path === '/'}
                     className={({ isActive: active }) =>
-                      `px-3 py-1.5 rounded-lg text-sm whitespace-nowrap transition-colors ${
-                        active ? 'bg-gray-900 text-white' : 'text-gray-700 hover:bg-white/70'
+                      `px-3 py-2 rounded-[12px] text-sm whitespace-nowrap transition-colors ${
+                        active ? 'bg-gray-900 text-white' : 'text-gray-700 hover:bg-white/90 hover:text-gray-900'
                       }`
                     }
                   >
@@ -120,12 +121,12 @@ export function Navbar() {
           ) : (
             <div className="ml-auto flex items-center gap-2">
               {pathname !== '/login' && (
-                <Link to="/login" className="px-4 py-2 rounded-xl bg-gray-900 text-white text-sm">
+                <Link to="/login" className="px-[18px] py-2.5 rounded-[14px] bg-gray-900 text-white text-sm">
                   {t('nav.signIn')}
                 </Link>
               )}
               {pathname !== '/join' && (
-                <Link to="/join" className="px-4 py-2 rounded-xl border border-gray-900 text-sm">
+                <Link to="/join" className="px-[18px] py-2.5 rounded-[14px] bg-[#750014] text-white text-sm shadow-[0_10px_30px_-10px_rgba(117,0,20,0.7)]">
                   {t('nav.join')}
                 </Link>
               )}
@@ -136,7 +137,7 @@ export function Navbar() {
 
       {session && (
         <nav
-          className={`lg:hidden fixed bottom-0 inset-x-0 z-50 ${toolbar} border-x-0 border-b-0 rounded-t-2xl px-2 pt-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))]`}
+          className={`lg:hidden fixed bottom-0 inset-x-0 z-50 ${toolbar} border-x-0 border-b-0 rounded-t-[22px] px-2 pt-1.5 pb-[max(0.5rem,env(safe-area-inset-bottom))]`}
           aria-label={t('nav.label')}
         >
           <div className="grid grid-cols-5">

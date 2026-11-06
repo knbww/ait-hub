@@ -160,13 +160,13 @@ body:has(.hero) { padding-top: 0; }
 .track-body ul { margin: 0; padding: 0; list-style: none; display: flex; flex-direction: column; }
 .track-body li { padding: 9px 0 9px 18px; border-top: 1px solid var(--hair); font-size: 14px; line-height: 1.45; color: var(--ink); position: relative; }
 .track-body li::before { content: ""; position: absolute; left: 2px; top: 16px; width: 6px; height: 6px; background: var(--red); }
-.track-body .track-tools { margin-top: auto; padding-top: 6px; font: 12.5px/1.5 var(--mono); color: var(--muted); }
+.track-body .track-tools { margin-top: auto; padding-top: 6px; font-size: 13.5px; line-height: 1.5; color: var(--muted); }
 
 .year { display: grid; grid-template-columns: minmax(0, 1fr) minmax(0, 1.35fr); gap: 40px 72px; align-items: start; }
 .year-head { position: sticky; top: 120px; display: flex; flex-direction: column; gap: 18px; }
 .year-list { margin: 0; padding: 0; list-style: none; border-bottom: 1px solid var(--hair); }
 .year-list li { display: grid; grid-template-columns: 190px minmax(0, 1fr); gap: 6px 24px; padding: 22px 0; border-top: 1px solid var(--hair); }
-.year-list .when { font: 13px/1.6 var(--mono); color: var(--muted); padding-top: 2px; }
+.year-list .when { font-size: 14px; line-height: 1.6; color: var(--muted); padding-top: 2px; }
 .year-list h3 { font-size: 19px; font-weight: 600; letter-spacing: -0.01em; }
 .year-list p { margin: 6px 0 0; color: var(--body); font-size: 15px; line-height: 1.55; }
 .year-list .is-end h3 { color: var(--accent-text); }
