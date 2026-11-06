@@ -8,7 +8,7 @@ import { useAuth } from '../context/authContext'
 import { useI18n } from '../context/i18nContext'
 import { useChatLive, useInbox } from '../hooks/useChats'
 import { Modal } from './Modal'
-import logo from '../assets/ait-mark.png'
+import logo from '../assets/ait-hub.svg'
 
 interface NavItem {
   key: string
@@ -52,14 +52,13 @@ export function Navbar() {
     <>
       <header className="max-w-7xl mx-auto mb-5 sm:mb-8 sticky top-2 sm:top-4 z-50">
         <div className={`${toolbar} rounded-[22px] pl-[18px] pr-2 py-2 flex items-center gap-3`}>
-          <Link to={session ? '/' : '/join'} className="shrink-0 flex items-center gap-2 py-2" aria-label="AIT Hub">
-            <img src={logo} alt="" className="h-[22px] w-auto" />
-            <span className="text-[15px] font-medium text-gray-700">Hub</span>
+          <Link to={session ? '/' : '/join'} className="shrink-0 py-2" aria-label="AIT Hub">
+            <img src={logo} alt="AIT Hub" className="h-[22px] w-auto" />
           </Link>
 
           {session ? (
             <>
-              <nav className="hidden lg:flex items-center gap-1 flex-1" aria-label={t('nav.label')}>
+              <nav className="hidden lg:flex items-center gap-1 flex-1 ml-3" aria-label={t('nav.label')}>
                 {NAV.map((item) => (
                   <NavLink
                     key={item.path}
