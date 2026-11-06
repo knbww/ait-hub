@@ -229,7 +229,7 @@ async function turnstile() {
   if (!ACCOUNT) return problem('CLOUDFLARE_ACCOUNT_ID is not in .env.local')
   const list = await cf('GET', `/accounts/${ACCOUNT}/challenges/widgets?per_page=50`)
   if (!list.ok) return problem(`${why(list)} — the token needs Account → Turnstile: Edit, or use --no-turnstile and create the widget in the dashboard`)
-  const widget = list.result.find((w) => (w.domains ?? []).includes(HUB_HOST))
+  const widget = list.result.find((w) => (w.domains ?? []).some((domain) => domain === HUB_HOST))
   if (widget) {
     same(`widget for ${HUB_HOST}, site key ${widget.sitekey}`)
     return
