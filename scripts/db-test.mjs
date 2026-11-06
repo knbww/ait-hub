@@ -8,7 +8,8 @@
 //   1. upgrade — the June schema + a prod-like snapshot, then the October migrations;
 //   2. fresh   — all migrations on an empty database, then the content and access-rule checks;
 //   3. seed    — all migrations + supabase/seed.sql (the demo club) apply cleanly;
-//   4. staff   — staff accounts created in the dashboard (Authentication → Add user).
+//   4. staff   — staff accounts created in the dashboard (Authentication → Add user);
+//   5. hardening — the second factor, limits, files and the rules every database object must keep.
 
 import { readFileSync, readdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
@@ -462,12 +463,6 @@ async function freshScenario() {
   await expectOk('director: demotes back', db, U.dir, `select public.set_member_role($1, 'member')`, [P.ai5])
   await expectError('director: keeps at least one director', db, U.dir,
     `select public.set_member_role($1, 'member')`, [P.dir], /last_director/)
-  await expectError('director: password needs 8+ characters', db, U.dir,
-    `select public.admin_set_password($1, 'short')`, [P.ai2], /weak_password/)
-  await expectOk('director: sets a new password', db, U.dir,
-    `select public.admin_set_password($1, 'новый-пароль-1')`, [P.ai2])
-  await expectEqual('director: password is stored as bcrypt', db, pg,
-    `select encrypted_password like '$2%' from auth.users where id = $1`, [U.ai2], true)
   await expectOk('director: builds the schedule', db, U.dir, `select public.set_schedule('2026-10-05', 30)`)
   await expectEqual('schedule: 30 weeks', db, U.ai1, 'select count(*)::int from public.cohort_weeks', [], 30)
   await expectOk('director: shifts the schedule for a holiday', db, U.dir, 'select public.shift_schedule(13, 7)')
@@ -831,7 +826,7 @@ async function freshScenario() {
     `select count(*)::int from storage.objects where bucket_id = 'avatars'`, [], 0)
 
   // ── Push notifications ────────────────────────────────────────────────────
-  const endpoint = 'https://push.example.com/device-1'
+  const endpoint = 'https://fcm.googleapis.com/fcm/send/device-1'
   await expectOk('push: a member registers a device', db, m, 'select public.register_push($1, $2, $3, $4)',
     [endpoint, 'p256dh-key', 'auth-key', 'test browser'])
   await expectEqual('push: they see their device', db, m, 'select count(*)::int from public.push_subscriptions', [], 1)
@@ -845,15 +840,21 @@ async function freshScenario() {
   await expectOk('push: removing a device', db, U.ai2, 'select public.unregister_push($1)', [endpoint])
   await expectEqual('push: gone', db, pg, 'select count(*)::int from public.push_subscriptions', [], 0)
   await expectError('push: guests cannot register', db, anon, 'select public.register_push($1, $2, $3)', [endpoint, 'a', 'b'], DENIED)
-  await expectError('push: endpoints must be https', db, m, 'select public.register_push($1, $2, $3)', ['http://x.kz', 'a', 'b'], /check/)
+  await expectError('push: endpoints must be https', db, m, 'select public.register_push($1, $2, $3)', ['http://x.kz', 'a', 'b'], /invalid_push_endpoint/)
+  await expectError('push: only the browsers\' own push services', db, m, 'select public.register_push($1, $2, $3)',
+    ['https://evil.example/collect', 'a', 'b'], /invalid_push_endpoint/)
+  await expectError('push: a look-alike host is refused', db, m, 'select public.register_push($1, $2, $3)',
+    ['https://fcm.googleapis.com.evil.example/x', 'a', 'b'], /invalid_push_endpoint/)
+  for (const url of ['https://updates.push.services.mozilla.com/wpush/v2/x', 'https://web.push.apple.com/x',
+    'https://wns2-par02p.notify.windows.com/w/?token=x']) {
+    await expectEqual(`push: ${new URL(url).host} is accepted`, db, m, 'select public.is_push_endpoint($1)', [url], true)
+  }
 
   // ── Second factor and API surface ─────────────────────────────────────────
   await expectError('mfa: exports need a second factor', db, noMfa(U.dir), 'select * from public.export_members()', [], /mfa_required/)
   await expectError('mfa: so do points exports', db, noMfa(U.cur), 'select * from public.export_points()', [], /mfa_required/)
   await expectError('mfa: role changes need it', db, noMfa(U.dir),
     `select public.set_member_role($1, 'track_lead')`, [P.ai4], /mfa_required/)
-  await expectError('mfa: password resets need it', db, noMfa(U.dir),
-    `select public.admin_set_password($1, 'новый-пароль-2')`, [P.ai4], /mfa_required/)
   await expectError('mfa: deletion needs it', db, noMfa(U.dir), 'select public.delete_member($1)', [P.ai6], /mfa_required/)
   await expectError('mfa: a lead downloading a member\'s data needs it', db, noMfa(l),
     'select public.export_member_data($1)', [P.ai2], /mfa_required/)
@@ -885,8 +886,8 @@ async function freshScenario() {
   await expectEqual('delete: login gone', db, pg, 'select count(*)::int from auth.users where id = $1', [U.startup1], 0)
   await expectEqual('audit: staff actions are logged', db, U.cur,
     `select count(*)::int from public.audit_log
-     where action in ('role_changed', 'password_reset', 'member_deleted', 'join_code_rotated', 'schedule_set',
-                      'status_changed', 'event_completed', 'export_members')`, [], 10)
+     where action in ('role_changed', 'member_deleted', 'join_code_rotated', 'schedule_set',
+                      'status_changed', 'event_completed', 'export_members')`, [], 9)
 
   // ── Joining: codes end, newcomers wait ────────────────────────────────────
   const signUpSql = 'insert into auth.users (id, email, raw_user_meta_data) values ($1, $2, $3)'
@@ -935,7 +936,7 @@ async function freshScenario() {
   await expectError('reset: nobody reads the codes', db, l, 'select * from public.password_reset_codes', [], DENIED)
   await expectEqual('reset: a wrong code is refused', db, 'anon', resetSql, ['ai2@example.com', 'WRONG234', 'новый-пароль-1'], 'invalid')
   await expectEqual('reset: an unknown email looks the same', db, 'anon', resetSql, ['nobody@example.com', resetCode, 'новый-пароль-1'], 'invalid')
-  await expectError('reset: the new password needs 8+ characters', db, 'anon', resetSql, ['ai2@example.com', resetCode, 'short'], /weak_password/)
+  await expectError('reset: the new password needs 10+ characters', db, 'anon', resetSql, ['ai2@example.com', resetCode, 'short'], /weak_password/)
   await expectEqual('reset: the right code works (any case)', db, 'anon', resetSql,
     [' AI2@example.com ', resetCode.toLowerCase(), 'новый-пароль-1'], 'ok')
   await expectEqual('reset: the password is the member\'s own', db, pg,
@@ -1083,12 +1084,242 @@ async function staffScenario() {
   await db.close()
 }
 
+// ── 5. Hardening ────────────────────────────────────────────────────────────
+async function hardeningScenario() {
+  const db = await freshDb()
+  await migrate(db, MIGRATIONS)
+  const pg = 'postgres'
+  const anon = 'anon'
+
+  // Rules every database object keeps, whatever the next migration adds.
+  await expectEqual('catalog: every table has row-level security', db, pg,
+    `select coalesce(string_agg(c.relname, ','), '') from pg_class c join pg_namespace n on n.oid = c.relnamespace
+     where n.nspname = 'public' and c.relkind = 'r' and not c.relrowsecurity`, [], '')
+  await expectEqual('catalog: guests have no table privileges', db, pg,
+    `select coalesce(string_agg(distinct table_name, ','), '') from information_schema.role_table_grants
+     where grantee in ('anon', 'PUBLIC') and table_schema = 'public'`, [], '')
+  await expectEqual('catalog: guests can call exactly two functions', db, pg,
+    `select string_agg(p.proname, ',' order by p.proname) from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+     where n.nspname = 'public' and has_function_privilege('anon', p.oid, 'execute')`, [], 'check_join_code,reset_password_with_code')
+  await expectEqual('catalog: every definer function fixes its search_path', db, pg,
+    `select coalesce(string_agg(p.proname, ','), '') from pg_proc p join pg_namespace n on n.oid = p.pronamespace
+     where n.nspname in ('public', 'private') and p.prosecdef
+       and not exists (select 1 from unnest(p.proconfig) c where c like 'search\_path=%')`, [], '')
+  await expectEqual('catalog: the internal schema is closed', db, pg,
+    `select has_schema_privilege('anon', 'private', 'usage') or has_schema_privilege('authenticated', 'private', 'usage')`, [], false)
+  await run(db, pg, `create function public.later_on() returns int language sql as 'select 1'`)
+  await expectEqual('catalog: a function added later is closed to guests without anyone revoking it', db, pg,
+    `select has_function_privilege('anon', 'public.later_on()', 'execute')`, [], false)
+  await run(db, pg, 'drop function public.later_on()')
+  await expectEqual('catalog: policies with no condition are only on the two reference tables', db, pg,
+    `select string_agg(tablename, ',' order by tablename) from pg_policies
+     where schemaname = 'public' and cmd = 'SELECT' and qual = 'true'`, [], 'cohorts,tracks')
+  await expectEqual('catalog: the access-token hook left nothing behind', db, pg,
+    `select count(*)::int from pg_policies where 'supabase_auth_admin' = any(roles)`, [], 0)
+
+  const code = await value(db, pg, `select code from public.join_codes where active and track_id = 'ai'`)
+  const uid = (n) => `50000000-0000-0000-0000-${String(n).padStart(12, '0')}`
+  const U = { dir: uid(1), cur: uid(2), lead: uid(3), m1: uid(4), m2: uid(5), newbie: uid(6), off: uid(7), ghost: uid(8) }
+  for (const [key, id] of Object.entries(U)) {
+    await run(db, pg, 'insert into auth.users (id, email, raw_user_meta_data) values ($1, $2, $3)',
+      [id, `${key}@example.com`, { full_name: `Тест ${key}`, grade: 9, join_code: code, photo_consent: key !== 'm2' }])
+  }
+  await run(db, pg, `update public.profiles set status = 'active' where user_id <> $1`, [U.newbie])
+  await run(db, pg, `update public.profiles set role = 'director', track_id = null where user_id = $1`, [U.dir])
+  await run(db, pg, `update public.profiles set role = 'curator', track_id = null, grade = null where user_id = $1`, [U.cur])
+  await run(db, pg, `update public.profiles set role = 'track_lead' where user_id = $1`, [U.lead])
+  await run(db, pg, `update public.profiles set status = 'inactive' where user_id = $1`, [U.off])
+  const P = {}
+  for (const [key, id] of Object.entries(U)) P[key] = await value(db, pg, 'select id from public.profiles where user_id = $1', [id])
+  await run(db, pg, 'delete from public.profiles where id = $1', [P.ghost]) // a login left without a profile
+
+  const project = await value(db, U.m1, `select public.create_project('Проект', 'Проблема', 'Школьники')`)
+  const team = await value(db, U.m1, `select public.create_team('Команда')`)
+
+  // ── Answers are true or false, never null ─────────────────────────────────
+  for (const who of ['newbie', 'off', 'ghost']) {
+    await expectEqual(`null logic: can_edit_project answers for ${who}`, db, U[who], 'select public.can_edit_project($1)', [project], false)
+    await expectEqual(`null logic: can_edit_track answers for ${who}`, db, U[who], `select public.can_edit_track('ai')`, [], false)
+    await expectEqual(`null logic: can_manage answers for ${who}`, db, U[who], 'select public.can_manage($1)', [P.m1], false)
+    await expectEqual(`null logic: can_manage_team answers for ${who}`, db, U[who], 'select public.can_manage_team($1)', [team], false)
+    await expectError(`${who}: cannot add a project member`, db, U[who], 'select public.add_project_member($1, $2)', [project, P.m2], /forbidden/)
+    await expectError(`${who}: cannot remove a project member`, db, U[who], 'select public.remove_project_member($1, $2)', [project, P.m1], /forbidden/)
+    await expectError(`${who}: cannot remove a team member`, db, U[who], 'select public.remove_team_member($1, $2)', [team, P.m1], /forbidden/)
+    await expectError(`${who}: cannot export someone's data`, db, U[who], 'select public.export_member_data($1)', [P.m1], /forbidden/)
+    await expectError(`${who}: cannot rotate a code`, db, U[who], `select public.rotate_join_code('ai')`, [], /forbidden/)
+  }
+  await expectEqual('team: a switched-off captain no longer runs it', db, pg, 'select count(*)::int from public.team_members', [], 1)
+  await run(db, pg, `update public.profiles set status = 'inactive' where id = $1`, [P.m1])
+  await expectError('team: a switched-off captain cannot archive it', db, U.m1, 'select public.archive_team($1)', [team], /forbidden/)
+  await expectError('project: a switched-off owner cannot add people', db, U.m1, 'select public.add_project_member($1, $2)', [project, P.m2], /forbidden/)
+  await run(db, pg, `update public.profiles set status = 'active' where id = $1`, [P.m1])
+
+  // ── A verified factor makes a session without the code nobody ─────────────
+  await run(db, pg, `insert into auth.mfa_factors (user_id, status) values ($1, 'verified')`, [U.lead])
+  await run(db, pg, `insert into auth.mfa_factors (user_id, status) values ($1, 'unverified')`, [U.m2])
+  const stolen = noMfa(U.lead)
+  await expectEqual('factor on, no code: mfa_ok says so', db, stolen, 'select public.mfa_ok()', [], false)
+  await expectEqual('factor on, no code: no profile id', db, stolen, 'select public.current_profile_id()', [], null)
+  await expectEqual('factor on, no code: no role', db, stolen, 'select public.my_role()', [], null)
+  await expectEqual('factor on, no code: not an active member', db, stolen, 'select public.is_active_member()', [], false)
+  await expectEqual('factor on, no code: only their own profile', db, stolen, 'select count(*)::int from public.profiles', [], 1)
+  await expectEqual('factor on, no code: not even their own contacts', db, stolen, 'select count(*)::int from public.member_private', [], 0)
+  await expectError('factor on, no code: no staff actions', db, stolen, `select public.award_points($1, 5, 'event', 'x')`, [P.m1], /forbidden/)
+  await expectNoEffect('factor on, no code: cannot rename themselves', db, stolen, `update public.profiles set full_name = 'Вор'`)
+  await expectEqual('factor on, with the code: everything is back', db, U.lead, 'select public.my_role()', [], 'track_lead')
+  await expectEqual('factor on, with the code: contacts of the track', db, U.lead,
+    `select count(*)::int from public.member_private`, [], 5)
+  await expectEqual('an unfinished factor changes nothing', db, noMfa(U.m2), 'select public.mfa_ok()', [], true)
+  await run(db, pg, 'delete from auth.mfa_factors')
+
+  // ── Director and curator powers need the code ─────────────────────────────
+  for (const who of ['dir', 'cur']) {
+    const aal1 = noMfa(U[who])
+    await expectEqual(`${who} without the code: can_manage is off`, db, aal1, 'select public.can_manage($1)', [P.m1], false)
+    await expectEqual(`${who} without the code: can_edit_track is off`, db, aal1, `select public.can_edit_track('ai')`, [], false)
+    await expectEqual(`${who} without the code: only their own contacts`, db, aal1, 'select count(*)::int from public.member_private', [], 1)
+    await expectEqual(`${who} without the code: no audit log`, db, aal1, 'select count(*)::int from public.audit_log', [], 0)
+    await expectEqual(`${who} without the code: no join codes`, db, aal1, 'select count(*)::int from public.join_codes', [], 0)
+    await expectError(`${who} without the code: no schedule`, db, aal1, `select public.set_schedule('2026-10-05', 30)`, [], /mfa_required/)
+    await expectError(`${who} without the code: no shift`, db, aal1, 'select public.shift_schedule(13, 7)', [], /mfa_required/)
+    await expectError(`${who} without the code: no new codes`, db, aal1, `select public.rotate_join_code('ai')`, [], /mfa_required/)
+    await expectError(`${who} without the code: no data downloads`, db, aal1, 'select public.export_member_data($1)', [P.m1], /mfa_required/)
+    await expectError(`${who} without the code: no reset codes`, db, aal1, 'select public.create_reset_code($1)', [P.m1], /mfa_required/)
+    await expectEqual(`${who} without the code: their own data is still theirs`, db, aal1,
+      `select public.export_member_data($1) ? 'profile'`, [P[who]], true)
+    await expectEqual(`${who} with the code: full contacts`, db, U[who], 'select count(*)::int > 3 from public.member_private', [], true)
+  }
+  await expectError('director without the code: cannot move a member', db, noMfa(U.dir), `select public.set_member_track($1, 'algo')`, [P.m1], /mfa_required/)
+  await expectError('director without the code: cannot switch one off', db, noMfa(U.dir), `select public.set_member_status($1, 'inactive')`, [P.m1], /mfa_required/)
+  await expectOk('a lead keeps working without a factor', db, noMfa(U.lead), 'select public.decide_join($1, true)', [P.newbie])
+  await run(db, pg, `update public.profiles set status = 'pending' where id = $1`, [P.newbie])
+  await expectEqual('a lead without the code: only their own contacts', db, noMfa(U.lead), 'select count(*)::int from public.member_private', [], 1)
+  await expectEqual('a lead with the code: the track', db, U.lead, 'select count(*)::int from public.member_private', [], 5)
+  await expectEqual('photo refusals: names for a lead without the code', db, noMfa(U.lead), 'select count(*)::int from public.photo_refusals()', [], 1)
+  await expectEqual('photo refusals: not for a member', db, U.m1, 'select count(*)::int from public.photo_refusals()', [], 0)
+
+  // ── Reset codes ───────────────────────────────────────────────────────────
+  await expectError('reset: the curator cannot reach the director', db, U.cur, 'select public.create_reset_code($1)', [P.dir], /forbidden/)
+  await expectOk('reset: the director resets the curator', db, U.dir, 'select public.create_reset_code($1)', [P.cur])
+  await expectOk('reset: the curator resets a member', db, U.cur, 'select public.create_reset_code($1)', [P.m1])
+  await run(db, pg, 'delete from public.password_reset_codes')
+  await expectEqual('passwords: weak ones are refused', db, pg,
+    `select public.strong_password('short1') or public.strong_password('onlyletterslong') or public.strong_password('12345678901')`, [], false)
+  await expectEqual('passwords: Cyrillic counts as letters', db, pg, `select public.strong_password('пароль-школьника-1')`, [], true)
+  await expectEqual('passwords: more than bcrypt reads is refused', db, pg, `select public.strong_password(repeat('я', 40) || '1')`, [], false)
+  await expectError('api: the password rule is internal', db, U.m1, `select public.strong_password('x')`, [], DENIED)
+  const resetCode = await value(db, U.lead, 'select public.create_reset_code($1)', [P.m1])
+  await expectEqual('reset: stored at the cost of Supabase Auth', db, anon,
+    'select public.reset_password_with_code($1, $2, $3)', ['m1@example.com', resetCode, 'новый-пароль-2026'], 'ok')
+  await expectEqual('reset: bcrypt cost 10', db, pg, `select left(encrypted_password, 7) from auth.users where id = $1`, [U.m1], '$2a$10$')
+  await expectEqual('reset: other sessions are gone', db, pg, `select count(*)::int from auth.sessions where user_id = $1`, [U.m1], 0)
+
+  // ── Limits ────────────────────────────────────────────────────────────────
+  await run(db, pg, 'delete from private.rate_limits')
+  const resetSql = 'select public.reset_password_with_code($1, $2, $3)'
+  const tries = []
+  for (let i = 0; i < 17; i++) tries.push(await value(db, anon, resetSql, ['nobody@example.com', 'AAAAAAAA', 'новый-пароль-2026']))
+  await expectEqual('limits: reset attempts slow down', db, pg, 'select $1::text', [tries[16]], 'slow_down')
+  await expectEqual('limits: the first attempts are not refused', db, pg, 'select $1::text', [tries[0]], 'invalid')
+  await run(db, pg, 'delete from private.rate_limits')
+  for (let i = 0; i < 40; i++) await value(db, anon, 'select count(*)::int from public.check_join_code($1)', ['ZZZZZZZZ'])
+  await expectEqual('limits: a class scanning the QR from one network gets through', db, anon,
+    'select count(*)::int from public.check_join_code($1)', [code], 1)
+  for (let i = 0; i < 160; i++) await value(db, anon, 'select count(*)::int from public.check_join_code($1)', ['ZZZZZZZZ'])
+  await expectEqual('limits: guessing join codes stops working, a real code looks wrong too', db, anon,
+    'select count(*)::int from public.check_join_code($1)', [code], 0)
+  await run(db, pg, 'delete from private.rate_limits')
+  await expectEqual('limits: each address counts on its own', db, pg,
+    `select private.hit_limit('reset:1.1.1.1', 1, interval '1 minute') and private.hit_limit('reset:2.2.2.2', 1, interval '1 minute')`, [], true)
+  await expectEqual('limits: the client address comes from the gateway header', db, pg,
+    `select set_config('request.headers', '{"cf-connecting-ip":"9.9.9.9","x-forwarded-for":"6.6.6.6, 9.9.9.9"}', false) is not null and private.client_ip() = '9.9.9.9'`, [], true)
+  await run(db, pg, `select set_config('request.headers', '', false)`)
+  await expectError('limits: nobody reads the counters', db, U.m1, 'select * from private.rate_limits', [], DENIED)
+  for (let i = 0; i < 10; i++) {
+    await expectOk(`limits: team ${i} is fine`, db, U.m2, `select public.create_team($1)`, [`Команда ${i}`])
+    await run(db, pg, 'delete from public.team_members where profile_id = $1', [P.m2])
+  }
+  await expectError('limits: nobody creates teams without end', db, U.m2, `select public.create_team('Ещё одна')`, [], /too_fast/)
+
+  // ── Push ──────────────────────────────────────────────────────────────────
+  await run(db, pg, 'delete from private.rate_limits')
+  for (let i = 0; i < 12; i++) {
+    await run(db, U.m1, 'select public.register_push($1, $2, $3)', [`https://fcm.googleapis.com/fcm/send/d${i}`, 'k', 'a'])
+  }
+  await expectEqual('push: ten devices at most', db, pg, 'select count(*)::int from public.push_subscriptions', [], 10)
+
+  // ── Files ─────────────────────────────────────────────────────────────────
+  const work = `insert into storage.objects (bucket_id, name, metadata) values ('works', $1, $2)`
+  await run(db, pg, `insert into storage.objects (bucket_id, name, metadata)
+    select 'works', $1 || '/f' || n || '.txt', '{"size": 10}'::jsonb from generate_series(1, 150) n`, [P.m1])
+  await expectError('files: 150 is the most a member keeps', db, U.m1, work, [`${P.m1}/more.txt`, { size: 1 }], RLS)
+  await run(db, pg, `delete from storage.objects where bucket_id = 'works'`)
+  await run(db, pg, `insert into storage.objects (bucket_id, name, metadata) values ('works', $1, $2)`, [`${P.m1}/big.zip`, { size: 100 * 1024 * 1024 }])
+  await expectError('files: 100 MB is the most a member keeps', db, U.m1, work, [`${P.m1}/more.txt`, { size: 1 }], RLS)
+  await expectOk('files: a neighbour is not affected', db, U.lead, work, [`${P.lead}/mine.txt`, { size: 1 }])
+  await run(db, pg, `update storage.objects set metadata = '{"size": 943718400}' where name = $1`, [`${P.m1}/big.zip`])
+  await expectError('files: the project stops short of the free plan\'s limit', db, U.lead, work, [`${P.lead}/mine2.txt`, { size: 1 }], RLS)
+  await run(db, pg, `delete from storage.objects where bucket_id = 'works'`)
+
+  const avatar = (id, name) => run(db, id, `insert into storage.objects (bucket_id, name) values ('avatars', $1)`, [name])
+  await expectError('photos: no upload without a yes', db, U.m2,
+    `insert into storage.objects (bucket_id, name) values ('avatars', $1)`, [`${U.m2}/a.png`], RLS)
+  await avatar(U.m1, `${U.m1}/a.png`)
+  await avatar(U.m1, `${U.m1}/b.png`)
+  await avatar(U.m1, `${U.m1}/c.png`)
+  await expectError('photos: three files is enough to replace one', db, U.m1,
+    `insert into storage.objects (bucket_id, name) values ('avatars', $1)`, [`${U.m1}/d.png`], RLS)
+  const seen = `select count(*)::int from storage.objects where bucket_id = 'avatars'`
+  await expectEqual('photos: the owner sees their files', db, U.m1, seen, [], 3)
+  await expectEqual('photos: nothing on a profile, nothing for the others', db, U.lead, seen, [], 0)
+  await run(db, U.m1, 'update public.profiles set avatar_path = $1 where user_id = $2', [`${U.m1}/a.png`, U.m1])
+  await expectEqual('photos: others see the one on the profile', db, U.lead, seen, [], 1)
+  await expectEqual('photos: the director sees all of them, to delete them', db, U.dir, seen, [], 3)
+  await expectEqual('photos: not without the code', db, noMfa(U.dir), seen, [], 1)
+  await expectNoEffect('photos: the director cannot delete without the code', db, noMfa(U.dir), `delete from storage.objects where bucket_id = 'avatars'`)
+  await expectNoEffect('photos: nobody overwrites one', db, U.m1, `update storage.objects set owner = null where bucket_id = 'avatars'`)
+  await run(db, pg, `insert into storage.objects (bucket_id, name) values ('works', $1)`, [`${P.m1}/w.txt`])
+  await expectNoEffect('works: the director cannot delete without the code', db, noMfa(U.dir), `delete from storage.objects where bucket_id = 'works'`)
+  await expectOk('works: with the code they can', db, U.dir, `delete from storage.objects where bucket_id = 'works'`)
+
+  // ── Names ─────────────────────────────────────────────────────────────────
+  await run(db, U.m1, `update public.profiles set full_name = E'Али‮са​' where user_id = $1`, [U.m1])
+  await expectEqual('names: invisible and direction characters are removed', db, pg, 'select full_name from public.profiles where id = $1', [P.m1], 'Алиса')
+
+  // ── Staff invites ─────────────────────────────────────────────────────────
+  await run(db, pg, `insert into public.staff_invites (email, role, full_name, temp_password, created_at)
+    values ('late@example.com', 'curator', 'Опоздавший', 'Temp-Pass-8', now() - interval '4 days')`)
+  await expectError('invites: an old one no longer works', db, pg,
+    `insert into auth.users (id, email, encrypted_password) values ($1, 'late@example.com', extensions.crypt('Temp-Pass-8', extensions.gen_salt('bf')))`, [uid(20)], /invalid_join_code/)
+
+  // ── Tidy-up ───────────────────────────────────────────────────────────────
+  await run(db, pg, `insert into private.rate_limits values ('old', now() - interval '3 days', 1)`)
+  await run(db, pg, `insert into public.push_once (key, created_at) values ('old', now() - interval '8 days'), ('new', now())`)
+  await run(db, pg, `insert into public.password_reset_codes (profile_id, code_hash, expires_at) values ($1, 'x', now() - interval '1 hour')`, [P.m2])
+  await run(db, pg, `update public.push_subscriptions set created_at = now() - interval '200 days'`)
+  await run(db, pg, 'select public.security_housekeeping()')
+  await expectEqual('tidy-up: old counters go', db, pg, `select count(*)::int from private.rate_limits where bucket = 'old'`, [], 0)
+  await expectEqual('tidy-up: old push marks go, new ones stay', db, pg, 'select string_agg(key, \',\') from public.push_once', [], 'new')
+  await expectEqual('tidy-up: expired reset codes go', db, pg, 'select count(*)::int from public.password_reset_codes', [], 0)
+  await expectEqual('tidy-up: invites past their date go', db, pg, 'select count(*)::int from public.staff_invites', [], 0)
+  await expectEqual('tidy-up: devices silent for half a year go', db, pg, 'select count(*)::int from public.push_subscriptions', [], 0)
+  await expectError('tidy-up: members cannot run it', db, U.m1, 'select public.security_housekeeping()', [], DENIED)
+
+  // ── The demo copy ─────────────────────────────────────────────────────────
+  await run(db, pg, `insert into private.settings values ('mfa_optional', 'demo')`)
+  await expectEqual('demo: staff work without the code', db, noMfa(U.dir), 'select count(*)::int > 3 from public.member_private', [], true)
+  await run(db, pg, `insert into auth.mfa_factors (user_id, status) values ($1, 'verified')`, [U.lead])
+  await expectEqual('demo: a factor someone turned on still counts', db, noMfa(U.lead), 'select public.my_role()', [], null)
+  await db.close()
+}
+
 const started = Date.now()
 try {
   await upgradeScenario()
   await freshScenario()
   await seedScenario()
   await staffScenario()
+  await hardeningScenario()
 } catch (e) {
   failures.push(`setup failed: ${e.message}`)
 }
