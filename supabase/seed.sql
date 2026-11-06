@@ -576,5 +576,9 @@ begin
     (pg_temp.pid('curator'), 'export_members', null, '{}', pg_temp.at(12, 2, '11:00'));
 
   drop table demo_people, demo_events, demo_lead;
+  -- The demo shows every role without an authenticator app. The club's database never has this row.
+  insert into private.settings (key, value) values ('mfa_optional', 'demo')
+  on conflict (key) do update set value = excluded.value;
+
 end;
 $seed$;

@@ -38,13 +38,15 @@ export function useMessages(conversationId: string | undefined) {
 }
 
 /** Live updates for every chat the member takes part in: the database sends only what its
- * rules let this member read. Mounted once, in the layout. */
+ * rules let this member read. A private channel: only this member may join it, and with
+ * "Allow public access" off in Realtime Settings nobody joins anything without a session.
+ * Mounted once, in the layout. */
 export function useChatLive(profileId: string | undefined) {
   useEffect(() => {
     const client = supabase
     if (!client || !profileId) return
     const channel = client
-      .channel(`chats-${profileId}`)
+      .channel(`chats-${profileId}`, { config: { private: true } })
       .on('postgres_changes', { event: 'INSERT', schema: 'public', table: 'messages' }, (payload) => {
         const row = payload.new as { conversation_id?: string }
         void queryClient.invalidateQueries({ queryKey: ['chats'] })

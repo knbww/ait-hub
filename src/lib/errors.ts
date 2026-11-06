@@ -47,6 +47,9 @@ const DB_CODES = [
   'invalid_reset_code',
   'not_pending',
   'invalid_code_terms',
+  'invalid_push_endpoint',
+  'storage_quota',
+  'leaked_password',
 ] as const
 
 function rawMessage(error: unknown): string {
@@ -78,7 +81,7 @@ export function errorKey(error: unknown): string {
   }
   // The sign-up trigger raised (bad code / grade / name): GoTrue hides the reason.
   if (lower.includes('database error saving new user')) return 'errors.signupRejected'
-  if (lower.includes('password should be') || lower.includes('weak password')) return 'errors.weak_password'
+  if (lower.includes('password should') || lower.includes('weak password')) return 'errors.weak_password'
   if (lower.includes('rate limit') || lower.includes('too many')) return 'errors.rateLimit'
   if (lower.includes('email not confirmed')) return 'errors.emailNotConfirmed'
   if (lower.includes('signups not allowed')) return 'errors.signupsClosed'

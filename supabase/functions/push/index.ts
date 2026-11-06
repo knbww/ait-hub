@@ -2,7 +2,9 @@
 // a request to join a team, a chat message, a report, a newcomer — and once a day by GitHub Actions for tomorrow's deadline and events
 // and for the deadlines of competitions members saved.
 // Each call is checked: the caller must be whoever did the action (their session), the daily run
-// must carry CRON_SECRET. Payloads say what happened and where to look; no contact data.
+// must carry CRON_SECRET. Payloads say what happened and where to look; no contact data. Every
+// event is announced once, however many times the function is asked to, and only to the browsers'
+// own push services (the same list as public.is_push_endpoint).
 //
 // Secrets: VAPID_PUBLIC_KEY, VAPID_PRIVATE_KEY, VAPID_SUBJECT, CRON_SECRET, SITE_URL.
 
@@ -34,21 +36,42 @@ webpush.setVapidDetails(
 )
 
 const CORS = {
-  'Access-Control-Allow-Origin': '*',
+  'Access-Control-Allow-Origin': SITE,
   'Access-Control-Allow-Headers': 'authorization, x-client-info, apikey, content-type',
   'Access-Control-Allow-Methods': 'POST, OPTIONS',
+  Vary: 'Origin',
 }
+const MAX_BODY_BYTES = 2048
+const UUID = /^[0-9a-f]{8}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{4}-[0-9a-f]{12}$/i
+const PUSH_SERVICE = /^https:\/\/(fcm\.googleapis\.com|android\.googleapis\.com|updates\.push\.services\.mozilla\.com|web\.push\.apple\.com|[a-z0-9-]+\.notify\.windows\.com)\//i
 const reply = (status: number, body: unknown) =>
   new Response(JSON.stringify(body), { status, headers: { ...CORS, 'Content-Type': 'application/json' } })
 
 interface Message { title: string; body: string; url: string; tag: string }
+
+/** The same time for any wrong secret: compares digests, byte by byte, to the end. */
+async function sameSecret(given: string, secret: string): Promise<boolean> {
+  const digest = (text: string) => crypto.subtle.digest('SHA-256', new TextEncoder().encode(text))
+  const [a, b] = (await Promise.all([digest(given), digest(secret)])).map((d) => new Uint8Array(d))
+  let difference = 0
+  for (let i = 0; i < a.length; i++) difference |= a[i] ^ b[i]
+  return difference === 0
+}
+
+/** True the first time a key is seen. Anything but a duplicate is logged and counts as seen: no
+ * mark, no broadcast. */
+async function firstTime(key: string): Promise<boolean> {
+  const { error } = await admin.from('push_once').insert({ key })
+  if (error && error.code !== '23505') console.error('push_once failed', error.code)
+  return !error
+}
 
 async function send(profileIds: string[], message: Message): Promise<number> {
   const ids = [...new Set(profileIds.filter(Boolean))]
   if (!ids.length) return 0
   const { data: subs } = await admin.from('push_subscriptions').select('id, endpoint, p256dh, auth').in('profile_id', ids)
   let sent = 0
-  await Promise.all((subs ?? []).map(async (s) => {
+  await Promise.all((subs ?? []).filter((s) => PUSH_SERVICE.test(s.endpoint)).map(async (s) => {
     try {
       await webpush.sendNotification(
         { endpoint: s.endpoint, keys: { p256dh: s.p256dh, auth: s.auth } },
@@ -89,11 +112,13 @@ async function activeProfiles(track: string | null): Promise<string[]> {
 async function onReview(me: string, submissionId: string) {
   const { data: s } = await admin
     .from('submissions')
-    .select('profile_id, status, reviewer_id, week:program_weeks(week_number, title)')
+    .select('profile_id, status, reviewer_id, reviewed_at, week:program_weeks(week_number, title)')
     .eq('id', submissionId)
     .single()
   const week = s?.week as unknown as { week_number: number; title: string } | null
-  if (!s || !week || s.reviewer_id !== me || !['accepted', 'needs_work'].includes(s.status)) return reply(403, { error: 'forbidden' })
+  if (!s || !week || s.reviewer_id !== me || !['accepted', 'needs_work'].includes(s.status)
+      || !s.reviewed_at || Date.now() - Date.parse(s.reviewed_at) > 15 * 60 * 1000) return reply(403, { error: 'forbidden' })
+  if (!await firstTime(`review:${submissionId}:${s.reviewed_at}`)) return reply(200, { sent: 0 })
   const accepted = s.status === 'accepted'
   const sent = await send([s.profile_id], {
     title: accepted ? 'Работа принята' : 'Работу вернули на доработку',
@@ -108,6 +133,7 @@ async function onNews(me: string, newsId: string) {
   const { data: n } = await admin.from('news').select('id, title, track_id, author_id, published_at').eq('id', newsId).single()
   // Only the author, and only a fresh post — an old one isn't re-announced.
   if (!n || n.author_id !== me || Date.now() - Date.parse(n.published_at) > 15 * 60 * 1000) return reply(403, { error: 'forbidden' })
+  if (!await firstTime(`news:${n.id}`)) return reply(200, { sent: 0 })
   const recipients = (await activeProfiles(n.track_id)).filter((id) => id !== me)
   const sent = await send(recipients, {
     title: n.track_id ? `Новость · ${TRACK_SHORT[n.track_id] ?? ''}` : 'Новость клуба',
@@ -121,12 +147,14 @@ async function onNews(me: string, newsId: string) {
 async function onTeamRequest(me: string, requestId: string) {
   const { data: r } = await admin
     .from('team_requests')
-    .select('id, profile_id, status, team:teams(name, captain_id), member:profiles!team_requests_profile_id_fkey(full_name)')
+    .select('id, profile_id, status, created_at, team:teams(name, captain_id), member:profiles!team_requests_profile_id_fkey(full_name)')
     .eq('id', requestId)
     .single()
   const team = r?.team as unknown as { name: string; captain_id: string | null } | null
   const member = r?.member as unknown as { full_name: string } | null
-  if (!r || !team?.captain_id || r.profile_id !== me || r.status !== 'pending') return reply(403, { error: 'forbidden' })
+  if (!r || !team?.captain_id || r.profile_id !== me || r.status !== 'pending'
+      || Date.now() - Date.parse(r.created_at) > 15 * 60 * 1000) return reply(403, { error: 'forbidden' })
+  if (!await firstTime(`team_request:${r.id}:${r.created_at}`)) return reply(200, { sent: 0 })
   const sent = await send([team.captain_id], {
     title: 'Заявка в команду',
     body: `${member?.full_name ?? 'Участник'} хочет в «${team.name}»`,
@@ -142,6 +170,7 @@ async function onMessage(me: string, messageId: string) {
     .eq('id', messageId).single()
   // Only the author, and only a fresh message.
   if (!m || m.author_id !== me || Date.now() - Date.parse(m.created_at) > 2 * 60 * 1000) return reply(403, { error: 'forbidden' })
+  if (!await firstTime(`message:${m.id}`)) return reply(200, { sent: 0 })
   const { data: c } = await admin.from('conversations')
     .select('kind, team:teams(name), project:projects(title)').eq('id', m.conversation_id).single()
   const { data: participants } = await admin.rpc('chat_participants', { p_conversation: m.conversation_id })
@@ -165,6 +194,7 @@ async function onReport(me: string, reportId: string) {
   if (!r || r.reporter_id !== me || r.status !== 'open' || Date.now() - Date.parse(r.created_at) > 2 * 60 * 1000) {
     return reply(403, { error: 'forbidden' })
   }
+  if (!await firstTime(`report:${r.id}`)) return reply(200, { sent: 0 })
   const { data: oversight } = await admin.from('profiles').select('id').eq('status', 'active').in('role', ['director', 'curator'])
   const sent = await send((oversight ?? []).map((p) => p.id as string), {
     title: 'Жалоба на сообщение',
@@ -179,6 +209,7 @@ async function onJoined(me: string) {
   const { data: p } = await admin.from('profiles').select('id, full_name, grade, track_id, status, created_at').eq('id', me).single()
   // Only a newcomer, right after joining.
   if (!p || p.status !== 'pending' || Date.now() - Date.parse(p.created_at) > 10 * 60 * 1000) return reply(403, { error: 'forbidden' })
+  if (!await firstTime(`joined:${p.id}`)) return reply(200, { sent: 0 })
   const { data: staff } = await admin.from('profiles').select('id').eq('status', 'active')
     .or(`role.in.(director,curator),and(role.eq.track_lead,track_id.eq.${p.track_id})`)
   const sent = await send((staff ?? []).map((s) => s.id as string), {
@@ -192,6 +223,9 @@ async function onJoined(me: string) {
 
 /** Evening reminders (Petropavl time, UTC+5): tomorrow's deadline and tomorrow's events. */
 async function daily() {
+  const { error: tidyError } = await admin.rpc('security_housekeeping')
+  if (tidyError) console.error('housekeeping failed', tidyError.code)
+
   const local = (offsetDays: number) => new Date(Date.now() + 5 * 3600_000 + offsetDays * 86_400_000).toISOString().slice(0, 10)
   const tomorrow = local(1)
   let sent = 0
@@ -251,26 +285,31 @@ async function daily() {
 Deno.serve(async (req) => {
   if (req.method === 'OPTIONS') return new Response('ok', { headers: CORS })
   if (req.method !== 'POST') return reply(405, { error: 'method_not_allowed' })
-  let body: Record<string, string> = {}
+  const raw = await req.text()
+  if (raw.length > MAX_BODY_BYTES) return reply(413, { error: 'too_large' })
+  let body: Record<string, unknown> = {}
   try {
-    body = await req.json()
+    body = JSON.parse(raw)
   } catch {
     return reply(400, { error: 'bad_request' })
   }
+  if (typeof body !== 'object' || body === null) return reply(400, { error: 'bad_request' })
 
   if (body.action === 'daily') {
     const secret = Deno.env.get('CRON_SECRET')
-    if (!secret || req.headers.get('x-cron-secret') !== secret) return reply(401, { error: 'unauthorized' })
+    if (!secret || !await sameSecret(req.headers.get('x-cron-secret') ?? '', secret)) return reply(401, { error: 'unauthorized' })
     return daily()
   }
 
   const me = await caller(req)
   if (!me) return reply(401, { error: 'unauthorized' })
-  if (body.action === 'review' && body.submission_id) return onReview(me, body.submission_id)
-  if (body.action === 'news' && body.news_id) return onNews(me, body.news_id)
-  if (body.action === 'team_request' && body.request_id) return onTeamRequest(me, body.request_id)
-  if (body.action === 'message' && body.message_id) return onMessage(me, body.message_id)
-  if (body.action === 'report' && body.report_id) return onReport(me, body.report_id)
+  const id = (name: string) => (typeof body[name] === 'string' && UUID.test(body[name] as string) ? (body[name] as string) : null)
+  const submission = id('submission_id'), news = id('news_id'), request = id('request_id'), message = id('message_id'), report = id('report_id')
+  if (body.action === 'review' && submission) return onReview(me, submission)
+  if (body.action === 'news' && news) return onNews(me, news)
+  if (body.action === 'team_request' && request) return onTeamRequest(me, request)
+  if (body.action === 'message' && message) return onMessage(me, message)
+  if (body.action === 'report' && report) return onReport(me, report)
   if (body.action === 'joined') return onJoined(me)
   return reply(400, { error: 'bad_request' })
 })

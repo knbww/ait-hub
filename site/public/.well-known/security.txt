@@ -1,0 +1,7 @@
+# AIT Club. Found a vulnerability? Please report it privately, not in a public issue:
+# the Hub holds the data of school students. Details: the Policy link below.
+Contact: https://github.com/knbww/ait-hub/security/advisories/new
+Expires: 2027-11-06T00:00:00.000Z
+Preferred-Languages: ru, en
+Canonical: https://aitclub.org/.well-known/security.txt
+Policy: https://github.com/knbww/ait-hub/blob/main/SECURITY.md

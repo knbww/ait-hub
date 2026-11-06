@@ -9,4 +9,7 @@ const anonKey = import.meta.env.VITE_SUPABASE_ANON_KEY
  */
 export const isSupabaseConfigured = Boolean(url && anonKey)
 
-export const supabase = isSupabaseConfigured ? createClient(url as string, anonKey as string) : null
+// PKCE: a GitHub sign-in comes back with a one-time code, not with the tokens in the address.
+export const supabase = isSupabaseConfigured
+  ? createClient(url as string, anonKey as string, { auth: { flowType: 'pkce' } })
+  : null

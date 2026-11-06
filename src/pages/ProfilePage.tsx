@@ -9,6 +9,7 @@ import { ErrorText } from '../components/DataState'
 import { Avatar } from '../components/Avatar'
 import { TrackBadge } from '../components/TrackBadge'
 import { MfaSection } from '../components/MfaSection'
+import { MIN_PASSWORD_LENGTH, isLeakedPassword, isWeakPassword } from '../lib/passwords'
 import { AppSection } from '../components/AppSection'
 import { pageVariants } from '../lib/animations'
 import { useAuth } from '../context/authContext'
@@ -302,8 +303,9 @@ function PasswordSection() {
   const submit = async (e: FormEvent) => {
     e.preventDefault()
     setSaved(false)
-    if (password.length < 8) return setError('weak_password')
+    if (isWeakPassword(password)) return setError('weak_password')
     if (password !== repeat) return setError('mismatch')
+    if (await isLeakedPassword(password)) return setError('leaked_password')
     const res = await changePassword(password)
     if (res.error) return setError(res.error)
     setError(null)
@@ -319,7 +321,7 @@ function PasswordSection() {
       <form onSubmit={submit} className="space-y-2 mt-3">
         <label className={labelClass} htmlFor="p-password">{t('profile.newPassword')}</label>
         <input id="p-password" className={inputClass} type="password" value={password} onChange={(e) => setPassword(e.target.value)}
-          autoComplete="new-password" minLength={8} required />
+          autoComplete="new-password" minLength={MIN_PASSWORD_LENGTH} required />
         <label className={labelClass} htmlFor="p-repeat">{t('profile.repeatPassword')}</label>
         <input id="p-repeat" className={inputClass} type="password" value={repeat} onChange={(e) => setRepeat(e.target.value)}
           autoComplete="new-password" required />

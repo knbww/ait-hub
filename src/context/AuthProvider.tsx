@@ -8,7 +8,7 @@ import { getAssurance } from '../lib/mfa'
 import type { Assurance } from '../lib/mfa'
 import { AuthContext } from './authContext'
 import type { AuthValue, SignUpInput } from './authContext'
-import { notify } from '../lib/push'
+import { disablePush, notify } from '../lib/push'
 
 const PROFILE_COLUMNS =
   'id, user_id, full_name, role, grade, track_id, cohort_id, avatar_path, ' +
@@ -79,6 +79,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     const { data } = await supabase.auth.refreshSession()
     const id = data.session?.user.id
     if (id) setAssurance({ userId: id, value: await getAssurance() })
+    // Until now the database answered as for a guest: nothing loaded so far is the real picture.
+    await queryClient.invalidateQueries()
   }, [])
 
   useEffect(() => {
@@ -156,6 +158,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const signOut = useCallback(async () => {
+    // Notifications carry chat messages: the device stops getting them with the session.
+    await Promise.race([disablePush().catch(() => null), new Promise((done) => setTimeout(done, 2000))])
     setSession(null)
     setProfile(null)
     setProfileFor(null)

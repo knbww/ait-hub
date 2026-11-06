@@ -26,6 +26,16 @@ site_url = "http://localhost:5173"
 additional_redirect_urls = ["http://localhost:5173", "https://hub.aitclub.org", "https://ait-hub.pages.dev"]
 jwt_expiry = 3600
 enable_signup = true
+minimum_password_length = 10
+
+# The second factor (TOTP from an authenticator app). Staff use it; the database checks the session's
+# assurance level, see supabase/migrations/20261106120000_security_hardening_2.sql.
+[auth.mfa]
+max_enrolled_factors = 3
+
+[auth.mfa.totp]
+enroll_enabled = true
+verify_enabled = true
 
 [auth.email]
 enable_signup = true
@@ -42,3 +52,8 @@ enabled = true
 client_id = "env(SUPABASE_AUTH_GITHUB_CLIENT_ID)"
 secret = "env(SUPABASE_AUTH_GITHUB_SECRET)"
 
+# The function checks every call itself: the caller's session, or CRON_SECRET for the daily run,
+# which comes from GitHub Actions without a user token. Deployed with verify_jwt on, the daily run
+# would stop working.
+[functions.push]
+verify_jwt = false

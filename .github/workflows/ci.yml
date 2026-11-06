@@ -5,32 +5,49 @@ on:
     branches: [main]
   pull_request:
 
+permissions:
+  contents: read
+
 jobs:
   verify:
     runs-on: ubuntu-latest
+    timeout-minutes: 15
     steps:
-      - uses: actions/checkout@v5
-      - uses: actions/setup-node@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         with:
           node-version: 22
           cache: npm
-      - run: npm ci
+      # .npmrc turns install scripts off; said here too, because this is where a bad package would run.
+      - run: npm ci --ignore-scripts
+      - name: Every package is what the registry signed
+        run: npm audit signatures
+      - name: Known vulnerabilities in what ships to browsers
+        run: npm audit --omit=dev --audit-level=high
       - run: npm run lint
       - run: npm run typecheck
       # Every migration + the access rules, on Postgres-in-WASM (no Docker needed).
       - run: npm run test:db
       - run: npm run build
 
-  # Publishes main to Cloudflare Pages once the checks pass. Needs repository secrets
-  # CLOUDFLARE_API_TOKEN (Pages: Edit) and CLOUDFLARE_ACCOUNT_ID, and repository variables
+  # Publishes main to Cloudflare Pages once the checks pass. Needs, in the `production` environment,
+  # secrets CLOUDFLARE_API_TOKEN (Pages: Edit) and CLOUDFLARE_ACCOUNT_ID, and repository variables
   # VITE_SUPABASE_URL and VITE_SUPABASE_ANON_KEY (public values baked into the bundle).
+  #
+  # The token reaches only the step that publishes: `npm ci` and the build run third-party code and
+  # never see it. No npm cache here either, so a poisoned cache can't reach a job with secrets.
   deploy:
     needs: verify
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
+    timeout-minutes: 15
+    environment: production
+    concurrency:
+      group: deploy-hub
+      cancel-in-progress: false
     env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
       VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
       VITE_SUPABASE_ANON_KEY: ${{ vars.VITE_SUPABASE_ANON_KEY }}
       VITE_SENTRY_DSN: ${{ vars.VITE_SENTRY_DSN }}
@@ -40,27 +57,34 @@ jobs:
     steps:
       - name: Check deploy settings
         id: check
+        env:
+          HAS_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
+          HAS_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
         run: |
-          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ] || [ -z "$VITE_SUPABASE_URL" ] || [ -z "$VITE_SUPABASE_ANON_KEY" ]; then
+          if [ "$HAS_TOKEN" != "true" ] || [ "$HAS_ACCOUNT" != "true" ] || [ -z "$VITE_SUPABASE_URL" ] || [ -z "$VITE_SUPABASE_ANON_KEY" ]; then
             echo "::warning::Cloudflare secrets or VITE_* variables are not set — deploy skipped."
             echo "ready=false" >> "$GITHUB_OUTPUT"
           else
             echo "ready=true" >> "$GITHUB_OUTPUT"
           fi
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         if: steps.check.outputs.ready == 'true'
-      - uses: actions/setup-node@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         if: steps.check.outputs.ready == 'true'
         with:
           node-version: 22
-          cache: npm
-      - run: npm ci
+      - run: npm ci --ignore-scripts
         if: steps.check.outputs.ready == 'true'
       - run: npm run build
         if: steps.check.outputs.ready == 'true'
       - name: Deploy to Cloudflare Pages
         if: steps.check.outputs.ready == 'true'
-        run: npx --yes wrangler@4.40.0 pages deploy dist --project-name=ait-hub --branch=main --commit-dirty=true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --no-install wrangler pages deploy dist --project-name=ait-hub --branch=main --commit-dirty=true
 
   # Publishes the club site (site/ → Cloudflare Pages project ait-club, aitclub.org) from main.
   # Needs only the two Cloudflare secrets; skipped with a warning while they are not set.
@@ -68,30 +92,39 @@ jobs:
     needs: verify
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
     runs-on: ubuntu-latest
-    env:
-      CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
-      CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+    timeout-minutes: 15
+    environment: production
+    concurrency:
+      group: deploy-site
+      cancel-in-progress: false
     steps:
       - name: Check deploy settings
         id: check
+        env:
+          HAS_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN != '' }}
+          HAS_ACCOUNT: ${{ secrets.CLOUDFLARE_ACCOUNT_ID != '' }}
         run: |
-          if [ -z "$CLOUDFLARE_API_TOKEN" ] || [ -z "$CLOUDFLARE_ACCOUNT_ID" ]; then
+          if [ "$HAS_TOKEN" != "true" ] || [ "$HAS_ACCOUNT" != "true" ]; then
             echo "::warning::Cloudflare secrets are not set — site deploy skipped. Run npm run deploy:site locally."
             echo "ready=false" >> "$GITHUB_OUTPUT"
           else
             echo "ready=true" >> "$GITHUB_OUTPUT"
           fi
-      - uses: actions/checkout@v5
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
         if: steps.check.outputs.ready == 'true'
-      - uses: actions/setup-node@v5
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
         if: steps.check.outputs.ready == 'true'
         with:
           node-version: 22
-          cache: npm
-      - run: npm ci
+      - run: npm ci --ignore-scripts
         if: steps.check.outputs.ready == 'true'
-      - run: npx vite build --config vite.site.config.ts
+      - run: npx --no-install vite build --config vite.site.config.ts
         if: steps.check.outputs.ready == 'true'
       - name: Deploy the club site to Cloudflare Pages
         if: steps.check.outputs.ready == 'true'
-        run: npx --yes wrangler@4.40.0 pages deploy dist-site --project-name=ait-club --branch=main --commit-dirty=true
+        env:
+          CLOUDFLARE_API_TOKEN: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          CLOUDFLARE_ACCOUNT_ID: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+        run: npx --no-install wrangler pages deploy dist-site --project-name=ait-club --branch=main --commit-dirty=true

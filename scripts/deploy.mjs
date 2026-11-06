@@ -9,6 +9,13 @@ import { existsSync } from 'node:fs'
 
 if (existsSync('.env.local')) process.loadEnvFile('.env.local')
 
+// What goes live is what was reviewed: main, committed. `--force` is for an emergency.
+const git = (cmd) => execSync(`git ${cmd}`).toString().trim()
+if (!process.argv.includes('--force') && (git('status --porcelain') || git('rev-parse --abbrev-ref HEAD') !== 'main')) {
+  console.error('Publishing needs a clean checkout of main. Commit or stash first, or pass --force.')
+  process.exit(1)
+}
+
 const missing = ['CLOUDFLARE_API_TOKEN', 'CLOUDFLARE_ACCOUNT_ID', 'VITE_SUPABASE_URL', 'VITE_SUPABASE_ANON_KEY']
   .filter((name) => !process.env[name])
 if (missing.length) {
@@ -17,6 +24,6 @@ if (missing.length) {
 }
 
 execSync('npm run build', { stdio: 'inherit' })
-execSync('npx --yes wrangler@4.40.0 pages deploy dist --project-name=ait-hub --branch=main --commit-dirty=true', {
+execSync('npx --no-install wrangler pages deploy dist --project-name=ait-hub --branch=main --commit-dirty=true', {
   stdio: 'inherit',
 })

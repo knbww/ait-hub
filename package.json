@@ -12,6 +12,11 @@
     "typecheck": "tsc -b",
     "lint": "eslint .",
     "test:db": "node scripts/db-test.mjs",
+    "test:stack": "node scripts/security/stack-test.mjs",
+    "security:live": "node scripts/security/live-check.mjs",
+    "security:cloudflare": "node scripts/security/cloudflare-harden.mjs",
+    "security:github": "node scripts/security/github-harden.mjs",
+    "security:prod": "node scripts/security/prod-check.mjs",
     "check": "npm run typecheck && npm run lint && npm run test:db && vite build",
     "db:push": "supabase db push",
     "db:types": "supabase gen types typescript --linked --schema public > src/lib/database.types.ts",
@@ -51,6 +56,7 @@
     "tailwindcss": "^4.1.18",
     "typescript": "^6.0.3",
     "typescript-eslint": "^8.61.0",
-    "vite": "^7.2.4"
+    "vite": "7.3.7",
+    "wrangler": "4.153.0"
   }
 }

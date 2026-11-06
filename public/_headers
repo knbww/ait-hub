@@ -3,18 +3,31 @@
 # loading after a change of services (e.g. a new error tracker), extend connect-src / img-src here.
 # At build time `*.supabase.co` becomes the project's own host, and the error tracker's host is
 # dropped when no DSN is set (vite.config.ts).
+#
+# style-src keeps 'unsafe-inline': Framer Motion's popLayout writes a <style> tag at run time and a
+# static site has no per-response nonce. Scripts stay strict, and nothing in the Hub sets HTML from
+# data, so this doesn't open a way in. Trusted Types back that up: writing HTML from a string fails
+# in the browser, and src/lib/trustedTypes.ts names the only script addresses allowed.
+# `npm run security:live` checks these headers on the live site.
 /*
-  Strict-Transport-Security: max-age=31536000; includeSubDomains
+  Strict-Transport-Security: max-age=63072000; includeSubDomains; preload
   Cross-Origin-Opener-Policy: same-origin
-  X-Robots-Tag: noindex, nofollow
+  Cross-Origin-Resource-Policy: same-origin
+  X-Robots-Tag: noindex, nofollow, noarchive
   X-Frame-Options: DENY
   X-Content-Type-Options: nosniff
+  X-Permitted-Cross-Domain-Policies: none
+  Origin-Agent-Cluster: ?1
   Referrer-Policy: strict-origin-when-cross-origin
-  Permissions-Policy: camera=(), microphone=(), geolocation=(), payment=()
-  Content-Security-Policy: default-src 'self'; script-src 'self' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.supabase.co; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://*.sentry.io; frame-src https://challenges.cloudflare.com; font-src 'self'; object-src 'none'; base-uri 'self'; form-action 'self'; frame-ancestors 'none'
+  Permissions-Policy: accelerometer=(), bluetooth=(), browsing-topics=(), camera=(), display-capture=(), geolocation=(), gyroscope=(), hid=(), interest-cohort=(), magnetometer=(), microphone=(), midi=(), payment=(), screen-wake-lock=(), serial=(), usb=(), xr-spatial-tracking=()
+  Content-Security-Policy: default-src 'none'; script-src 'self' https://challenges.cloudflare.com; style-src 'self' 'unsafe-inline'; img-src 'self' data: blob: https://*.supabase.co; connect-src 'self' https://*.supabase.co wss://*.supabase.co https://api.pwnedpasswords.com https://*.sentry.io; frame-src https://challenges.cloudflare.com; font-src 'self'; worker-src 'self'; manifest-src 'self'; object-src 'none'; base-uri 'none'; form-action 'self'; frame-ancestors 'none'; upgrade-insecure-requests; require-trusted-types-for 'script'; trusted-types default
+  ! Access-Control-Allow-Origin
 
 /assets/*
   Cache-Control: public, max-age=31536000, immutable
 
 /sw.js
   Cache-Control: no-cache
+
+/.well-known/*
+  Cache-Control: public, max-age=86400

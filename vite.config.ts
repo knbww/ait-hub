@@ -30,6 +30,8 @@ function projectHeaders(mode: string): Plugin {
 export default defineConfig(({ mode }) => ({
   plugins: [react(), projectHeaders(mode)],
   build: {
+    // Fonts stay files: the content policy has no data: in font-src.
+    assetsInlineLimit: (file) => (file.endsWith('.woff2') ? false : undefined),
     rollupOptions: {
       output: {
         // Split heavy vendors into separately-cacheable chunks.
