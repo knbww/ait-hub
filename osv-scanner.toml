@@ -1,0 +1,6 @@
+# Accepted for now, with a date to look again. Everything else fails the scan.
+
+[[IgnoredVulns]]
+id = "GHSA-g3hv-75wg-m249"
+ignoreUntil = 2027-03-01
+reason = "minimatch in typescript-eslint: runs only in the linter, on this repository's own patterns. The fix needs a major version the plugin doesn't accept yet."

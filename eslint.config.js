@@ -25,6 +25,17 @@ export default tseslint.config([
     rules: {
       'no-unused-vars': 'off',
       '@typescript-eslint/no-unused-vars': ['error', { varsIgnorePattern: '^[A-Z_]' }],
+      // The Hub never turns strings into code or HTML, and Trusted Types would stop it in the
+      // browser. Here it stops at review, where the fix is easy.
+      'no-eval': 'error',
+      'no-implied-eval': 'error',
+      'no-new-func': 'error',
+      'no-script-url': 'error',
+      'no-restricted-syntax': ['error',
+        { selector: "JSXAttribute[name.name='dangerouslySetInnerHTML']", message: 'Render text, not HTML: member data must not become markup.' },
+        { selector: 'MemberExpression[property.name=/^(innerHTML|outerHTML|insertAdjacentHTML)$/]', message: 'Use textContent or React: this turns a string into HTML.' },
+        { selector: "MemberExpression[object.name='document'][property.name=/^(write|writeln)$/]", message: 'document.write turns a string into HTML.' },
+      ],
     },
   },
 ])
