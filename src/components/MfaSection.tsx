@@ -1,6 +1,7 @@
 import { useEffect, useState } from 'react'
 import type { FormEvent } from 'react'
 import { ShieldCheck } from 'lucide-react'
+import { useLocation } from 'react-router-dom'
 import { GlassCard } from './GlassCard'
 import { ErrorText } from './DataState'
 import { useAuth } from '../context/authContext'
@@ -13,11 +14,17 @@ import { btnPrimary, btnSecondary, btnDanger, inputClass, sectionTitle } from '.
 export function MfaSection() {
   const { t } = useI18n()
   const { isOversight, isCurator, refreshMfa } = useAuth()
+  const { hash } = useLocation()
   const [factorId, setFactorId] = useState<string | null | undefined>(undefined)
   const [setup, setSetup] = useState<TotpSetup | null>(null)
   const [code, setCode] = useState('')
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<unknown>(null)
+
+  // The banner for staff without a second factor links here.
+  useEffect(() => {
+    if (hash === '#mfa') document.getElementById('mfa')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }, [hash])
 
   useEffect(() => {
     let active = true

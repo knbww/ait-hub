@@ -1,0 +1,9 @@
+# The default rules, minus the fake passwords of the attack suite: they exist only on a throwaway
+# local stack. Named one by one, so that a real secret in the same file is still caught.
+
+[extend]
+useDefault = true
+
+[[allowlists]]
+description = "Fake passwords in scripts/security/stack-test.mjs"
+regexes = ['''^Sneaky-pass-12345$''', '''^Temp-pass-12345$''']

@@ -1,11 +1,12 @@
-import { LayoutGrid } from 'lucide-react'
-import { useNavigate } from 'react-router-dom'
+import { LayoutGrid, ShieldAlert } from 'lucide-react'
+import { Link, useNavigate } from 'react-router-dom'
 import { AnimatedBackground } from './AnimatedBackground'
 import { Navbar } from './Navbar'
 import { AnimatedRoutes } from '../AnimatedRoutes'
 import { useAuth } from '../context/authContext'
 import { useDevMode } from '../context/devModeContext'
 import { useI18n } from '../context/i18nContext'
+import { useIdleSignOut } from '../hooks/useIdleSignOut'
 import { isDemo } from '../lib/demo'
 
 /** Only in the demo copy: says the data is invented and lets you sign in as another role. */
@@ -25,9 +26,25 @@ function DemoBanner() {
   )
 }
 
+/** Staff without a confirmed second factor: says what is closed to them and where to turn it on. */
+function MfaBanner() {
+  const { t } = useI18n()
+  const { loading, isStaff, isOversight, mfaPending, mfaVerified } = useAuth()
+  if (isDemo || loading || !isStaff || mfaPending || mfaVerified) return null
+  return (
+    <Link to="/profile#mfa"
+      className="max-w-7xl mx-auto mb-2 sm:mb-3 flex items-center justify-center gap-2 rounded-xl bg-amber-100 border border-amber-300 text-amber-900 text-xs sm:text-sm px-3 py-1.5 underline-offset-2 hover:underline">
+      <ShieldAlert className="w-4 h-4 shrink-0" />
+      <span>{t(isOversight ? 'mfa.banner.oversight' : 'mfa.banner.lead')}</span>
+    </Link>
+  )
+}
+
 export function Layout() {
   const { isDevMode, setDevMode } = useDevMode()
   const { t } = useI18n()
+  const { isOversight } = useAuth()
+  useIdleSignOut(isOversight && !isDemo)
 
   return (
     <div className="relative min-h-dvh text-gray-900">
@@ -43,6 +60,7 @@ export function Layout() {
           </button>
         )}
         {isDemo && <DemoBanner />}
+        <MfaBanner />
         <Navbar />
         <main>
           <AnimatedRoutes />

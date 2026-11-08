@@ -59,7 +59,8 @@ export async function uploadWorkFiles(profileId: string, files: File[]): Promise
     const { error } = await supabase.storage.from('works').upload(path, body, { upsert: false })
     if (error) {
       await removeWorkFiles(done.map((f) => f.path))
-      throw error
+      // The folder is the member's own, so the rules can refuse only over the limit on files.
+      throw /row-level security/i.test(error.message) ? new Error('storage_quota') : error
     }
     done.push({ path, name: file.name.slice(0, 120), size: file.size })
   }

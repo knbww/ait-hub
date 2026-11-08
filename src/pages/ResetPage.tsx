@@ -8,6 +8,7 @@ import { ErrorText } from '../components/DataState'
 import { pageVariants } from '../lib/animations'
 import { useI18n } from '../context/i18nContext'
 import { resetPasswordWithCode } from '../lib/memberActions'
+import { MIN_PASSWORD_LENGTH, isLeakedPassword, isWeakPassword } from '../lib/passwords'
 import { btnPrimary, inputClass, labelClass } from '../lib/ui'
 
 /** A forgotten password, without email: a one-time code from the track lead (15 minutes), and the
@@ -24,10 +25,14 @@ export function ResetPage() {
 
   const submit = async (e: FormEvent) => {
     e.preventDefault()
-    if (password.length < 8) return setError('weak_password')
+    if (isWeakPassword(password)) return setError('weak_password')
     if (password !== repeat) return setError('mismatch')
     setBusy(true)
     setError(null)
+    if (await isLeakedPassword(password)) {
+      setBusy(false)
+      return setError('leaked_password')
+    }
     const res = await resetPasswordWithCode(email, code, password)
     setBusy(false)
     if (res.error) return setError(res.error)
@@ -65,7 +70,7 @@ export function ResetPage() {
             <div>
               <label className={labelClass} htmlFor="r-password">{t('profile.newPassword')}</label>
               <input id="r-password" className={inputClass} type="password" value={password}
-                onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" minLength={8} required />
+                onChange={(e) => setPassword(e.target.value)} autoComplete="new-password" minLength={MIN_PASSWORD_LENGTH} required />
             </div>
             <div>
               <label className={labelClass} htmlFor="r-repeat">{t('profile.repeatPassword')}</label>

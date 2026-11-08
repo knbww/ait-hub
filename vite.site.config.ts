@@ -21,6 +21,8 @@ export default defineConfig({
   build: {
     outDir: '../dist-site',
     emptyOutDir: true,
+    // Fonts stay files: the content policy has no data: in font-src.
+    assetsInlineLimit: (file) => (file.endsWith('.woff2') ? false : undefined),
     rollupOptions: {
       // 404.html: Cloudflare Pages serves it for unknown paths (with a 404 status).
       input: { main: 'site/index.html', notFound: 'site/404.html' },

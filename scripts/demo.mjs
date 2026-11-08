@@ -42,8 +42,10 @@ const demoEnv = {
   VITE_SUPABASE_ANON_KEY: process.env.DEMO_SUPABASE_ANON_KEY,
   VITE_PUBLIC_ORIGIN: '',
   VITE_SENTRY_DSN: '',
+  VITE_TURNSTILE_SITE_KEY: '',
+  VITE_VAPID_PUBLIC_KEY: '',
   VITE_DEMO: 'true',
 }
 run('npx tsc -b && npx vite build --outDir dist-demo --emptyOutDir', demoEnv)
-run('npx --yes wrangler@4.40.0 pages deploy dist-demo --project-name=ait-hub --branch=demo --commit-dirty=true')
+run('npx --no-install wrangler pages deploy dist-demo --project-name=ait-hub --branch=demo --commit-dirty=true')
 console.log('\nDemo: https://demo.ait-hub.pages.dev — password for every account: demo-ait-2026')

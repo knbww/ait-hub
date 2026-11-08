@@ -1,0 +1,36 @@
+name: Attack suite
+
+# A real Supabase in Docker, attacked through its public API (scripts/security/stack-test.mjs), then
+# Supabase's own security advisors and plpgsql_check. On every change to the database, and weekly,
+# because the images behind `supabase start` move on their own.
+
+on:
+  pull_request:
+    paths:
+      - 'supabase/**'
+      - 'scripts/security/stack-test.mjs'
+      - '.github/workflows/stack.yml'
+  schedule:
+    - cron: '13 4 * * 2'
+  workflow_dispatch:
+
+permissions:
+  contents: read
+
+jobs:
+  stack:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    steps:
+      - uses: actions/checkout@fbc6f3992d24b796d5a048ff273f7fcc4a7b6c09 # v5.1.0
+        with:
+          persist-credentials: false
+      - uses: actions/setup-node@a0853c24544627f65ddf259abe73b1d18a591444 # v5.0.0
+        with:
+          node-version: 22
+          cache: npm
+      - run: npm ci --ignore-scripts
+      - run: npx --no-install supabase start -x studio,logflare,vector,imgproxy,supavisor,mailpit,postgres-meta
+      - run: npx --no-install supabase db advisors --local --type security --level warn --fail-on warn
+      - run: npx --no-install supabase db lint --local --schema public,private --level warning --fail-on error
+      - run: npm run test:stack

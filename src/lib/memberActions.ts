@@ -114,12 +114,14 @@ export const setMemberTrack = (profileId: string, trackId: TrackId | null) =>
 export const setMemberStatus = (profileId: string, status: 'active' | 'inactive') =>
   rpc('set_member_status', { p_profile: profileId, p_status: status }, MEMBER_KEYS)
 
-/** Full deletion on request: photos and work files first (Storage API), then everything else
- * in one call. */
+/** Full deletion on request: everything in the database in one call, then photos and work files
+ * (Storage API) — only once the database has agreed, so a refusal costs no files. */
 export async function deleteMember(profileId: string, userId: string | null): Promise<Result<{ auth_deleted: boolean }>> {
+  const res = await rpc<{ auth_deleted: boolean }>('delete_member', { p_profile: profileId }, MEMBER_KEYS)
+  if (res.error) return res
   if (userId) await clearAvatarFolder(userId)
   await clearWorkFolder(profileId)
-  return rpc<{ auth_deleted: boolean }>('delete_member', { p_profile: profileId }, MEMBER_KEYS)
+  return res
 }
 
 /** A new code for the track: works for `days` days, for at most `maxUses` sign-ups when given. */
@@ -137,5 +139,6 @@ export const createResetCode = (profileId: string) => rpc<string>('create_reset_
 export async function resetPasswordWithCode(email: string, code: string, password: string): Promise<Result> {
   const res = await rpc<string>('reset_password_with_code', { p_email: email.trim(), p_code: code.trim(), p_password: password })
   if (res.error) return { data: null, error: res.error }
+  if (res.data === 'slow_down') return { data: null, error: new Error('too_fast') }
   return res.data === 'ok' ? { data: null, error: null } : { data: null, error: new Error('invalid_reset_code') }
 }

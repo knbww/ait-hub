@@ -3,9 +3,15 @@
 
 type Cell = string | number | boolean | null | undefined
 
+/** A spreadsheet runs a cell starting with one of these as a formula, and names and notes come
+ * from members: a leading apostrophe keeps them text. A Telegram handle is left as it is. */
+const FORMULA_START = /^\s*[=+\-@]/
+const HANDLE = /^@[A-Za-z0-9_]+$/
+
 function csvCell(value: Cell): string {
   if (value === null || value === undefined) return ''
-  const text = typeof value === 'boolean' ? (value ? 'да' : 'нет') : String(value)
+  let text = typeof value === 'boolean' ? (value ? 'да' : 'нет') : String(value)
+  if (typeof value === 'string' && FORMULA_START.test(text) && !HANDLE.test(text)) text = `'${text}`
   return /[",\n\r;]/.test(text) ? `"${text.replace(/"/g, '""')}"` : text
 }
 

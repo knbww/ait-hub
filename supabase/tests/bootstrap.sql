@@ -43,6 +43,17 @@ create table auth.identities (
   unique (provider_id, provider)
 );
 
+create table auth.mfa_factors (
+  id      uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users (id) on delete cascade,
+  status  text not null
+);
+
+create table auth.sessions (
+  id      uuid primary key default gen_random_uuid(),
+  user_id uuid not null references auth.users (id) on delete cascade
+);
+
 create function auth.jwt() returns jsonb
 language sql stable as $$
   select coalesce(nullif(current_setting('request.jwt.claims', true), ''), '{}')::jsonb
