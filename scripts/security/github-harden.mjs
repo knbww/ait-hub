@@ -75,10 +75,21 @@ step('backups: list of allowed actions', 'PUT', `repos/${BACKUPS}/actions/permis
 })
 
 console.log('\nPublishing')
-step(`environment production: a deployment waits for ${me.login}`, 'PUT', `repos/${REPO}/environments/production`, {
+// An approval only makes sense once CI holds the deploy token: until then every push to main would
+// leave two deploy jobs waiting for nobody.
+let ciPublishes = false
+try {
+  ciPublishes = JSON.parse(gh('GET', `repos/${REPO}/environments/production/secrets`)).total_count > 0
+} catch {
+  // No environment yet: publishing happens from a computer.
+}
+step(ciPublishes
+  ? `environment production: only main, and each deployment waits for ${me.login}`
+  : 'environment production: only main (no approval while you publish from your computer; run again after moving the token to CI)',
+'PUT', `repos/${REPO}/environments/production`, {
   wait_timer: 0,
   prevent_self_review: false,
-  reviewers: [{ type: 'User', id: me.id }],
+  reviewers: ciPublishes ? [{ type: 'User', id: me.id }] : [],
   deployment_branch_policy: { protected_branches: false, custom_branch_policies: true },
 })
 step('environment production: its secrets reach only main', 'POST', `repos/${REPO}/environments/production/deployment-branch-policies`,
