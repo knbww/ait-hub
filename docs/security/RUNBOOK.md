@@ -70,7 +70,7 @@ Bot Fight Mode не включаем осознанно: его нельзя о�
 
 В этом порядке: капчу включайте только после шага 3, иначе вход перестанет работать.
 
-1. **Authentication → Bot and Abuse Protection:** Enable CAPTCHA protection, провайдер Turnstile,
+1. **Authentication → Attack Protection:** Enable CAPTCHA protection, провайдер Turnstile,
    Secret key из шага 2. Сразу проверьте вход на сайте.
 2. **Authentication → Sign In / Providers → Email:** Minimum password length — `10`.
 3. **Authentication → URL Configuration:** Site URL — `https://hub.aitclub.org`. В Redirect URLs
