@@ -8,6 +8,13 @@ updates:
     cooldown:
       default-days: 7
     open-pull-requests-limit: 5
+    ignore:
+      # The types follow the Node version the project runs on (22, see .nvmrc).
+      - dependency-name: '@types/node'
+        update-types: ['version-update:semver-major']
+      # typescript-eslint doesn't accept TypeScript 7 yet: move when it does.
+      - dependency-name: typescript
+        update-types: ['version-update:semver-major']
     groups:
       dev-tools:
         dependency-type: development
