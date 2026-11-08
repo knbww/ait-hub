@@ -584,7 +584,12 @@ function start() {
   imgs.forEach(im => { if (im.complete && im.naturalWidth) { if (--left === 0) go(); } else im.addEventListener('load', () => { if (--left === 0) go(); }, { once: true }); });
 }
 let rT = 0;
-window.addEventListener('resize', () => { clearTimeout(rT); rT = setTimeout(() => { resize(); layout(); if (thumbShapes.length) { drawPlates(); drawCovers(); } lifeReset(); }, 120); });
+const refit = () => { clearTimeout(rT); rT = setTimeout(() => { resize(); layout(); if (thumbShapes.length) { drawPlates(); drawCovers(); } lifeReset(); }, 120); };
+window.addEventListener('resize', refit);
+// A window moved between a MacBook's Retina screen and an ordinary monitor keeps its size, so no resize
+// comes, but the pixel density changes: redraw the canvases for it, or they stay blurry.
+const watchDensity = () => matchMedia('(resolution: ' + devicePixelRatio + 'dppx)').addEventListener('change', () => { refit(); watchDensity(); }, { once: true });
+watchDensity();
 (document.fonts && document.fonts.load ? document.fonts.load('9px "JetBrains Mono Variable"').catch(() => {}) : Promise.resolve()).then(start, start);
 
 // dev only: lets a test script show any figure or guest
