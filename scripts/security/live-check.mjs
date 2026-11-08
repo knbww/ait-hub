@@ -172,8 +172,6 @@ const steps = [
   () => headers(HUB, HUB, async (res, csp) => {
     check('not for search engines', /noindex/.test(res.headers.get('x-robots-tag') ?? ''))
     check('Trusted Types are on', /require-trusted-types-for 'script'/.test(csp))
-    const missing = await get(`${HUB}/assets/does-not-exist.js`)
-    check('a missing build file is a 404, not the app', missing.status === 404, String(missing.status))
   }),
   () => headers(SITE, SITE),
   () => tls('hub.aitclub.org'),

@@ -16,7 +16,8 @@ if (!process.argv.includes('--force') && (git('status --porcelain') || git('rev-
   process.exit(1)
 }
 
-const missing = ['CLOUDFLARE_API_TOKEN', 'CLOUDFLARE_ACCOUNT_ID', 'VITE_SUPABASE_URL', 'VITE_SUPABASE_ANON_KEY']
+// Supabase requires the captcha on sign-in: a build without the Turnstile key locks everyone out.
+const missing = ['CLOUDFLARE_API_TOKEN', 'CLOUDFLARE_ACCOUNT_ID', 'VITE_SUPABASE_URL', 'VITE_SUPABASE_ANON_KEY', 'VITE_TURNSTILE_SITE_KEY']
   .filter((name) => !process.env[name])
 if (missing.length) {
   console.error(`Missing in .env.local: ${missing.join(', ')} (see .env.example)`)

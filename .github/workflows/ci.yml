@@ -64,6 +64,10 @@ jobs:
           if [ "$HAS_TOKEN" != "true" ] || [ "$HAS_ACCOUNT" != "true" ] || [ -z "$VITE_SUPABASE_URL" ] || [ -z "$VITE_SUPABASE_ANON_KEY" ]; then
             echo "::warning::Cloudflare secrets or VITE_* variables are not set — deploy skipped."
             echo "ready=false" >> "$GITHUB_OUTPUT"
+          elif [ -z "$VITE_TURNSTILE_SITE_KEY" ]; then
+            # Supabase requires the captcha: a build without the widget would lock everyone out.
+            echo "::error::VITE_TURNSTILE_SITE_KEY is not set: this build would lock everyone out. Set the repository variable."
+            exit 1
           else
             echo "ready=true" >> "$GITHUB_OUTPUT"
           fi

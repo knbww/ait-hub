@@ -241,7 +241,7 @@ async function turnstile() {
   console.log(`
   Shown once. Don't paste the secret anywhere but the two places below:
     Site key: ${made.result.sitekey}   → VITE_TURNSTILE_SITE_KEY in .env.local (and the GitHub variable)
-    Secret:   ${made.result.secret}   → Supabase → Authentication → Bot and Abuse Protection`)
+    Secret:   ${made.result.secret}   → Supabase → Authentication → Attack Protection`)
 }
 
 // ── Run ─────────────────────────────────────────────────────────────────────

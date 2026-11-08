@@ -70,7 +70,7 @@ Bot Fight Mode не включаем осознанно: его нельзя о�
 
 В этом порядке: капчу включайте только после шага 3, иначе вход перестанет работать.
 
-1. **Authentication → Bot and Abuse Protection:** Enable CAPTCHA protection, провайдер Turnstile,
+1. **Authentication → Attack Protection:** Enable CAPTCHA protection, провайдер Turnstile,
    Secret key из шага 2. Сразу проверьте вход на сайте.
 2. **Authentication → Sign In / Providers → Email:** Minimum password length — `10`.
 3. **Authentication → URL Configuration:** Site URL — `https://hub.aitclub.org`. В Redirect URLs
@@ -99,17 +99,18 @@ npm run security:github -- --apply     # применит
 Прямой push в `main` после этого запрещён: только pull request с зелёным CI.
 
 Публикация через CI (вместо этого компьютера). Создайте токен Cloudflare: шаблон Edit Cloudflare
-Pages, только этот аккаунт, срок год. Затем:
+Pages, только этот аккаунт, срок год. Затем, **начиная с ключа Turnstile**: сборка без него закроет вход
+всем, пока Supabase требует капчу (CI такую сборку не опубликует):
 
 ```bash
+gh variable set VITE_TURNSTILE_SITE_KEY --body '<Site key>'
 gh secret set CLOUDFLARE_API_TOKEN --env production
 gh secret set CLOUDFLARE_ACCOUNT_ID --env production
-gh variable set VITE_TURNSTILE_SITE_KEY --body '<Site key>'
+npm run security:github -- --apply
 ```
 
-Каждая публикация ждёт вашего подтверждения в GitHub. Если вы остаётесь на `npm run deploy`, задания
-`deploy` тоже будут ждать подтверждения при каждом push: отклоняйте их или удалите правило reviewers
-у окружения `production`.
+Повторный запуск скрипта включит подтверждение: каждая публикация будет ждать вашего «да» в GitHub.
+Пока токена в CI нет, скрипт подтверждение не ставит, и задания `deploy` просто пропускаются.
 
 ## 6. Ключи
 
