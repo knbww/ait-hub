@@ -34,6 +34,8 @@ const ProjectPage = page(() => import('./pages/ProjectPage'), 'ProjectPage')
 const ProfilePage = page(() => import('./pages/ProfilePage'), 'ProfilePage')
 const MemberPage = page(() => import('./pages/MemberPage'), 'MemberPage')
 const ManagePage = page(() => import('./pages/ManagePage'), 'ManagePage')
+const RecruitmentPage = page(() => import('./pages/RecruitmentPage'), 'RecruitmentPage')
+const ApplicationPage = page(() => import('./pages/ApplicationPage'), 'ApplicationPage')
 const NotFoundPage = page(() => import('./pages/NotFoundPage'), 'NotFoundPage')
 
 const auth = (node: ReactNode) => <RequireAuth>{node}</RequireAuth>
@@ -54,6 +56,7 @@ const TITLES: [RegExp, string][] = [
   [/^\/profile/, 'nav.profile'],
   [/^\/members/, 'title.member'],
   [/^\/manage/, 'nav.manage'],
+  [/^\/recruitment/, 'recruit.title'],
   [/^\/join/, 'nav.join'],
   [/^\/login/, 'nav.signIn'],
   [/^\/reset/, 'reset.title'],
@@ -94,6 +97,9 @@ export function AnimatedRoutes() {
           <Route path="/profile" element={auth(<ProfilePage />)} />
           <Route path="/members/:id" element={auth(<MemberPage />)} />
           <Route path="/manage" element={<RequireStaff><ManagePage /></RequireStaff>} />
+          {/* Open to whoever the database lets see the team applications (the page asks it). */}
+          <Route path="/recruitment" element={auth(<RecruitmentPage />)} />
+          <Route path="/recruitment/:id" element={auth(<ApplicationPage />)} />
 
           {/* Old addresses from the June version */}
           <Route path="/academy" element={<Navigate to="/program" replace />} />

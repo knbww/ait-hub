@@ -50,6 +50,12 @@ const DB_CODES = [
   'invalid_push_endpoint',
   'storage_quota',
   'leaked_password',
+  'invalid_status',
+  'invalid_assignee',
+  'invalid_score',
+  'invalid_window',
+  'invalid_note',
+  'already_has_access',
 ] as const
 
 function rawMessage(error: unknown): string {

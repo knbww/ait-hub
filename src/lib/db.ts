@@ -1,6 +1,8 @@
 // Row shapes as PostgREST returns them (snake_case). Hand-written to match
 // supabase/migrations/2026100812*; keep them in sync when a migration changes a table.
 
+import type { ApplicationStatus, DepartmentId, RoleId } from './recruitment'
+
 export type Role = 'member' | 'track_lead' | 'director' | 'curator'
 export type TrackId = 'ai' | 'algo' | 'startup'
 /** pending: joined with a code, waits for the lead (or director / curator) to confirm. */
@@ -370,4 +372,58 @@ export interface MessageReportRow {
   resolved_at: string | null
   reporter?: { full_name: string } | null
   author?: { full_name: string } | null
+}
+
+// ── Team recruitment (supabase/migrations/20261109120000_team_recruitment.sql) ──
+export type RecruitmentAccess = 'none' | 'needs_code' | 'view' | 'export' | 'manage'
+
+export interface TeamApplicationRow {
+  id: string
+  public_id: string
+  created_at: string
+  full_name: string
+  applicant_status: string
+  school: string
+  grade: string
+  email: string
+  telegram: string | null
+  experience: string | null
+  department: DepartmentId
+  primary_role: RoleId
+  extra_role: RoleId | null
+  answers: Record<string, unknown>
+  hours: string
+  work_times: string[]
+  interview: string
+  term: string
+  other_role: string
+  motivation: string
+  extra_info: string | null
+  consent_version: string
+  is_adult: boolean
+  guardian_consent: boolean
+  status: ApplicationStatus
+  status_changed_at: string
+  assignee_id: string | null
+  score: number | null
+  updated_at: string
+}
+
+export interface ApplicationNoteRow {
+  id: string
+  application_id: string
+  author_id: string | null
+  body: string
+  created_at: string
+  author: { full_name: string } | null
+}
+
+/** Director, curator and whoever the director let in: the possible assignees. */
+export interface RecruitmentTeamRow {
+  profile_id: string
+  full_name: string
+  role: Role
+  can_export: boolean
+  /** Let in by the director (director and curator have access anyway). */
+  granted: boolean
 }

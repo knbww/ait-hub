@@ -2,7 +2,7 @@ import { useState } from 'react'
 import type { FormEvent } from 'react'
 import { motion } from 'framer-motion'
 import { Link, useSearchParams } from 'react-router-dom'
-import { Download } from 'lucide-react'
+import { Download, UserPlus } from 'lucide-react'
 import { GlassCard } from '../components/GlassCard'
 import { DataState, ErrorText } from '../components/DataState'
 import { JoinCodePanel } from '../components/JoinCodePanel'
@@ -13,6 +13,8 @@ import { useI18n } from '../context/i18nContext'
 import { useMembers, useSchedule } from '../hooks/useClub'
 import { useAuditLog, useJoinCodes } from '../hooks/useManage'
 import { useReports } from '../hooks/useChats'
+import { useRecruitmentAccess } from '../hooks/useRecruitment'
+import { statusLabel } from '../lib/recruitment'
 import { resolveReport } from '../lib/chatActions'
 import { setSchedule, shiftSchedule } from '../lib/programActions'
 import { supabase } from '../lib/supabase'
@@ -300,18 +302,21 @@ function AuditTab() {
           {(log.data ?? []).map((row) => {
             const d = row.details as Record<string, string | number | null>
             // Roles and statuses are stored as codes: show them in words.
+            const application = row.action.startsWith('application')
             const word = (v: string | number | null) =>
-              typeof v === 'string' && messages[`role.${v}`] ? t(`role.${v}`)
-                : typeof v === 'string' && messages[`status.${v}`] ? t(`status.${v}`)
-                  : typeof v === 'string' && messages[`track.${v}`] ? t(`track.${v}`) : v
-            const extra = [d.full_name, d.title, d.track && t(`track.${d.track}.short`), d.from && d.to && `${word(d.from)} → ${word(d.to)}`]
+              application && typeof v === 'string' ? statusLabel(v)
+                : typeof v === 'string' && messages[`role.${v}`] ? t(`role.${v}`)
+                  : typeof v === 'string' && messages[`status.${v}`] ? t(`status.${v}`)
+                    : typeof v === 'string' && messages[`track.${v}`] ? t(`track.${v}`) : v
+            const extra = [d.public_id, d.full_name, d.title, d.assignee, d.track && t(`track.${d.track}.short`), d.from && d.to && `${word(d.from)} → ${word(d.to)}`]
               .filter(Boolean).join(', ')
             return (
               <li key={row.id} className="py-2 text-sm">
                 <p>
                   <span className="font-normal">{row.actor?.full_name ?? t('audit.system')}</span>{' '}
                   <span className="text-gray-700">{t(`audit.${row.action}`)}</span>
-                  {row.target_id && <>, <Link to={`/members/${row.target_id}`} className="underline">{t('audit.target')}</Link></>}
+                  {row.target_id && <>, <Link to={application ? `/recruitment/${row.target_id}` : `/members/${row.target_id}`} className="underline">
+                    {t(application ? 'audit.application' : 'audit.target')}</Link></>}
                 </p>
                 <p className="text-xs text-gray-600">{formatDateTime(row.created_at)}{extra && `, ${extra}`}</p>
               </li>
@@ -325,7 +330,8 @@ function AuditTab() {
 
 export function ManagePage() {
   const { t } = useI18n()
-  const { isOversight } = useAuth()
+  const { isOversight, profile } = useAuth()
+  const recruitment = useRecruitmentAccess(profile?.id)
   const [params, setParams] = useSearchParams()
   const tabs: Tab[] = isOversight ? ['members', 'codes', 'schedule', 'export', 'reports', 'audit'] : ['members', 'codes', 'export']
   const requested = params.get('tab') as Tab | null
@@ -334,7 +340,12 @@ export function ManagePage() {
   return (
     <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit" className="max-w-4xl mx-auto space-y-4">
       <GlassCard>
-        <h1 className={pageTitle}>{t('manage.title')}</h1>
+        <div className="flex flex-wrap items-start justify-between gap-3">
+          <h1 className={pageTitle}>{t('manage.title')}</h1>
+          {recruitment.data && recruitment.data !== 'none' && (
+            <Link to="/recruitment" className={btnSecondary}><UserPlus className="w-4 h-4" /> {t('recruit.title')}</Link>
+          )}
+        </div>
         <div className="flex gap-2 mt-3 overflow-x-auto -mx-1 px-1 pb-1">
           {tabs.map((id) => (
             <button key={id} className={segment(tab === id)} onClick={() => setParams({ tab: id }, { replace: true })}>
