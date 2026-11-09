@@ -4,4 +4,12 @@
     <loc>https://aitclub.org/</loc>
     <changefreq>monthly</changefreq>
   </url>
+  <url>
+    <loc>https://aitclub.org/team</loc>
+    <changefreq>weekly</changefreq>
+  </url>
+  <url>
+    <loc>https://aitclub.org/privacy</loc>
+    <changefreq>yearly</changefreq>
+  </url>
 </urlset>

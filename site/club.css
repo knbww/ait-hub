@@ -104,7 +104,19 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .detail h3 { margin: 0; font-size: clamp(24px, 2.6vw, 34px); font-weight: 600; letter-spacing: -0.02em; line-height: 1.12; text-wrap: balance; }
 .detail-text { margin: 4px 0 0; color: var(--body); font-size: 16px; line-height: 1.6; max-width: 36em; }
 .detail-thumb { display: none; width: 100%; height: 180px; border-radius: 16px; }
-.close { align-self: flex-start; margin-top: 8px; }
+.close { align-self: flex-start; }
+.detail-ctl { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
+.detail-ctl [hidden] { display: none; }
+
+/* The way to the team recruitment page, under the hero's facts. */
+.hero-team { pointer-events: auto; align-self: flex-start; display: grid; grid-template-columns: auto auto; column-gap: 14px; align-items: center;
+  padding: 12px 16px; border-radius: 16px; background: var(--glass); border: 1px solid var(--glass-brd); color: var(--ink); text-decoration: none;
+  box-shadow: var(--shadow); transition: transform .25s, border-color .25s; }
+.hero-team b { font-size: 14.5px; font-weight: 600; }
+.hero-team span { grid-column: 1; font-size: 13px; color: var(--body); }
+.hero-team i { grid-column: 2; grid-row: 1 / span 2; font: 500 18px/1 var(--mono); font-style: normal; color: var(--accent-text); transition: transform .25s; }
+.hero-team:hover { transform: translateY(-1px); border-color: var(--hair); }
+.hero-team:hover i { transform: translateX(3px); }
 .stage-ctl { display: flex; align-items: center; gap: 10px; margin-top: 16px; }
 .round { width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--hair); background: var(--card); color: var(--ink); cursor: pointer; display: grid; place-items: center; font: 500 18px/1 var(--font); }
 .round:hover { border-color: var(--ink); }

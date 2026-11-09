@@ -1,0 +1,50 @@
+// Builds the club site with stand-in public values into a temporary folder and checks what came out:
+// the team page with every role, the terms with the contact, a content policy that names one
+// Supabase project. CI runs it on every change; the real values come with the deploy.
+//
+//   npm run build:site:check
+
+import { execFileSync } from 'node:child_process'
+import { mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs'
+import { tmpdir } from 'node:os'
+import { join } from 'node:path'
+import { ROLES } from '../src/lib/recruitment.ts'
+
+const out = mkdtempSync(join(tmpdir(), 'ait-site-'))
+const env = {
+  ...process.env,
+  VITE_SUPABASE_URL: 'https://abcdefghijklmnopqrst.supabase.co',
+  VITE_TEAM_TURNSTILE_SITE_KEY: '1x00000000000000000000AA',
+  VITE_TEAM_CONTACT: '@ait_club_team',
+}
+
+let failed = 0
+const check = (name, ok) => {
+  if (!ok) failed++
+  console.log(`${ok ? '  ok  ' : ' FAIL '} ${name}`)
+}
+
+try {
+  execFileSync('npx', ['--no-install', 'vite', 'build', '--config', 'vite.site.config.ts', '--outDir', out, '--emptyOutDir', '--logLevel', 'warn'],
+    { stdio: 'inherit', env })
+  const read = (file) => readFileSync(join(out, file), 'utf8')
+  const team = read('team.html')
+  check('the team page lists every role', ROLES.every((r) => team.includes(`data-role="${r.id}"`)))
+  check('no placeholder is left on the pages', !/\{\{|<!-- positions -->/.test(team + read('privacy.html')))
+  check('the contact is a link', team.includes('href="https://t.me/ait_club_team"') && read('privacy.html').includes('@ait_club_team'))
+  // The rules, without the comments that explain them.
+  const headers = read('_headers').split('\n').filter((line) => !line.startsWith('#')).join('\n')
+  check('the content policy names the project, not every Supabase host',
+    headers.includes('connect-src \'self\' https://abcdefghijklmnopqrst.supabase.co;') && !headers.includes('*.supabase.co'))
+  check('Turnstile may run, in its own frame', /script-src[^;]*https:\/\/challenges\.cloudflare\.com/.test(headers) && /frame-src https:\/\/challenges\.cloudflare\.com/.test(headers))
+  const text = readdirSync(out, { recursive: true }).filter((f) => /\.(js|html|css)$/.test(f)).map((f) => read(f)).join('\n')
+  check('no secret key in the site', !/sb_secret_|service_role/.test(text))
+} catch (e) {
+  failed++
+  console.error(e.message)
+} finally {
+  rmSync(out, { recursive: true, force: true })
+}
+
+console.log(failed ? `\n${failed} failed` : '\nThe site builds.')
+process.exitCode = failed ? 1 : 0
