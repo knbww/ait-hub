@@ -7,3 +7,7 @@ useDefault = true
 [[allowlists]]
 description = "Fake passwords in scripts/security/stack-test.mjs"
 regexes = ['''^Sneaky-pass-12345$''', '''^Temp-pass-12345$''']
+
+[[allowlists]]
+description = "A made-up request key (a UUID) in scripts/apply-test.mjs"
+regexes = ['''^7d4a1c5e-2b3f-4e6a-9c8d-1f2e3a4b5c6d$''']

@@ -1,5 +1,5 @@
 import { execSync } from 'node:child_process'
-import { existsSync, readFileSync, writeFileSync } from 'node:fs'
+import { readFileSync, writeFileSync } from 'node:fs'
 import { resolve } from 'node:path'
 import { defineConfig, loadEnv } from 'vite'
 import type { Plugin } from 'vite'
@@ -74,8 +74,9 @@ function clubSite(mode: string): Plugin {
     },
     // The content policy names exactly this build's Supabase project, as the Hub's does.
     closeBundle() {
+      if (!building) return
+      // public/_headers is always copied in: no check before reading, a missing file fails the build.
       const file = `${outDir}/_headers`
-      if (!building || !existsSync(file)) return
       const origin = new URL(env.VITE_SUPABASE_URL.trim()).origin
       writeFileSync(file, readFileSync(file, 'utf8').replaceAll('https://*.supabase.co', origin))
     },
