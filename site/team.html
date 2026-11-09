@@ -1,0 +1,205 @@
+<!doctype html>
+<html lang="ru">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover" />
+    <title>Build AIT With Us — набор в команду AIT Club</title>
+    <meta name="description" content="AIT Club набирает организаторов и менторов из сети Назарбаев Интеллектуальных школ: Education, PR & Creative, Operations, Data & Analytics. Заявки 9–16 ноября, онлайн, добровольно." />
+    <meta name="theme-color" content="#750014" />
+    <link rel="icon" href="/favicon.png" />
+    <link rel="apple-touch-icon" href="/apple-touch-icon.png" />
+    <link rel="canonical" href="https://aitclub.org/team" />
+    <meta property="og:type" content="website" />
+    <meta property="og:site_name" content="AIT Club" />
+    <meta property="og:url" content="https://aitclub.org/team" />
+    <meta property="og:title" content="Build AIT With Us — набор в команду AIT Club" />
+    <meta property="og:description" content="Организаторы и менторы из сети НИШ. Заявки 9–16 ноября, собеседования 17–23 ноября." />
+    <meta property="og:image" content="https://aitclub.org/og.png" />
+    <meta property="og:image:width" content="1200" />
+    <meta property="og:image:height" content="630" />
+    <meta property="og:locale" content="ru_RU" />
+    <meta name="twitter:card" content="summary_large_image" />
+    <script type="module" src="./main.ts"></script>
+    <script type="module" src="./team.ts"></script>
+    <script type="module" src="./basement.js"></script>
+  </head>
+  <body class="team-page">
+    <div class="bg" aria-hidden="true">
+      <span class="blob blob-1"></span>
+      <span class="blob blob-2"></span>
+    </div>
+
+    <header class="bar">
+      <div class="bar-in glass">
+        <a href="/" aria-label="AIT Club — на главную"><img src="/img/ait-black.png" alt="AIT Club" width="380" height="207" /></a>
+        <nav aria-label="Разделы">
+          <a href="#about">О клубе</a>
+          <a href="#positions">Роли</a>
+          <a href="#process">Отбор</a>
+          <a href="#faq">Вопросы</a>
+        </nav>
+        <a class="login" href="/">Главная</a>
+        <a class="btn btn-accent" href="#apply">Apply Now</a>
+      </div>
+    </header>
+
+    <main id="top">
+      <!-- Hero: the club's sign assembles from symbols, then the four departments (team-hero.ts) -->
+      <section class="hero" id="hero" aria-label="Набор в команду AIT Club">
+        <canvas id="grid" aria-hidden="true"></canvas>
+        <canvas id="field" aria-hidden="true"></canvas>
+        <div class="wrap">
+          <div class="hero-copy">
+            <h1>Build AIT <span>With Us.</span></h1>
+            <p class="lead">Присоединяйся к команде, которая создаёт межшкольное технологическое сообщество.</p>
+            <ol class="hero-dates" aria-label="Даты набора">
+              <li><b>9–16 ноября</b><span>приём заявок</span></li>
+              <li><b>17–23 ноября</b><span>собеседования и отбор</span></li>
+              <li><b>Дальше</b><span>подготовка AIT Week</span></li>
+            </ol>
+            <div class="cta">
+              <a class="btn btn-accent" href="#apply">Apply Now</a>
+              <a class="btn btn-ghost" href="#positions">Открытые роли</a>
+            </div>
+          </div>
+        </div>
+        <aside class="now glass" aria-live="polite">
+          <div class="now-text" id="nowText">
+            <p class="now-name" id="nowName">AIT Club</p>
+            <p class="now-dir" id="nowDir">Межшкольная команда, которая строит клуб</p>
+            <p class="now-note" id="nowNote"><i>Build AIT:</i> знак клуба собирается из отдельных символов</p>
+          </div>
+          <div class="dots" id="dots"></div>
+          <p class="hint">Наведи на фигуру, чтобы увидеть, из чего она сделана</p>
+        </aside>
+      </section>
+
+      <!-- About -->
+      <section class="sec" id="about">
+        <div class="wrap about">
+          <div class="about-head">
+            <h2 class="reveal">About AIT</h2>
+            <p class="reveal sec-lead">AIT Club — технологический клуб для школьников 7–12 классов. Год в клубе — 36 недель в одном направлении и результат, который можно проверить и объяснить: проекты, решённые задачи, продукт с первыми пользователями.</p>
+            <p class="reveal sec-lead">Клуб появился в НИШ Петропавловска, а теперь собирает команду из разных НИШ. Организаторы и менторы работают онлайн.</p>
+            <ul class="facts reveal" aria-label="Формат"><li>онлайн</li><li>межшкольная команда</li><li>добровольно</li></ul>
+          </div>
+          <ol class="dir-list">
+            <li class="reveal"><span class="mono">01</span><div><h3>Artificial Intelligence</h3><p>Как ИИ устроен внутри: поиск, логика, вероятности, машинное обучение, нейросети. Двенадцать проектов курса CS50 AI с автоматической проверкой.</p></div></li>
+            <li class="reveal"><span class="mono">02</span><div><h3>Algorithms &amp; Olympiads</h3><p>Олимпиадные задачи на C++: CSES, USACO Guide, рейтинговые контесты клуба на Codeforces и подготовка к олимпиаде по информатике.</p></div></li>
+            <li class="reveal"><span class="mono">03</span><div><h3>Startup Engineering</h3><p>От проблемы до продукта, которым пользуются: интервью с пользователями, MVP на React, питч и Demo Day.</p></div></li>
+          </ol>
+        </div>
+      </section>
+
+      <!-- Open positions: generated from src/lib/recruitment.ts at build time (vite.site.config.ts) -->
+      <section class="sec" id="positions">
+        <div class="wrap">
+          <div class="sec-head">
+            <h2 class="reveal">Open Positions</h2>
+            <p class="reveal sec-lead">Четыре департамента. Нажми на роль, и анкета откроется сразу с ней: основную роль можно дополнить ещё одной.</p>
+          </div>
+          <div class="depts">
+            <!-- positions -->
+          </div>
+          <p class="reveal depts-note">Разработчиков, администраторов платформы и методистов не ищем: AIT Hub ведёт руководитель клуба, а методику — менторы направлений.</p>
+        </div>
+      </section>
+
+      <!-- Why -->
+      <section class="sec" id="why">
+        <div class="wrap">
+          <div class="sec-head">
+            <h2 class="reveal">Why Join AIT?</h2>
+            <p class="reveal sec-lead">Работа дистанционная, добровольная и неоплачиваемая. Вот что она даёт.</p>
+          </div>
+          <ol class="why-list">
+            <li class="reveal"><span class="mono">01</span><h3>Реальные проекты и опыт</h3><p>Занятия, AIT Week и публичные каналы клуба, которыми пользуются по-настоящему, а не учебное задание в стол.</p></li>
+            <li class="reveal"><span class="mono">02</span><h3>Ученики из разных НИШ</h3><p>Команда и аудитория — школьники из сети НИШ по всему Казахстану.</p></li>
+            <li class="reveal"><span class="mono">03</span><h3>Своё направление</h3><p>Можно возглавить направление, вести занятия и создавать образовательный контент.</p></li>
+            <li class="reveal"><span class="mono">04</span><h3>Результаты для портфолио</h3><p>Проведённые занятия и мероприятия, дизайн, тексты и отчёты, которые можно показать.</p></li>
+          </ol>
+        </div>
+      </section>
+
+      <!-- Process: team.ts marks the step of today -->
+      <section class="sec" id="process">
+        <div class="wrap">
+          <div class="reveal process-panel">
+            <div class="process-head">
+              <h2>Recruitment Process</h2>
+              <p>Пять шагов от анкеты до первой задачи в команде.</p>
+            </div>
+            <ol class="process-steps" id="processSteps">
+              <li data-from="2026-11-09" data-to="2026-11-16"><span class="n">01</span><b>Apply</b><span class="p-when">9–16 ноября</span><span class="p-text">Анкета на этой странице, около 15 минут. Регистрация не нужна.</span></li>
+              <li data-from="2026-11-09" data-to="2026-11-16"><span class="n">02</span><b>Review</b><span class="p-when">по мере поступления</span><span class="p-text">Читаем каждую заявку и пишем на почту или в Telegram.</span></li>
+              <li data-from="2026-11-17" data-to="2026-11-23"><span class="n">03</span><b>Interview / Short Task</b><span class="p-when">17–23 ноября</span><span class="p-text">Онлайн-собеседование, для отдельных ролей небольшое практическое задание.</span></li>
+              <li data-from="2026-11-17" data-to="2026-11-23"><span class="n">04</span><b>Decision</b><span class="p-when">по итогам собеседований</span><span class="p-text">Сообщаем результат по почте или в Telegram.</span></li>
+              <li data-from="2026-11-24"><span class="n">05</span><b>Onboarding</b><span class="p-when">дальше</span><span class="p-text">Знакомство с командой и подготовка AIT Week.</span></li>
+            </ol>
+          </div>
+        </div>
+      </section>
+
+      <!-- Form (team-form.ts) -->
+      <section class="sec" id="apply">
+        <div class="wrap">
+          <div class="sec-head">
+            <h2 class="reveal">Application Form</h2>
+            <p class="reveal sec-lead">Пять шагов, около 15 минут, без регистрации. Ответы хранятся только в этой вкладке, пока ты не отправишь заявку или не закроешь её.</p>
+          </div>
+          <div class="form-shell glass" id="formRoot">
+            <noscript><p class="f-lead">Анкете нужен JavaScript: включи его в браузере. Вопросы о наборе: <a href="{{contact_href}}">{{contact}}</a>.</p></noscript>
+          </div>
+        </div>
+      </section>
+
+      <!-- FAQ -->
+      <section class="sec" id="faq">
+        <div class="wrap faq-wrap">
+          <h2 class="reveal">FAQ</h2>
+          <div class="faq-list">
+            <details class="reveal"><summary>Нужен ли опыт?</summary><p>Не обязательно. Ментору нужно хорошо знать тему своего направления, остальным — желание разбираться и делать. Если есть проекты, олимпиады, клубы или мероприятия, расскажи о них в анкете.</p></details>
+            <details class="reveal"><summary>Можно ли совмещать со школой?</summary><p>Да. Работа дистанционная, а нагрузку ты указываешь в анкете сам: от пары часов в неделю.</p></details>
+            <details class="reveal"><summary>Работа оплачивается?</summary><p>Нет. Участие добровольное и неоплачиваемое. Взамен — реальные проекты, опыт и результаты для портфолио.</p></details>
+            <details class="reveal"><summary>Можно ли подать заявку на две роли?</summary><p>В анкете выбирается одна основная роль и, по желанию, одна дополнительная из любого департамента. Вторая заявка не нужна.</p></details>
+            <details class="reveal"><summary>Что происходит после отправки?</summary><p>Ты сразу увидишь номер заявки. Мы рассмотрим её и свяжемся по email или Telegram. 17–23 ноября пройдут онлайн-собеседования, для отдельных ролей — небольшое практическое задание.</p></details>
+          </div>
+          <p class="reveal faq-contact">Остались вопросы? Пиши: <a href="{{contact_href}}">{{contact}}</a>. Как мы обращаемся с данными заявки — в <a href="/privacy">условиях обработки данных</a>.</p>
+        </div>
+      </section>
+    </main>
+
+    <!-- Basement: the same floor as on the home page (basement.js) -->
+    <footer class="basement" id="basement">
+      <canvas id="life" aria-hidden="true"></canvas>
+      <div class="wrap">
+        <div>
+          <h2>Подвал</h2>
+          <p style="margin-top: 12px; max-width: 34em">Здесь живёт всё, что не попадает в официальные тексты: сообщества, код и то, чем развлекаются те, кто делает сайт.</p>
+          <p style="margin-top: 12px; max-width: 34em">На фоне игра «Жизнь» Конвея. Вдоль верхнего края работают планерные ружья Госпера: они бесконечно выпускают «планеры», которые летят вниз по диагонали. Нажми в любом месте, чтобы запустить свой.</p>
+          <p class="b-life" id="lifeStat" style="margin-top: 16px">Поколение <b>0</b>, живых клеток <b>0</b></p>
+        </div>
+        <div>
+          <h3>Набор</h3>
+          <ul class="b-list">
+            <li><b>Заявки</b><span>9–16 ноября</span></li>
+            <li><b>Собеседования</b><span>17–23 ноября</span></li>
+            <li><b>Данные заявок</b><span><a href="/privacy">условия</a></span></li>
+            <li><b>Вопросы</b><span><a href="{{contact_href}}">{{contact}}</a></span></li>
+          </ul>
+        </div>
+        <div>
+          <h3>Для разработчиков</h3>
+          <ul class="b-list">
+            <li><b>Репозиторий</b><span><a href="https://github.com/knbww/ait-hub">knbww/ait-hub</a></span></li>
+            <li><b>Стек</b><span>React, Vite, Supabase</span></li>
+            <li><b>Шрифты</b><span>Manrope, JetBrains Mono</span></li>
+            <li><b>Сборка</b><span id="build"></span></li>
+          </ul>
+        </div>
+      </div>
+      <canvas class="cat" id="cat" aria-hidden="true"></canvas>
+      <div class="b-bottom"><div class="wrap"><span>© <span data-year>2026</span> AIT Club</span><a href="/">aitclub.org</a></div></div>
+    </footer>
+  </body>
+</html>

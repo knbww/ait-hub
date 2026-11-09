@@ -1,12 +1,13 @@
 import { useState } from 'react'
 import { Link, NavLink, useLocation } from 'react-router-dom'
 import {
-  Award, BookOpen, CalendarDays, FolderKanban, House, Menu, MessageCircle, Newspaper, Shield, Sparkles, Trophy, User, Users,
+  Award, BookOpen, CalendarDays, FolderKanban, House, Menu, MessageCircle, Newspaper, Shield, Sparkles, Trophy, User, UserPlus, Users,
 } from 'lucide-react'
 import type { LucideIcon } from 'lucide-react'
 import { useAuth } from '../context/authContext'
 import { useI18n } from '../context/i18nContext'
 import { useChatLive, useInbox } from '../hooks/useChats'
+import { useRecruitmentAccess } from '../hooks/useRecruitment'
 import { Modal } from './Modal'
 import logo from '../assets/ait-hub.svg'
 
@@ -45,6 +46,9 @@ export function Navbar() {
   useChatLive(profile?.id)
   const inbox = useInbox(Boolean(profile))
   const unread = (inbox.data ?? []).reduce((sum, c) => sum + c.unread, 0)
+  // The team applications: only for whoever the database lets in (or would, with the code).
+  const recruitment = useRecruitmentAccess(profile?.status === 'active' ? profile.id : undefined)
+  const recruits = Boolean(recruitment.data && recruitment.data !== 'none')
 
   const toolbar = 'backdrop-blur-[40px] bg-white/[0.52] border-2 border-white/90 shadow-[0_14px_44px_rgba(50,30,30,0.12)]'
 
@@ -88,6 +92,20 @@ export function Navbar() {
                   >
                     <Shield className="w-5 h-5 xl:w-4 xl:h-4" />
                     <span className="hidden xl:inline">{t('nav.manage')}</span>
+                  </NavLink>
+                )}
+                {recruits && (
+                  <NavLink
+                    to="/recruitment"
+                    title={t('nav.recruitment')}
+                    className={({ isActive: active }) =>
+                      `flex items-center gap-2 p-2.5 xl:px-3 xl:py-1.5 rounded-lg text-sm transition-colors ${
+                        active ? 'bg-gray-900 text-white' : 'text-gray-700 hover:bg-white/70'
+                      }`
+                    }
+                  >
+                    <UserPlus className="w-5 h-5 xl:w-4 xl:h-4" />
+                    <span className="hidden xl:inline">{t('nav.recruitment')}</span>
                   </NavLink>
                 )}
                 <NavLink
@@ -172,7 +190,8 @@ export function Navbar() {
       {moreOpen && (
         <Modal title={t('nav.more')} onClose={() => setMoreOpen(false)}>
           <div className="grid gap-2">
-            {[...MORE, ...(isStaff ? [{ key: 'nav.manage', path: '/manage', icon: Shield }] : []), { key: 'nav.profile', path: '/profile', icon: User }].map(
+            {[...MORE, ...(isStaff ? [{ key: 'nav.manage', path: '/manage', icon: Shield }] : []),
+              ...(recruits ? [{ key: 'nav.recruitment', path: '/recruitment', icon: UserPlus }] : []), { key: 'nav.profile', path: '/profile', icon: User }].map(
               (item) => (
                 <Link
                   key={item.path}

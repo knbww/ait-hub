@@ -575,6 +575,88 @@ begin
     (pg_temp.pid('lead_start'), 'event_completed', null, jsonb_build_object('title', 'Питч-разбор 1'), pg_temp.at(16, 4, '10:00')),
     (pg_temp.pid('curator'), 'export_members', null, '{}', pg_temp.at(12, 2, '11:00'));
 
+  -- ── Team recruitment: applications from the form on aitclub.org/team ─────────
+  -- Fictional applicants from other schools of the network. The round is open around today, the AI
+  -- lead helps with the selection (view only), and the applications sit at every stage.
+  insert into private.settings (key, value) values
+    ('recruitment_opens_at', to_jsonb(now() - interval '3 days') #>> '{}'),
+    ('recruitment_closes_at', to_jsonb(now() + interval '5 days') #>> '{}')
+  on conflict (key) do update set value = excluded.value;
+  insert into public.recruitment_access (profile_id, can_export, granted_by, granted_at)
+  values (pg_temp.pid('lead_ai'), false, pg_temp.pid('director'), now() - interval '3 days');
+
+  insert into public.team_applications (
+    public_id, request_key, created_at, full_name, applicant_status, school, grade, email, telegram, experience,
+    department, primary_role, extra_role, answers, hours, work_times, interview, term, other_role, motivation, extra_info,
+    volunteer_ack, consent, consent_version, is_adult, guardian_consent, status, status_changed_at, assignee_id, score)
+  values
+    ('AIT-7KQ2MD', gen_random_uuid(), now() - interval '62 hours', 'Аружан Сейткали', 'nis_student', 'НИШ, Астана', '11 класс',
+     'aruzhan.s@example.com', 'aruzhan_s', 'Призёр областной олимпиады по информатике, веду кружок Python для 8 классов.',
+     'education', 'lead_mentor', 'co_mentor',
+     '{"direction": "ai", "preferred": "lead", "skills": "Python, поиск и минимакс, основы машинного обучения, PyTorch на уровне туториалов", "achievements": "Прошла CS50 AI целиком, два проекта на GitHub, призёр области", "links": ["https://github.com/aruzhan-s"], "explain": "Через игру: крестики-нолики объясняют минимакс лучше формулы.", "tasks": ["theory", "practice", "materials"], "solo_lesson": "yes", "substitute": "sometimes"}',
+     '4_6', '{evening,saturday}', 'yes', 'long', 'maybe', 'Хочу, чтобы ИИ в школе объясняли понятно и без магии.', null,
+     true, true, '2026-11-09', true, false, 'interview', now() - interval '20 hours', pg_temp.pid('director'), 5),
+    ('AIT-3PWX9R', gen_random_uuid(), now() - interval '58 hours', 'Нурлан Абдрахманов', 'nis_student', 'НИШ, Шымкент', '10 класс',
+     'nurlan.a@example.com', 'nurlan_cf', 'Codeforces: эксперт, республиканская олимпиада.',
+     'education', 'co_mentor', null,
+     '{"direction": "algo", "preferred": "co", "skills": "C++, графы, ДП, бинарный поиск, Codeforces Div. 2", "achievements": "Эксперт на Codeforces, бронза республиканской олимпиады", "links": ["https://codeforces.com/profile/nurlan_cf"], "explain": "Сначала задача, потом идея, потом код — и разбор чужих ошибок.", "tasks": ["practice", "review", "co_teaching"], "solo_lesson": "after_prep", "substitute": "yes"}',
+     '2_4', '{after_school,sunday}', 'yes', 'long', 'yes', 'Хочу помочь тем, кто только начинает с олимпиадами.', null,
+     true, true, '2026-11-09', false, true, 'shortlisted', now() - interval '30 hours', pg_temp.pid('lead_ai'), 4),
+    ('AIT-H4TZ8C', gen_random_uuid(), now() - interval '50 hours', 'Камила Ержанова', 'nis_graduate', 'НИШ, Алматы', 'Выпуск 2025',
+     'kamila.e@example.com', null, 'Делала дизайн для школьного TEDx, веду свой канал о дизайне.',
+     'pr', 'designer', 'smm',
+     '{"tools": ["figma", "adobe", "canva"], "tasks": ["posters", "content_plan"], "links": ["https://www.behance.net/kamila-e"], "idea": "Серия карусели «один проект участника за неделю» с историей ошибок.", "style": "own", "after_week": "yes"}',
+     '4_6', '{evening}', 'coordinate', 'long', 'yes', 'Хочу собрать визуальный стиль клуба с нуля.', 'Могу показать больше работ на собеседовании.',
+     true, true, '2026-11-09', true, false, 'under_review', now() - interval '40 hours', null, null),
+    ('AIT-M2QJ6V', gen_random_uuid(), now() - interval '46 hours', 'Даниал Утепов', 'nis_student', 'НИШ, Караганда', '9 класс',
+     'danial.u@example.com', 'danial_edits', null,
+     'pr', 'video', null,
+     '{"tools": ["capcut", "premiere"], "tasks": ["reels"], "links": [], "idea": "Reels «день из жизни участника клуба» с таймлапсом проекта.", "style": "team", "after_week": "limited"}',
+     '2_4', '{saturday,sunday}', 'yes', 'launch', 'maybe', 'Люблю монтаж и хочу делать его для чего-то настоящего.', null,
+     true, true, '2026-11-09', false, true, 'applied', now() - interval '46 hours', null, null),
+    ('AIT-9VBN3L', gen_random_uuid(), now() - interval '40 hours', 'Айгерим Нуртаева', 'nis_student', 'НИШ, Павлодар', '11 класс',
+     'aigerim.n@example.com', 'aigerim_nt', 'Организовала школьный хакатон на 80 человек.',
+     'operations', 'event_manager', 'partnerships',
+     '{"tasks": ["events", "speakers", "partners"], "org_experience": "Школьный хакатон на 80 человек, два спикера из IT-компаний.", "case": "Сразу пишу запасному спикеру из списка, параллельно готовлю формат панели из участников, предупреждаю аудиторию заранее.", "tracking": "Notion с дедлайнами и напоминаниями в Telegram.", "outreach": "yes"}',
+     '6_8', '{after_school,evening}', 'yes', 'long', 'yes', 'Хочу, чтобы AIT Week запомнили.', null,
+     true, true, '2026-11-09', true, false, 'task', now() - interval '10 hours', pg_temp.pid('curator'), 4),
+    ('AIT-5RCK2W', gen_random_uuid(), now() - interval '36 hours', 'Бекзат Мусин', 'university', 'Nazarbayev University, Астана', '2 курс',
+     'bekzat.m@example.com', 'bekzat_data', 'Аналитик в студенческом клубе, дашборды в Looker Studio.',
+     'data', 'data_manager', null,
+     '{"tools": ["sheets", "python", "sql", "bi"], "interests": ["registrations", "attendance", "dashboards"], "data_experience": "Дашборд посещаемости студенческого клуба, pandas.", "metrics": "Доля дошедших до финала, посещаемость по дням, сколько участников вернулось в клуб после недели.", "reports": "schedule", "privacy": "Только обезличенные выгрузки, доступ по ролям, никаких таблиц с контактами в общих папках."}',
+     '2_4', '{flexible}', 'coordinate', 'long', 'no', 'Хочу, чтобы решения клуба опирались на цифры.', null,
+     true, true, '2026-11-09', true, false, 'accepted', now() - interval '4 hours', pg_temp.pid('director'), 5),
+    ('AIT-T8LP4Y', gen_random_uuid(), now() - interval '30 hours', 'Алина Ким', 'nis_student', 'НИШ, Костанай', '10 класс',
+     'alina.k@example.com', null, 'Пишу для школьной газеты.',
+     'pr', 'copywriter', 'community',
+     '{"tools": ["telegram", "canva"], "tasks": ["texts", "interviews"], "links": [], "idea": "Интервью с выпускниками НИШ, которые сейчас в IT.", "style": "both", "after_week": "yes"}',
+     'lt2', '{sunday}', 'yes', 'undecided', 'yes', 'Хочу писать о людях, которые делают технологии.', null,
+     true, true, '2026-11-09', false, true, 'rejected', now() - interval '2 hours', null, 2),
+    ('AIT-W3XN7F', gen_random_uuid(), now() - interval '26 hours', 'Ерлан Сапаров', 'nis_student', 'НИШ, Петропавловск', '12 класс',
+     'erlan.s@example.com', 'erlan_sp', 'Староста параллели, вёл отбор в школьный совет.',
+     'operations', 'hr', 'ambassadors',
+     '{"tasks": ["interviews", "candidates", "schools"], "org_experience": null, "case": "Звоню спикеру, уточняю, можно ли выступить онлайн; если нет — прошу порекомендовать коллегу.", "tracking": "Google Calendar и список задач на неделю.", "outreach": "with_guidance"}',
+     '4_6', '{after_school}', 'yes', 'long', 'maybe', 'Хочу собрать сильную команду из разных школ.', null,
+     true, true, '2026-11-09', true, false, 'under_review', now() - interval '12 hours', pg_temp.pid('lead_ai'), null),
+    ('AIT-Q6HD2S', gen_random_uuid(), now() - interval '20 hours', 'Мадина Жаксыбекова', 'nis_student', 'НИШ, Атырау', '8 класс',
+     'madina.zh@example.com', null, null,
+     'pr', 'community', null,
+     '{"tools": ["instagram", "telegram"], "tasks": ["community", "smm"], "links": [], "idea": "Еженедельный вопрос в сторис с разбором лучших ответов.", "style": "team", "after_week": "projects"}',
+     'lt2', '{saturday}', 'coordinate', 'launch', 'yes', 'Хочу общаться с ребятами из других школ.', null,
+     true, true, '2026-11-09', false, true, 'applied', now() - interval '20 hours', null, null),
+    ('AIT-B2ZK5N', gen_random_uuid(), now() - interval '9 hours', 'Тимур Оспанов', 'nis_student', 'НИШ, Усть-Каменогорск', '11 класс',
+     'timur.o@example.com', 'timur_build', 'Сделал приложение для расписания школы, 300 пользователей.',
+     'education', 'lead_mentor', 'operations_manager',
+     '{"direction": "startup", "preferred": "both", "skills": "React, Node.js, интервью с пользователями, Figma", "achievements": "Приложение расписания школы (300 пользователей), финал Startup Weekend", "links": ["https://github.com/timur-build", "https://schedule.example.com"], "explain": "Показываю на своём провале: сначала спроси пользователя, потом пиши код.", "tasks": ["theory", "practice", "co_teaching", "substitute"], "solo_lesson": "yes", "substitute": "yes"}',
+     '6_8', '{evening,saturday}', 'yes', 'long', 'maybe', 'Хочу, чтобы школьники запускали продукты, а не только учились.', null,
+     true, true, '2026-11-09', true, false, 'applied', now() - interval '9 hours', null, null),
+    ('AIT-L7YV3Q', gen_random_uuid(), now() - interval '3 hours', 'Тимур Оспанов', 'nis_student', 'НИШ, Усть-Каменогорск', '11 класс',
+     'timur.o@example.com', 'timur_build', 'Сделал приложение для расписания школы, 300 пользователей.',
+     'operations', 'operations_manager', null,
+     '{"tasks": ["schedules", "documents"], "org_experience": "Вёл расписание и задачи команды приложения.", "case": "Меняю программу, чтобы следующий блок начался раньше, и прошу ментора провести мини-воркшоп.", "tracking": "Канбан в Trello.", "outreach": "yes"}',
+     '2_4', '{evening}', 'yes', 'long', 'yes', 'Подаю вторую заявку: понял, что хочу и в операционную команду.', null,
+     true, true, '2026-11-09', true, false, 'applied', now() - interval '3 hours', null, null);
+
   drop table demo_people, demo_events, demo_lead;
   -- The demo shows every role without an authenticator app. The club's database never has this row.
   insert into private.settings (key, value) values ('mfa_optional', 'demo')

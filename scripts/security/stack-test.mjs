@@ -361,6 +361,31 @@ console.log('\n10. Live chat')
   outsider.realtime.disconnect()
 }
 
+// ── 11. Team applications ───────────────────────────────────────────────────
+// The form on aitclub.org/team goes through the `apply` function only: the database's own API lets
+// nobody in, and the function refuses without its Turnstile secret (CI doesn't set one).
+console.log('\n11. Team applications')
+{
+  const anon = client()
+  const direct = await anon.rpc('submit_application', { p_key: '00000000-0000-4000-8000-000000000001', p_form: {}, p_ip: '1.1.1.1' })
+  check('a guest cannot submit an application past the function', Boolean(direct.error), JSON.stringify(direct.data))
+  const member = await signIn('nursultan@demo.aitclub.org')
+  const asMember = await member.rpc('submit_application', { p_key: '00000000-0000-4000-8000-000000000002', p_form: {}, p_ip: null })
+  check('nor can a member', Boolean(asMember.error), JSON.stringify(asMember.data))
+  const seen = await member.from('team_applications').select('id').limit(1)
+  check('a member sees no applications', !seen.error && (seen.data ?? []).length === 0, JSON.stringify(seen.error ?? seen.data))
+  const fn = await fetch(`${URL_}/functions/v1/apply`, {
+    method: 'POST', headers: { 'content-type': 'application/json' },
+    body: JSON.stringify({ token: 'XXXX.DUMMY.TOKEN.XXXX', key: '00000000-0000-4000-8000-000000000003', form: {} }),
+  }).catch(() => null)
+  // 503: no secret, refused; 403: a real secret refused the dummy token. Never anything in between.
+  check('the form function refuses what Turnstile did not pass', fn === null || fn.status === 503 || fn.status === 403, String(fn?.status))
+  const director = await signIn('director@demo.aitclub.org')
+  const noCode = await director.from('team_applications').select('id').limit(1)
+  check('the director without the code sees no applications', !noCode.error && (noCode.data ?? []).length === 0,
+    JSON.stringify(noCode.error ?? noCode.data?.length))
+}
+
 console.log(`\n${passed} passed, ${failures.length} failed`)
 if (failures.length) {
   console.log('\nFailed:')

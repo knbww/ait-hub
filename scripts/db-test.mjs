@@ -9,12 +9,16 @@
 //   2. fresh   — all migrations on an empty database, then the content and access-rule checks;
 //   3. seed    — all migrations + supabase/seed.sql (the demo club) apply cleanly;
 //   4. staff   — staff accounts created in the dashboard (Authentication → Add user);
-//   5. hardening — the second factor, limits, files and the rules every database object must keep.
+//   5. hardening — the second factor, limits, files and the rules every database object must keep;
+//   6. recruitment — the «Join Our Team» applications: every option of the form, access, limits.
 
 import { readFileSync, readdirSync } from 'node:fs'
 import { fileURLToPath } from 'node:url'
 import { PGlite } from '@electric-sql/pglite'
 import { pgcrypto } from '@electric-sql/pglite/contrib/pgcrypto'
+import {
+  AVAILABILITY_QUESTIONS, CONSENT_VERSION, DEPARTMENTS, DEPARTMENT_QUESTIONS, buildPayload, emptyForm,
+} from '../src/lib/recruitment.ts'
 
 const ROOT = fileURLToPath(new URL('..', import.meta.url))
 const read = (path) => readFileSync(ROOT + path, 'utf8')
@@ -52,6 +56,11 @@ async function migrate(db, files) {
 async function become(db, who) {
   await db.exec('reset role')
   if (who === 'postgres') return
+  if (who === 'service') {
+    await db.query(`select set_config('request.jwt.claims', $1, false)`, [JSON.stringify({ role: 'service_role' })])
+    await db.exec('set role service_role')
+    return
+  }
   const aal1 = typeof who === 'string' && who.startsWith('aal1:')
   const sub = aal1 ? who.slice(5) : who
   const claims = who === 'anon' ? { role: 'anon' } : { sub, role: 'authenticated', aal: aal1 ? 'aal1' : 'aal2' }
@@ -991,6 +1000,9 @@ async function seedScenario() {
     'select count(*)::int from public.conversations where last_message_at is not null', [], 3)
   await expectEqual('seed: the calendar drafts were replaced', db, pg,
     `select count(*)::int from public.events where title = 'Демо' or description like 'Черновик из календаря курса%'`, [], 0)
+  await expectEqual('seed: team applications at every stage but one', db, pg,
+    `select count(*)::int * 10 + count(distinct status)::int from public.team_applications`, [], 117)
+  await expectEqual('seed: the demo round is open now', db, pg, `select private.recruitment_open()`, [], true)
   await expectEqual('seed: nothing logged by the seed itself', db, pg,
     `select count(*)::int from public.audit_log where actor_id is null`, [], 0)
   try {
@@ -1313,6 +1325,277 @@ async function hardeningScenario() {
   await db.close()
 }
 
+// ── 6. Team recruitment ─────────────────────────────────────────────────────
+// The form's questions come from src/lib/recruitment.ts, so the database is checked against
+// exactly what the site sends.
+async function recruitmentScenario() {
+  const db = await freshDb()
+  await migrate(db, MIGRATIONS)
+  const pg = 'postgres'
+  const anon = 'anon'
+  const service = 'service'
+
+  let n = 0
+  const key = () => `60000000-0000-4000-8000-${String(++n).padStart(12, '0')}`
+  const sample = (q) => q.kind === 'choice' ? q.options[0].id : q.kind === 'choices' ? [q.options[0].id]
+    : q.kind === 'links' ? ['https://github.com/ait-club'] : 'Ответ на вопрос'
+  const form = (dept, over = {}) => {
+    const d = DEPARTMENTS.find((x) => x.id === dept)
+    return {
+      full_name: 'Алия Серикова', applicant_status: 'nis_student', school: 'НИШ, Петропавловск', grade: '10 класс',
+      email: `applicant${n}@example.com`, telegram: '@aliya_s', experience: null, department: dept, role: d.roles[0].id,
+      extra_role: null, answers: Object.fromEntries(DEPARTMENT_QUESTIONS[dept].map((q) => [q.id, sample(q)])),
+      ...Object.fromEntries(AVAILABILITY_QUESTIONS.map((q) => [q.id, sample(q)])),
+      volunteer_ack: true, consent: true, consent_version: CONSENT_VERSION, is_adult: false, guardian_consent: true, ...over,
+    }
+  }
+  const submitSql = 'select public.submit_application($1, $2, $3) as r'
+  const submit = async (f, k = key(), ip = null) => (await rows(db, service, submitSql, [k, f, ip]))[0].r
+  const expectSubmit = async (name, f, expected, ip = null) => {
+    try {
+      const r = await submit(f, key(), ip)
+      const ok = Object.entries(expected).every(([k, v]) => r[k] === v)
+      record(name, ok, JSON.stringify(r))
+      return r
+    } catch (e) {
+      record(name, false, e.message)
+    }
+  }
+  const resetLimits = () => run(db, pg, 'delete from private.rate_limits')
+
+  // ── Only the edge function submits ────────────────────────────────────────
+  await expectError('apply: guests cannot submit', db, anon, submitSql, [key(), form('pr'), null], DENIED)
+  await expectError('apply: guests cannot ask whether it is open', db, anon, 'select public.recruitment_status()', [], DENIED)
+  for (const table of ['team_applications', 'team_application_notes', 'recruitment_access']) {
+    await expectError(`apply: guests cannot read ${table}`, db, anon, `select * from public.${table}`, [], DENIED)
+  }
+  await expectEqual('apply: the form is open on 9 November', db, service,
+    `select public.recruitment_status() ->> 'open'`, [], 'true')
+
+  // ── Every department, every option ────────────────────────────────────────
+  const first = {}
+  for (const d of DEPARTMENTS) {
+    first[d.id] = await expectSubmit(`apply: a ${d.id} application is taken`, form(d.id), { ok: true, department: d.id })
+  }
+  await expectEqual('apply: numbers look like AIT-XXXXXX', db, pg,
+    `select bool_and(public_id ~ '^AIT-[A-Z2-9]{6}$') and count(*) = 4 from public.team_applications`, [], true)
+  for (const d of DEPARTMENTS) {
+    for (const r of d.roles) {
+      await expectSubmit(`apply: role ${r.id} belongs to ${d.id}`, form(d.id, { role: r.id }), { ok: true, role: r.id })
+    }
+  }
+  await resetLimits()
+  for (const q of [...Object.values(DEPARTMENT_QUESTIONS).flat(), ...AVAILABILITY_QUESTIONS]) {
+    if (q.kind !== 'choice' && q.kind !== 'choices') continue
+    const dept = Object.entries(DEPARTMENT_QUESTIONS).find(([, qs]) => qs.includes(q))?.[0] ?? 'operations'
+    for (const opt of q.options) {
+      const value = q.kind === 'choices' ? [opt.id] : opt.id
+      const f = form(dept)
+      if (dept === 'operations' && AVAILABILITY_QUESTIONS.includes(q)) f[q.id] = value
+      else f.answers[q.id] = value
+      const r = await submit(f)
+      if (!r.ok) record(`apply: option ${q.id}=${opt.id} is accepted`, false, JSON.stringify(r))
+    }
+    await resetLimits()
+  }
+  record('apply: every option the form offers is accepted', true)
+  await expectEqual('apply: a choice the form never offers is refused', db, service, submitSql,
+    [key(), form('pr', { answers: { ...form('pr').answers, style: 'alone' } }), null], { error: 'invalid_form', field: 'style' })
+  await expectEqual('apply: so is an unknown option in a list', db, service, submitSql,
+    [key(), form('data', { work_times: ['saturday', 'night'] }), null], { error: 'invalid_form', field: 'work_times' })
+
+  // ── A repeated request ────────────────────────────────────────────────────
+  const k1 = key()
+  const once = await submit(form('education'), k1)
+  const again = await submit(form('education', { full_name: 'Другое Имя' }), k1)
+  record('apply: a repeated request gets the same number', once.ok && again.id === once.id, `${once.id} / ${again.id}`)
+  await expectEqual('apply: and makes nothing new', db, pg,
+    'select count(*)::int from public.team_applications where request_key = $1', [k1], 1)
+
+  // ── What is kept ──────────────────────────────────────────────────────────
+  const mixed = form('education', { full_name: '  Али‮я​   Серикова ', email: ' Aliya@Example.KZ ', telegram: 'https://t.me/aliya_s',
+    answers: { ...form('education').answers, idea: 'чужой вопрос', tools: ['figma'] } })
+  const kept = await submit(mixed)
+  await expectEqual('apply: other departments\' answers are not kept', db, pg,
+    `select answers ? 'idea' or answers ? 'tools' from public.team_applications where public_id = $1`, [kept.id], false)
+  await expectEqual('apply: names lose invisible and direction characters', db, pg,
+    'select full_name from public.team_applications where public_id = $1', [kept.id], 'Алия Серикова')
+  await expectEqual('apply: email is trimmed and lower-cased, Telegram becomes a handle', db, pg,
+    `select email || ' ' || telegram from public.team_applications where public_id = $1`, [kept.id], 'aliya@example.kz aliya_s')
+  const ui = { ...emptyForm(), full_name: 'Даурен Ахметов', applicant_status: 'nis_graduate', nis_city: 'Астана', grade: 'Выпуск 2025',
+    email: 'dauren@example.com', telegram: '@dauren_a', department: 'pr', role: 'designer', extra_role: 'video',
+    answers: { tools: ['figma', 'other'], tools_other: 'Blender', tasks: ['posters'], links: ['behance.net/dauren', ''], idea: 'Ночь проектов',
+      style: 'team', after_week: 'yes', hours: '4_6', work_times: ['evening'], interview: 'coordinate', term: 'long', other_role: 'yes',
+      motivation: 'Хочу делать визуальный стиль клуба' },
+    volunteer_ack: true, consent: true, is_adult: true }
+  const fromUi = await submit(buildPayload(ui))
+  record('apply: what the site\'s form builds is accepted', fromUi?.ok === true, JSON.stringify(fromUi))
+  await expectEqual('apply: the school, the extra role and the links come through', db, pg,
+    `select concat_ws(' | ', school, extra_role, answers -> 'links' ->> 0, answers ->> 'tools_other') from public.team_applications where public_id = $1`,
+    [fromUi?.id], 'НИШ, Астана | video | https://behance.net/dauren | Blender')
+
+  // ── What is refused ───────────────────────────────────────────────────────
+  const refuse = (name, f, field) => expectEqual(`apply: ${name}`, db, service, submitSql, [key(), f, null], { error: 'invalid_form', field })
+  await refuse('a role of another department', form('pr', { role: 'lead_mentor' }), 'role')
+  await refuse('a role that does not exist', form('pr', { role: 'developer' }), 'role')
+  await refuse('the same role twice', form('pr', { extra_role: 'smm' }), 'extra_role')
+  await expectSubmit('apply: an extra role from another department is fine', form('pr', { extra_role: 'event_manager' }), { ok: true })
+  await refuse('an email that is not one', form('pr', { email: 'aliya@' }), 'email')
+  await refuse('a Telegram handle that is not one', form('pr', { telegram: '@ab' }), 'telegram')
+  await refuse('a link that is not http(s)', form('pr', { answers: { ...form('pr').answers, links: ['javascript:alert(1)'] } }), 'links')
+  await refuse('four links', form('pr', { answers: { ...form('pr').answers, links: Array(4).fill('https://a.kz') } }), 'links')
+  await refuse('no name', form('pr', { full_name: '   ' }), 'full_name')
+  await refuse('a name of one letter', form('pr', { full_name: 'А' }), 'full_name')
+  await refuse('a required answer left empty', form('operations', { answers: { ...form('operations').answers, case: ' ' } }), 'case')
+  await refuse('an answer too long', form('data', { answers: { ...form('data').answers, metrics: 'я'.repeat(1001) } }), 'metrics')
+  await refuse('«no experience yet» together with a tool', form('data', { answers: { ...form('data').answers, tools: ['none', 'sql'] } }), 'tools')
+  await refuse('no list of times', form('data', { work_times: [] }), 'work_times')
+  await refuse('without «voluntary and unpaid»', form('pr', { volunteer_ack: false }), 'volunteer_ack')
+  await refuse('without consent', form('pr', { consent: 'yes' }), 'consent')
+  await refuse('a minor without a guardian\'s consent', form('pr', { is_adult: false, guardian_consent: false }), 'guardian_consent')
+  await expectSubmit('apply: an adult needs no guardian', form('pr', { is_adult: true, guardian_consent: false }), { ok: true })
+  await refuse('a form of 40 KB', form('pr', { extra_info: 'я'.repeat(20000) }), 'form')
+  await refuse('no version of the terms', form('pr', { consent_version: 'latest' }), 'consent_version')
+  await expectEqual('apply: the guardian\'s consent is recorded only for a minor', db, pg,
+    `select count(*)::int from public.team_applications where is_adult and guardian_consent`, [], 0)
+
+  // ── Dates and limits ──────────────────────────────────────────────────────
+  await run(db, pg, `update private.settings set value = '2026-01-01 00:00+05' where key = 'recruitment_closes_at'`)
+  await run(db, pg, `update private.settings set value = '2025-12-01 00:00+05' where key = 'recruitment_opens_at'`)
+  await expectEqual('limits: after the dates the form is closed', db, service, submitSql, [key(), form('pr'), null], { error: 'closed' })
+  await run(db, pg, `update private.settings set value = '2026-11-09 00:00+05' where key = 'recruitment_opens_at'`)
+  await run(db, pg, `update private.settings set value = '2099-01-01 00:00+05' where key = 'recruitment_closes_at'`)
+  await resetLimits()
+  const same = form('pr', { email: 'repeat@example.com' })
+  for (let i = 0; i < 5; i++) await submit(same)
+  await expectEqual('limits: five applications a day from one email', db, service, submitSql, [key(), same, null], { error: 'slow_down' })
+  await expectEqual('limits: a refused form does not use a try up', db, pg,
+    `select hits from private.rate_limits where bucket = 'apply:email:repeat@example.com'`, [], 6)
+  await resetLimits()
+  for (let i = 0; i < 60; i++) await submit(form('pr', { email: `school${i}@example.com` }), key(), '10.0.0.1')
+  await expectEqual('limits: sixty an hour from one address', db, service, submitSql, [key(), form('pr'), '10.0.0.1'], { error: 'slow_down' })
+  await expectSubmit('limits: another address is not affected', form('pr', { email: 'other-net@example.com' }), { ok: true }, '10.0.0.2')
+  await resetLimits()
+  await submit(form('pr', { email: 'x' }), key(), '10.0.0.3')
+  await expectEqual('limits: refused forms count for the address too', db, pg,
+    `select hits from private.rate_limits where bucket = 'apply:10.0.0.3'`, [], 1)
+  await run(db, pg, `insert into private.rate_limits values ('apply:all', date_bin('1 hour', now(), timestamptz '2000-01-01'), 300)
+                     on conflict (bucket, window_start) do update set hits = 300`)
+  await expectEqual('limits: three hundred an hour in all', db, service, submitSql, [key(), form('pr'), null], { error: 'slow_down' })
+  await resetLimits()
+
+  // ── Who sees them ─────────────────────────────────────────────────────────
+  const code = await value(db, pg, `select code from public.join_codes where active and track_id = 'ai'`)
+  const uid = (i) => `70000000-0000-0000-0000-${String(i).padStart(12, '0')}`
+  const U = { dir: uid(1), cur: uid(2), lead: uid(3), helper: uid(4), member: uid(5), off: uid(6) }
+  for (const [k, id] of Object.entries(U)) {
+    await run(db, pg, 'insert into auth.users (id, email, raw_user_meta_data) values ($1, $2, $3)',
+      [id, `${k}@example.com`, { full_name: `Тест ${k}`, grade: 10, join_code: code, photo_consent: true }])
+  }
+  await run(db, pg, `update public.profiles set status = 'active'`)
+  await run(db, pg, `update public.profiles set role = 'director', track_id = null where user_id = $1`, [U.dir])
+  await run(db, pg, `update public.profiles set role = 'curator', track_id = null, grade = null where user_id = $1`, [U.cur])
+  await run(db, pg, `update public.profiles set role = 'track_lead' where user_id = $1`, [U.lead])
+  const P = {}
+  for (const [k, id] of Object.entries(U)) P[k] = await value(db, pg, 'select id from public.profiles where user_id = $1', [id])
+  const total = await value(db, pg, 'select count(*)::int from public.team_applications')
+  const count = 'select count(*)::int from public.team_applications'
+  const app = first.pr.id
+  const appId = await value(db, pg, 'select id from public.team_applications where public_id = $1', [app])
+  const access = 'select public.my_recruitment_access()'
+
+  await expectEqual('access: the director sees every application', db, U.dir, count, [], total)
+  await expectEqual('access: so does the curator', db, U.cur, count, [], total)
+  await expectEqual('access: a track lead does not', db, U.lead, count, [], 0)
+  await expectEqual('access: nor does a member', db, U.member, count, [], 0)
+  await expectEqual('access: the director without the code sees none', db, noMfa(U.dir), count, [], 0)
+  for (const [who, want] of [['dir', 'manage'], ['cur', 'export'], ['lead', 'none'], ['member', 'none']]) {
+    await expectEqual(`access: ${who} is told «${want}»`, db, U[who], access, [], want)
+  }
+  await expectEqual('access: without the code the director is told to enter it', db, noMfa(U.dir), access, [], 'needs_code')
+  await expectError('access: members cannot submit either', db, U.member, submitSql, [key(), form('pr'), null], DENIED)
+
+  await expectError('access: only the director lets someone in', db, U.cur, 'select public.grant_recruitment_access($1, false)', [P.helper], /forbidden/)
+  await expectError('access: and only with the code', db, noMfa(U.dir), 'select public.grant_recruitment_access($1, false)', [P.helper], /mfa_required/)
+  await expectError('access: the curator has it already', db, U.dir, 'select public.grant_recruitment_access($1, false)', [P.cur], /already_has_access/)
+  await expectOk('access: the director lets a member in', db, U.dir, 'select public.grant_recruitment_access($1, false)', [P.helper])
+  await expectEqual('access: who now sees every application', db, U.helper, count, [], total)
+  await expectEqual('access: and is told «view»', db, U.helper, access, [], 'view')
+  await expectEqual('access: not without the code', db, noMfa(U.helper), count, [], 0)
+  await expectEqual('access: the team lists director, curator and them', db, U.helper,
+    `select string_agg(role, ',' order by role) from public.recruitment_team()`, [], 'curator,director,member')
+  await expectEqual('access: nobody else sees the team', db, U.member, 'select count(*)::int from public.recruitment_team()', [], 0)
+  await expectError('export: not without the right to it', db, U.helper, 'select * from public.export_applications()', [], /forbidden/)
+  await expectError('export: nor for a member', db, U.member, 'select * from public.export_applications()', [], /forbidden/)
+  await expectOk('export: the director gives the right', db, U.dir, 'select public.grant_recruitment_access($1, true)', [P.helper])
+  await expectEqual('export: then it works', db, U.helper, 'select count(*)::int from public.export_applications()', [], total)
+  await expectEqual('export: and is logged', db, pg, `select count(*)::int from public.audit_log where action = 'applications_exported'`, [], 1)
+  await run(db, pg, `update public.profiles set status = 'inactive' where id = $1`, [P.helper])
+  await expectEqual('access: a switched-off account loses it', db, U.helper, count, [], 0)
+  await run(db, pg, `update public.profiles set status = 'active' where id = $1`, [P.helper])
+
+  // ── Working with an application ───────────────────────────────────────────
+  await expectError('status: members cannot change it', db, U.member, `select public.set_application_status($1, 'accepted')`, [appId], /forbidden/)
+  await expectError('status: not without the code', db, noMfa(U.dir), `select public.set_application_status($1, 'accepted')`, [appId], /mfa_required/)
+  await expectError('status: only the known ones', db, U.dir, `select public.set_application_status($1, 'hired')`, [appId], /invalid_status/)
+  await expectOk('status: a helper moves it on', db, U.helper, `select public.set_application_status($1, 'interview')`, [appId])
+  await expectEqual('status: changed, with the time', db, pg,
+    'select status || \':\' || (status_changed_at > created_at) from public.team_applications where id = $1', [appId], 'interview:true')
+  await expectEqual('status: logged with the number, from and to', db, pg,
+    `select details ->> 'public_id' || ' ' || (details ->> 'from') || '→' || (details ->> 'to') from public.audit_log where action = 'application_status'`,
+    [], `${app} applied→interview`)
+  await expectError('applications: nobody edits them directly', db, U.dir, `update public.team_applications set status = 'accepted'`, [], DENIED)
+  await expectError('applications: or adds them', db, U.dir, `insert into public.team_applications (public_id) values ('AIT-ZZZZZZ')`, [], DENIED)
+  await expectOk('assignee: someone on the team', db, U.dir, 'select public.assign_application($1, $2)', [appId, P.helper])
+  await expectError('assignee: not someone without access', db, U.dir, 'select public.assign_application($1, $2)', [appId, P.member], /invalid_assignee/)
+  await expectOk('score: from 1 to 5', db, U.cur, 'select public.set_application_score($1, 4)', [appId])
+  await expectError('score: not 6', db, U.cur, 'select public.set_application_score($1, 6)', [appId], /invalid_score/)
+  const note = await value(db, U.helper, 'select public.add_application_note($1, $2)', [appId, '  Сильное портфолио  '])
+  await expectEqual('notes: the director reads them', db, U.dir, 'select body from public.team_application_notes where id = $1', [note], 'Сильное портфолио')
+  await expectEqual('notes: members do not', db, U.member, 'select count(*)::int from public.team_application_notes', [], 0)
+  await expectError('notes: not empty', db, U.dir, 'select public.add_application_note($1, $2)', [appId, '   '], /invalid_note/)
+  await expectNoEffect('notes: nobody removes another\'s', db, U.dir, 'delete from public.team_application_notes where id = $1', [note])
+  await expectOk('notes: the author removes their own', db, U.helper, 'delete from public.team_application_notes where id = $1', [note])
+  await run(db, U.helper, 'select public.add_application_note($1, $2)', [appId, 'Позвать на собеседование'])
+  await expectOk('access: the director takes it back', db, U.dir, 'select public.revoke_recruitment_access($1)', [P.helper])
+  await expectEqual('access: then they see nothing', db, U.helper, count, [], 0)
+  await expectEqual('access: and their applications have no assignee', db, pg,
+    'select count(*)::int from public.team_applications where assignee_id = $1', [P.helper], 0)
+
+  // ── The dates of the round ────────────────────────────────────────────────
+  await expectError('dates: only the director changes them', db, U.cur,
+    `select public.set_recruitment_window('2026-11-09 00:00+05', '2026-11-20 00:00+05')`, [], /forbidden/)
+  await expectError('dates: the end comes after the start', db, U.dir,
+    `select public.set_recruitment_window('2026-11-20 00:00+05', '2026-11-09 00:00+05')`, [], /invalid_window/)
+  await expectOk('dates: the director extends the round', db, U.dir,
+    `select public.set_recruitment_window('2026-11-09 00:00+05', '2026-11-20 00:00+05')`)
+  await expectEqual('dates: read back as the same moment', db, U.cur,
+    `select closes_at = '2026-11-20 00:00+05' from public.recruitment_window()`, [], true)
+  await expectEqual('dates: hidden from those without access', db, U.member, 'select count(*)::int from public.recruitment_window()', [], 0)
+  await run(db, pg, `update private.settings set value = '2099-01-01 00:00+05' where key = 'recruitment_closes_at'`)
+
+  // ── Deleting ──────────────────────────────────────────────────────────────
+  await expectError('delete: not the curator', db, U.cur, 'select public.delete_application($1)', [appId], /forbidden/)
+  await expectOk('delete: the director, on request', db, U.dir, 'select public.delete_application($1)', [appId])
+  await expectEqual('delete: the application and its notes are gone', db, pg,
+    `select ((select count(*) from public.team_applications where id = $1) + (select count(*) from public.team_application_notes where application_id = $1))::int`,
+    [appId], 0)
+  await expectEqual('delete: the log keeps the number, not the name', db, pg,
+    `select details ->> 'public_id' = $1 and not details::text like '%Алия%' from public.audit_log where action = 'application_deleted'`, [app], true)
+
+  // ── Kept no longer than needed ────────────────────────────────────────────
+  const ids = (await rows(db, pg, 'select id from public.team_applications order by created_at limit 4')).map((r) => r.id)
+  await run(db, pg, `update public.team_applications set status = 'rejected', status_changed_at = now() - interval '91 days' where id = $1`, [ids[0]])
+  await run(db, pg, `update public.team_applications set status = 'withdrawn', status_changed_at = now() - interval '10 days' where id = $1`, [ids[1]])
+  await run(db, pg, `update public.team_applications set status = 'accepted', created_at = now() - interval '13 months' where id = $1`, [ids[2]])
+  await run(db, pg, `update public.team_applications set status = 'accepted' where id = $1`, [ids[3]])
+  await run(db, pg, 'select public.security_housekeeping()')
+  await expectEqual('retention: 90 days after a refusal, a year at most', db, pg,
+    'select string_agg((id = any($1::uuid[]))::text, \',\' order by created_at) from public.team_applications where id = any($2::uuid[])',
+    [[ids[1], ids[3]], ids], 'true,true')
+  await db.close()
+}
+
 const started = Date.now()
 try {
   await upgradeScenario()
@@ -1320,6 +1603,7 @@ try {
   await seedScenario()
   await staffScenario()
   await hardeningScenario()
+  await recruitmentScenario()
 } catch (e) {
   failures.push(`setup failed: ${e.message}`)
 }
