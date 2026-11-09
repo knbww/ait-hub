@@ -57,3 +57,8 @@ secret = "env(SUPABASE_AUTH_GITHUB_SECRET)"
 # would stop working.
 [functions.push]
 verify_jwt = false
+
+# The form on aitclub.org/team: visitors have no session. The function checks Cloudflare Turnstile
+# itself and is the only way to submit_application (supabase/functions/apply).
+[functions.apply]
+verify_jwt = false
