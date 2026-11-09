@@ -96,6 +96,12 @@ export function daysUntil(day: string): number {
 }
 
 /** The current programme week: the last scheduled week that has started. */
+/** How many weeks the year has: the last scheduled week, so a year shortened by the director says
+ * «из 24», not «из 36». Without a schedule, the full programme. */
+export function scheduleLength(schedule: { week_number: number }[]): number {
+  return schedule.length ? Math.max(...schedule.map((w) => w.week_number)) : PROGRAM_WEEKS
+}
+
 export function currentWeekNumber(schedule: { week_number: number; starts_on: string }[]): number | null {
   const today = todayDay()
   let current: number | null = null

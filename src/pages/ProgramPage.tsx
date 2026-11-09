@@ -16,7 +16,7 @@ import { useSchedule, useTracks } from '../hooks/useClub'
 import { useMySubmissions, useProgramWeeks, useWeekWork } from '../hooks/useProgram'
 import { reviewWork, setAttendance, submitWork, updateTrackDrive, updateWeek } from '../lib/programActions'
 import {
-  MEETING_KINDS, PROGRAM_WEEKS, TRACK_IDS, currentWeekNumber, daysUntil, formatShortDay, isHttpUrl, weekDeadline,
+  MEETING_KINDS, TRACK_IDS, currentWeekNumber, daysUntil, formatShortDay, isHttpUrl, scheduleLength, weekDeadline,
 } from '../lib/club'
 import { MAX_WORK_FILES, WORK_FILE_ACCEPT, checkWorkFile } from '../lib/workFiles'
 import { WeekGrid } from '../components/WeekGrid'
@@ -479,7 +479,7 @@ export function ProgramPage() {
             ? t('week.noSchedule')
             : current === null
               ? t('week.startsOn', { date: formatShortDay(schedule.data[0].starts_on) })
-              : t('program.weekOf', { n: current, total: PROGRAM_WEEKS })}
+              : t('program.weekOf', { n: current, total: scheduleLength(schedule.data) })}
         </p>
         {trackId && <DriveLink key={trackId} trackId={trackId} url={track?.drive_url ?? null} canEdit={manage} />}
         {trackId && (
