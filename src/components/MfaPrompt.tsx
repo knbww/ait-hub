@@ -6,15 +6,13 @@ import { ErrorText } from './DataState'
 import { useAuth } from '../context/authContext'
 import { useI18n } from '../context/i18nContext'
 import { confirmCode, verifiedTotpId } from '../lib/mfa'
-import { isOwnDevice, setOwnDevice } from '../lib/trustedDevice'
 import { btnPrimary, btnSecondary, inputClass } from '../lib/ui'
 
 /** After the password (or GitHub): the code from the authenticator app. */
 export function MfaPrompt() {
   const { t } = useI18n()
-  const { refreshMfa, signOut, isOversight } = useAuth()
+  const { refreshMfa, signOut } = useAuth()
   const [code, setCode] = useState('')
-  const [own, setOwn] = useState(isOwnDevice)
   const [busy, setBusy] = useState(false)
   const [error, setError] = useState<unknown>(null)
 
@@ -29,8 +27,6 @@ export function MfaPrompt() {
       setCode('')
       return setError(res.error)
     }
-    // Only director and curator are signed out after an idle hour: for them it matters.
-    if (isOversight) setOwnDevice(own)
     await refreshMfa()
     setBusy(false)
   }
@@ -46,15 +42,6 @@ export function MfaPrompt() {
             onChange={(e) => setCode(e.target.value.replace(/[^0-9]/g, '').slice(0, 6))}
             inputMode="numeric" autoComplete="one-time-code" autoFocus placeholder="000000" aria-label={t('mfa.code')}
             required minLength={6} maxLength={6} />
-          {isOversight && (
-            <label className="flex items-start gap-2 text-left text-sm">
-              <input type="checkbox" className="mt-1" checked={own} onChange={(e) => setOwn(e.target.checked)} />
-              <span>
-                {t('mfa.prompt.own')}
-                <span className="block text-xs text-gray-600">{t('mfa.prompt.ownHint')}</span>
-              </span>
-            </label>
-          )}
           <ErrorText error={error} />
           <button type="submit" disabled={busy || code.length !== 6} className={`${btnPrimary} w-full`}>
             {busy ? t('common.wait') : t('mfa.prompt.submit')}

@@ -6,7 +6,6 @@ import { AnimatedRoutes } from '../AnimatedRoutes'
 import { useAuth } from '../context/authContext'
 import { useDevMode } from '../context/devModeContext'
 import { useI18n } from '../context/i18nContext'
-import { useIdleSignOut } from '../hooks/useIdleSignOut'
 import { isDemo } from '../lib/demo'
 
 /** Only in the demo copy: says the data is invented and lets you sign in as another role. */
@@ -43,8 +42,6 @@ function MfaBanner() {
 export function Layout() {
   const { isDevMode, setDevMode } = useDevMode()
   const { t } = useI18n()
-  const { isOversight } = useAuth()
-  useIdleSignOut(isOversight && !isDemo)
 
   return (
     <div className="relative min-h-dvh text-gray-900">
