@@ -161,6 +161,19 @@ export function isHttpUrl(value: string): boolean {
   return /^https?:\/\/\S+$/i.test(value.trim())
 }
 
+/** A patronymic: Russian (-ович, -евна, -ична) or Kazakh written together (-ұлы, -қызы). */
+const PATRONYMIC = /(ич|вна|чна|[уұ]лы|[кқ]ызы)$/i
+
+/** How the home screen greets someone. A pupil by first name; an adult (the curator) by name and
+ * patronymic, whichever order the full name is written in: «Мечшанов Вадим Олегович» and «Вадим
+ * Олегович Мечшанов» both give «Вадим Олегович». Without a patronymic, the full name as written. */
+export function greetingName(fullName: string, formal: boolean): string {
+  const parts = fullName.trim().split(/\s+/).filter(Boolean)
+  if (!formal) return parts[0] ?? ''
+  const i = parts.findIndex((part, k) => k > 0 && PATRONYMIC.test(part))
+  return i > 0 ? `${parts[i - 1]} ${parts[i]}` : parts.join(' ')
+}
+
 export function initials(name: string): string {
   return name
     .split(/\s+/)
