@@ -1,8 +1,10 @@
 import { useEffect } from 'react'
 import { useAuth } from '../context/authContext'
+import { isOwnDevice } from '../lib/trustedDevice'
 
 // Director and curator work on shared school computers, and a session lasts until someone signs
-// out. An hour without activity ends it, also when the browser was closed in between.
+// out. An hour without activity ends it, also when the browser was closed in between — unless they
+// said, entering the code, that this is their own computer (lib/trustedDevice.ts).
 
 const KEY = 'ait-hub-last-active'
 const LIMIT_MS = 60 * 60_000
@@ -30,7 +32,7 @@ export function useIdleSignOut(enabled: boolean) {
   const signedInAt = Date.parse(session?.user.last_sign_in_at ?? '') || 0
 
   useEffect(() => {
-    if (!enabled) return
+    if (!enabled || isOwnDevice()) return
     let last = Math.max(stored(), signedInAt)
     const expired = () => Date.now() - Math.max(last, stored()) > LIMIT_MS
     if (expired()) {
