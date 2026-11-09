@@ -15,7 +15,7 @@ import { useI18n } from '../context/i18nContext'
 import { supabase } from '../lib/supabase'
 import { useMemberPrivate } from '../hooks/useManage'
 import { useSchedule } from '../hooks/useClub'
-import { PROGRAM_WEEKS, currentWeekNumber } from '../lib/club'
+import { PROGRAM_WEEKS, currentWeekNumber, greetingName } from '../lib/club'
 import { CARD_COMPONENTS, CARD_TITLES, MEMBER_CARDS, STAFF_CARDS } from '../cards/registry'
 import type { CardConfig, CardId } from '../types'
 
@@ -122,7 +122,7 @@ export function DashboardPage() {
 
   const visibleCards = cardsConfig.filter((card) => card.visible)
   const hiddenCards = cardsConfig.filter((card) => !card.visible)
-  const firstName = profile?.full_name.split(/\s+/)[0] ?? ''
+  const name = greetingName(profile?.full_name ?? '', isCurator)
   const schedule = useSchedule(profile?.cohort_id)
   const week = currentWeekNumber(schedule.data ?? [])
   const today = new Intl.DateTimeFormat('ru-RU', { weekday: 'long', day: 'numeric', month: 'long' }).format(new Date())
@@ -130,7 +130,7 @@ export function DashboardPage() {
   return (
     <motion.div variants={pageVariants} initial="initial" animate="animate" exit="exit" className="max-w-7xl mx-auto">
       <motion.div variants={cardVariants} className="mb-5 px-1">
-        <h1 className="text-2xl sm:text-3xl font-light">{t(isCurator ? 'dashboard.helloFormal' : 'dashboard.hello', { name: firstName })}</h1>
+        <h1 className="text-2xl sm:text-3xl font-light">{t(isCurator ? 'dashboard.helloFormal' : 'dashboard.hello', { name })}</h1>
         <p className="text-sm text-gray-600 mt-1 first-letter:uppercase">
           {today}{week !== null && `, ${t('dashboard.week', { n: week, total: PROGRAM_WEEKS })}`}
         </p>
