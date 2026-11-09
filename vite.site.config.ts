@@ -38,6 +38,16 @@ function positions(): string {
             </article>`).join('')
 }
 
+/** The selection on the home page: each department's roles, each opening the form with it. */
+function teamRoles(): string {
+  return DEPARTMENTS.map((d) => `
+            <div class="reveal team-dept">
+              <h3>${esc(d.title)}</h3>
+              <p>${esc(d.summary)}</p>
+              <ul>${d.roles.map((r) => `<li><a href="/apply?role=${r.id}">${esc(r.title)}</a></li>`).join('')}</ul>
+            </div>`).join('')
+}
+
 // What the team form needs to work. Public values (they end up in the page), but a build without
 // them would publish a form that can't send anything: it is refused. The Turnstile key is the Hub's
 // (VITE_TURNSTILE_SITE_KEY) unless the site has a widget of its own.
@@ -69,6 +79,7 @@ function clubSite(mode: string): Plugin {
       const contact = env.VITE_TEAM_CONTACT?.trim() ?? ''
       return html
         .replace('<!-- positions -->', positions())
+        .replace('<!-- team-roles -->', teamRoles())
         .replaceAll('{{contact_href}}', esc(contactHref(contact) ?? '#faq'))
         .replaceAll('{{contact}}', esc(contact || 'контакт не указан (VITE_TEAM_CONTACT)'))
     },

@@ -114,6 +114,19 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .hero-recruit p { margin: 0; font-size: 14.5px; line-height: 1.55; color: var(--body); }
 .hero-recruit .cta { margin-top: 6px; }
 .hero-recruit .btn { min-height: 44px; }
+
+/* The team selection, the section right after the hero: departments as columns of roles. */
+.team-depts { display: grid; grid-template-columns: repeat(4, minmax(0, 1fr)); gap: 24px 28px; margin-top: 40px; }
+.team-dept { padding-top: 18px; border-top: 1px solid var(--hair); display: flex; flex-direction: column; gap: 6px; }
+.team-dept h3 { font-size: 19px; font-weight: 600; letter-spacing: -0.01em; }
+.team-dept p { margin: 0; color: var(--body); font-size: 14.5px; line-height: 1.5; }
+.team-dept ul { margin: 6px 0 0; padding: 0; list-style: none; }
+.team-dept li { border-top: 1px solid var(--hair); }
+.team-dept a { display: block; padding: 9px 0; color: var(--ink); text-decoration: none; font-size: 15px; transition: color .2s; }
+.team-dept a:hover { color: var(--accent-text); }
+.team-cta { margin-top: 32px; display: flex; flex-wrap: wrap; align-items: center; gap: 16px 28px; }
+@media (max-width: 960px) { .team-depts { grid-template-columns: repeat(2, minmax(0, 1fr)); } }
+@media (max-width: 560px) { .team-depts { grid-template-columns: 1fr; } }
 .stage-ctl { display: flex; align-items: center; gap: 10px; margin-top: 16px; }
 .round { width: 44px; height: 44px; border-radius: 50%; border: 1px solid var(--hair); background: var(--card); color: var(--ink); cursor: pointer; display: grid; place-items: center; font: 500 18px/1 var(--font); }
 .round:hover { border-color: var(--ink); }

@@ -31,8 +31,10 @@ try {
   const team = read('team.html')
   const apply = read('apply.html')
   check('the team page lists every role, each opening the form with it', ROLES.every((r) => team.includes(`href="/apply?role=${r.id}"`)))
+  const home = read('index.html')
+  check('the home page has the selection with every role', home.includes('id="team"') && ROLES.every((r) => home.includes(`href="/apply?role=${r.id}"`)))
   check('the form has a page of its own', apply.includes('id="formRoot"') && !team.includes('id="formRoot"'))
-  check('no placeholder is left on the pages', !/\{\{|<!-- positions -->/.test(team + apply + read('privacy.html')))
+  check('no placeholder is left on the pages', !/\{\{|<!-- positions -->|<!-- team-roles -->/.test(home + team + apply + read('privacy.html')))
   check('the contact is a link', team.includes('href="https://t.me/ait_club_team"') && read('privacy.html').includes('@ait_club_team'))
   // The rules, without the comments that explain them.
   const headers = read('_headers').split('\n').filter((line) => !line.startsWith('#')).join('\n')
