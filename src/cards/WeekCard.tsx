@@ -7,7 +7,7 @@ import { useAuth } from '../context/authContext'
 import { useI18n } from '../context/i18nContext'
 import { useSchedule } from '../hooks/useClub'
 import { useMySubmissions, useProgramWeeks } from '../hooks/useProgram'
-import { PROGRAM_WEEKS, TRACK_IDS, currentWeekNumber, daysUntil, formatDay, formatShortDay, weekDeadline } from '../lib/club'
+import { TRACK_IDS, currentWeekNumber, daysUntil, formatDay, formatShortDay, scheduleLength, weekDeadline } from '../lib/club'
 import { btnSecondary } from '../lib/ui'
 
 /** This week of the member's track: topic, materials, deadline and their work's status. */
@@ -31,7 +31,9 @@ export function WeekCard() {
     body = (
       <div className="space-y-3">
         <p className="text-sm text-gray-700">
-          {current === null ? t('week.noSchedule') : t('program.weekOf', { n: current, total: PROGRAM_WEEKS })}
+          {!dates.length ? t('week.noSchedule')
+            : current === null ? t('week.startsOn', { date: formatDay(dates[0].starts_on) })
+              : t('program.weekOf', { n: current, total: scheduleLength(dates) })}
         </p>
         <div className="flex flex-wrap gap-2">
           {TRACK_IDS.map((id) => (

@@ -15,7 +15,7 @@ import { useI18n } from '../context/i18nContext'
 import { supabase } from '../lib/supabase'
 import { useMemberPrivate } from '../hooks/useManage'
 import { useSchedule } from '../hooks/useClub'
-import { PROGRAM_WEEKS, currentWeekNumber, greetingName } from '../lib/club'
+import { currentWeekNumber, greetingName, scheduleLength } from '../lib/club'
 import { CARD_COMPONENTS, CARD_TITLES, MEMBER_CARDS, STAFF_CARDS } from '../cards/registry'
 import type { CardConfig, CardId } from '../types'
 
@@ -132,7 +132,7 @@ export function DashboardPage() {
       <motion.div variants={cardVariants} className="mb-5 px-1">
         <h1 className="text-2xl sm:text-3xl font-light">{t(isCurator ? 'dashboard.helloFormal' : 'dashboard.hello', { name })}</h1>
         <p className="text-sm text-gray-600 mt-1 first-letter:uppercase">
-          {today}{week !== null && `, ${t('dashboard.week', { n: week, total: PROGRAM_WEEKS })}`}
+          {today}{week !== null && `, ${t('dashboard.week', { n: week, total: scheduleLength(schedule.data ?? []) })}`}
         </p>
       </motion.div>
 
