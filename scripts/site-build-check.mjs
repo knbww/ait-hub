@@ -29,8 +29,10 @@ try {
     { stdio: 'inherit', env })
   const read = (file) => readFileSync(join(out, file), 'utf8')
   const team = read('team.html')
-  check('the team page lists every role', ROLES.every((r) => team.includes(`data-role="${r.id}"`)))
-  check('no placeholder is left on the pages', !/\{\{|<!-- positions -->/.test(team + read('privacy.html')))
+  const apply = read('apply.html')
+  check('the team page lists every role, each opening the form with it', ROLES.every((r) => team.includes(`href="/apply?role=${r.id}"`)))
+  check('the form has a page of its own', apply.includes('id="formRoot"') && !team.includes('id="formRoot"'))
+  check('no placeholder is left on the pages', !/\{\{|<!-- positions -->/.test(team + apply + read('privacy.html')))
   check('the contact is a link', team.includes('href="https://t.me/ait_club_team"') && read('privacy.html').includes('@ait_club_team'))
   // The rules, without the comments that explain them.
   const headers = read('_headers').split('\n').filter((line) => !line.startsWith('#')).join('\n')

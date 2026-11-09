@@ -1,5 +1,5 @@
-// aitclub.org/team, the team recruitment: the hero's figures, the department covers that come alive
-// under the cursor, the selection timeline that knows today's date, and the application form.
+// aitclub.org/team, the team recruitment: the hero's figures and the department covers that come
+// alive under the cursor. The form itself lives on aitclub.org/apply (apply.ts).
 
 import '@fontsource-variable/jetbrains-mono'
 import './club.css'
@@ -7,36 +7,12 @@ import './team.css'
 import { book, chart, drawThumb, gears, megaphone, picture, scatter } from './ascii'
 import type { Shape } from './ascii'
 import { startHero } from './team-hero'
-import { TONE, mountForm } from './team-form'
-import type { DepartmentId, RoleId } from '../src/lib/recruitment'
+import { TONE } from './team-form'
+import type { DepartmentId } from '../src/lib/recruitment'
 
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches
 const N = innerWidth < 760 ? 10000 : 24000
 
-// The form first: it doesn't wait for pictures.
-const form = mountForm(document.getElementById('formRoot')!, reduce)
-
-// A role in Open Positions opens the form with it chosen (the link itself scrolls to the form).
-document.querySelectorAll<HTMLAnchorElement>('a[data-role]').forEach((a) =>
-  a.addEventListener('click', () => form.chooseRole(a.dataset.dept as DepartmentId, a.dataset.role as RoleId)))
-
-// The selection timeline: done, now, next, by today's date in Kazakhstan.
-const today = new Intl.DateTimeFormat('en-CA', { timeZone: 'Asia/Almaty', year: 'numeric', month: '2-digit', day: '2-digit' }).format(new Date())
-document.querySelectorAll<HTMLElement>('#processSteps > li').forEach((li) => {
-  const { from, to } = li.dataset
-  const done = Boolean(to && today > to)
-  const now = Boolean(from && today >= from && !done)
-  li.classList.toggle('is-done', done)
-  li.classList.toggle('is-now', now)
-  if (now) {
-    const tag = document.createElement('span')
-    tag.className = 'p-now mono'
-    tag.textContent = 'сейчас'
-    li.querySelector('.p-when')?.after(tag)
-  }
-})
-
-// ── Figures ─────────────────────────────────────────────────────────────────
 const logo = document.querySelector<HTMLImageElement>('.bar img')!
 const fonts = document.fonts?.load ? document.fonts.load('9px "JetBrains Mono Variable"').catch(() => undefined) : Promise.resolve()
 const loaded = logo.complete && logo.naturalWidth ? Promise.resolve() : new Promise<void>((resolve) => {
@@ -44,12 +20,12 @@ const loaded = logo.complete && logo.naturalWidth ? Promise.resolve() : new Prom
   logo.addEventListener('error', () => resolve(), { once: true })
 })
 
-type Set = Record<DepartmentId, Shape> & { logo: Shape; scatter: Shape }
-const make = (n: number): Set => ({
+type Figures = Record<DepartmentId, Shape> & { logo: Shape; scatter: Shape }
+const make = (n: number): Figures => ({
   logo: picture(logo, 2.1, n), scatter: scatter(n), education: book(n), pr: megaphone(n), operations: gears(n), data: chart(n),
 })
 
-let small: Set | null = null
+let small: Figures | null = null
 const covers = [...document.querySelectorAll<HTMLCanvasElement>('canvas.dept-cover')]
 const drawCover = (c: HTMLCanvasElement, t = 0, rot = 0.5) => {
   const id = c.dataset.figure as DepartmentId
@@ -88,7 +64,6 @@ Promise.all([fonts, loaded]).then(() => {
   })
   small = make(3200)
   covers.forEach((c) => drawCover(c))
-  form.setShapes(small)
   let rT = 0
-  window.addEventListener('resize', () => { clearTimeout(rT); rT = window.setTimeout(() => { covers.forEach((c) => drawCover(c)); form.setShapes(small!) }, 150) })
+  window.addEventListener('resize', () => { clearTimeout(rT); rT = window.setTimeout(() => covers.forEach((c) => drawCover(c)), 150) })
 })

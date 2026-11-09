@@ -9,6 +9,10 @@
     <changefreq>weekly</changefreq>
   </url>
   <url>
+    <loc>https://aitclub.org/apply</loc>
+    <changefreq>weekly</changefreq>
+  </url>
+  <url>
     <loc>https://aitclub.org/privacy</loc>
     <changefreq>yearly</changefreq>
   </url>

@@ -90,7 +90,7 @@ const newKey = () =>
   '10000000-1000-4000-8000-100000000000'.replace(/[018]/g, (c) => (+c ^ (crypto.getRandomValues(new Uint8Array(1))[0] & (15 >> (+c / 4)))).toString(16))
 
 export interface FormHandle {
-  chooseRole: (dept: DepartmentId, role: RoleId) => void
+  chooseRole: (dept: DepartmentId, role: RoleId, focus?: boolean) => void
   setShapes: (shapes: Partial<Record<DepartmentId, Shape>> & { logo?: Shape; scatter?: Shape }) => void
 }
 
@@ -150,7 +150,7 @@ export function mountForm(root: HTMLElement, reduce: boolean): FormHandle {
   const hintNode = (id: string, hint?: string) => (hint ? h('p', { class: 'f-hint', id: `${fid(id)}-hint` }, hint) : null)
 
   function counter(id: string, value: string, max: number) {
-    const el = h('span', { class: 'f-count mono', 'aria-hidden': 'true' }, `${len(value)} / ${max}`)
+    const el = h('span', { class: 'f-count', 'aria-hidden': 'true' }, `${len(value)} / ${max}`)
     if (len(value) > max) el.classList.add('over')
     el.dataset.for = id
     return el
@@ -319,8 +319,6 @@ export function mountForm(root: HTMLElement, reduce: boolean): FormHandle {
         hint: 'По нему мы свяжемся с тобой.', placeholder: 'name@mail.kz', onInput: (v) => { form.email = v } }),
       textField({ id: 'telegram', label: 'Telegram', value: form.telegram, max: 40, prefix: '@', placeholder: 'username',
         onInput: (v) => { form.telegram = v } }),
-      textField({ id: 'experience', label: 'Опыт в проектах, клубах, олимпиадах или мероприятиях', value: form.experience, multiline: true,
-        max: 1500, onInput: (v) => { form.experience = v } }),
       h('p', { class: 'f-note' }, 'Номер телефона, адрес и данные документов не нужны: не пиши их и в ответах.'),
     ]
   }
@@ -346,6 +344,9 @@ export function mountForm(root: HTMLElement, reduce: boolean): FormHandle {
     const roles = dept
       ? choiceField({
         id: 'role', label: 'Основная роль', value: form.role, rerender: true, required: true, wide: true,
+        hint: dept.id === 'education'
+          ? 'Lead Mentor и Co-Mentor — два полноценных преподавателя направления, они сами договариваются, кто какие занятия ведёт. Подходят обе роли — выбери вторую дополнительной ниже.'
+          : undefined,
         options: dept.roles.map((r) => ({ id: r.id, label: `${r.title} — ${r.duty}` })),
         onChange: (v) => { form.role = v as RoleId; if (form.extra_role === v) form.extra_role = '' },
       })
@@ -371,7 +372,7 @@ export function mountForm(root: HTMLElement, reduce: boolean): FormHandle {
     if (!dept) return [h('p', {}, 'Сначала выбери департамент и роль.')]
     const r = role(form.role)
     return [
-      h('p', { class: 'f-chosen' }, h('span', {}, 'Роль'), h('b', {}, `${r?.title ?? ''}`), h('span', { class: 'mono' }, dept.title),
+      h('p', { class: 'f-chosen' }, h('span', {}, 'Роль'), h('b', {}, `${r?.title ?? ''}`), h('span', {}, dept.title),
         h('button', { type: 'button', class: 'f-link', onclick: () => go(1) }, 'Изменить')),
       DEPARTMENT_QUESTIONS[dept.id].map(questionField),
     ]
@@ -406,8 +407,7 @@ export function mountForm(root: HTMLElement, reduce: boolean): FormHandle {
     return [
       h('p', { class: 'f-lead' }, 'Проверь ответы. Если всё верно, отметь согласия внизу и отправь заявку.'),
       section('О тебе', 0, row('Имя и фамилия', form.full_name.trim()), row('Статус', status), row('Школа или университет', schoolOf(form)),
-        row('Класс / курс', form.grade), row('Email', form.email.trim().toLowerCase()), row('Telegram', form.telegram.trim() ? `@${form.telegram.trim().replace(/^@+/, '')}` : ''),
-        row('Опыт', form.experience.trim())),
+        row('Класс / курс', form.grade), row('Email', form.email.trim().toLowerCase()), row('Telegram', form.telegram.trim() ? `@${form.telegram.trim().replace(/^@+/, '')}` : '')),
       section('Роль', 1, row('Департамент', dept?.title ?? ''), row('Основная роль', role(form.role)?.title ?? ''),
         row('Дополнительная роль', role(form.extra_role)?.title ?? 'нет')),
       dept ? section('Вопросы роли', 2, ...answers(DEPARTMENT_QUESTIONS[dept.id])) : null,
@@ -597,11 +597,10 @@ export function mountForm(root: HTMLElement, reduce: boolean): FormHandle {
   // ── Drawing ───────────────────────────────────────────────────────────────
   const stepsBar = () => h('ol', { class: 'stepper' }, STEPS.map((s, i) => {
     const done = i < step || (i <= seen && i !== step && !Object.keys(validateStep(i, form)).length)
-    const label = [h('span', { class: 'st-n mono' }, done && i !== step ? '✓' : String(i + 1).padStart(2, '0')), h('span', { class: 'st-t' }, s.title)]
     return h('li', { class: `${i === step ? 'is-now' : ''}${done ? ' is-done' : ''}`, 'aria-current': i === step ? 'step' : undefined },
       i <= seen && i !== step && !sending
-        ? h('button', { type: 'button', onclick: () => go(i), 'aria-label': `Шаг ${i + 1}: ${s.title}` }, label)
-        : h('span', { class: 'st-static' }, label))
+        ? h('button', { type: 'button', onclick: () => go(i), 'aria-label': `Шаг ${i + 1}: ${s.title}` }, s.title)
+        : h('span', { class: 'st-static' }, s.title))
   }))
 
   const navBox = h('div', { class: 'f-nav' })
@@ -610,7 +609,7 @@ export function mountForm(root: HTMLElement, reduce: boolean): FormHandle {
   function renderNav() {
     navBox.replaceChildren(
       step > 0 ? h('button', { type: 'button', class: 'btn btn-ghost', disabled: sending, onclick: () => go(step - 1) }, 'Назад') : h('span'),
-      h('span', { class: 'f-progress mono', 'aria-hidden': 'true' }, `${step + 1} / ${STEPS.length}`),
+      h('span', { class: 'f-progress' }, `Шаг ${step + 1} из ${STEPS.length}`),
       step < 4
         ? h('button', { type: 'submit', class: 'btn btn-dark' }, 'Далее')
         : h('button', { type: 'submit', class: 'btn btn-accent', disabled: sending, 'aria-busy': sending ? 'true' : undefined },
@@ -645,14 +644,13 @@ export function mountForm(root: HTMLElement, reduce: boolean): FormHandle {
     const art = h('canvas', { class: 'done-art', 'aria-hidden': 'true' })
     return h('div', { class: 'f-done' },
       art,
-      h('p', { class: 'done-id mono' }, r.id),
       h('h3', { tabindex: '-1' }, 'Application Submitted!'),
       h('p', { class: 'done-lead' }, 'Спасибо за заявку в AIT Club.'),
       h('p', {}, 'Мы рассмотрим её и свяжемся с тобой по указанному email или Telegram.'),
       h('div', { class: 'done-next' }, h('b', {}, 'Следующий этап'),
         h('span', {}, `${ROUND.interviews} — онлайн-собеседования и небольшие практические задания для отдельных ролей.`)),
       h('dl', { class: 'done-meta' },
-        h('dt', {}, 'Номер заявки'), h('dd', {}, h('span', { class: 'mono' }, r.id), ' ', copy),
+        h('dt', {}, 'Номер заявки'), h('dd', {}, h('b', {}, r.id), ' ', copy),
         h('dt', {}, 'Роль'), h('dd', {}, [role(r.role)?.title, dept?.title].filter(Boolean).join(', ')),
         h('dt', {}, 'Отправлена'), h('dd', {}, when)),
       h('p', { class: 'f-hint' }, 'Сохрани номер: он пригодится, если захочешь что-то уточнить или отозвать заявку. Вопросы: ', contactNode(), '.'),
@@ -698,7 +696,6 @@ export function mountForm(root: HTMLElement, reduce: boolean): FormHandle {
     renderNotice()
     const body = h('form', { class: 'f-step', novalidate: true, onsubmit: (e: Event) => { e.preventDefault(); if (step < 4) go(step + 1); else void send() } },
       h('div', { class: 'f-head' },
-        h('p', { class: 'f-kicker mono' }, `Шаг ${step + 1} из ${STEPS.length}`),
         h('h3', { class: 'step-title', tabindex: '-1' }, s.title, h('span', {}, s.label))),
       restoredNote, pickedNote,
       h('div', { class: 'f-fields' }, content()),
@@ -735,7 +732,7 @@ export function mountForm(root: HTMLElement, reduce: boolean): FormHandle {
 
   render()
   return {
-    chooseRole(dept, roleId) {
+    chooseRole(dept, roleId, focus = true) {
       if (state !== 'form') return
       form.department = dept
       form.role = roleId
@@ -744,7 +741,7 @@ export function mountForm(root: HTMLElement, reduce: boolean): FormHandle {
       save()
       if (step === 1 || step === 2) step = 1
       render()
-      root.querySelector<HTMLElement>('.step-title')?.focus({ preventScroll: true })
+      if (focus) root.querySelector<HTMLElement>('.step-title')?.focus({ preventScroll: true })
     },
     setShapes(next) {
       shapes = next
