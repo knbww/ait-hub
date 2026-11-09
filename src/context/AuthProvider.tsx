@@ -9,6 +9,7 @@ import type { Assurance } from '../lib/mfa'
 import { AuthContext } from './authContext'
 import type { AuthValue, SignUpInput } from './authContext'
 import { disablePush, notify } from '../lib/push'
+import { setOwnDevice } from '../lib/trustedDevice'
 
 const PROFILE_COLUMNS =
   'id, user_id, full_name, role, grade, track_id, cohort_id, avatar_path, ' +
@@ -164,6 +165,8 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     setProfile(null)
     setProfileFor(null)
     queryClient.clear()
+    // Signing out means leaving this computer: next time the code is asked, and the idle sign-out is back.
+    setOwnDevice(false)
     if (!supabase) return
     // 'local' drops the stored session without a server round-trip that can 403 on an
     // already-expired token and leave the user stuck signed in.
