@@ -166,6 +166,21 @@ async function publicApi() {
   check('the push function wants a session', push.status === 401, String(push.status))
   const cors = await get(`${api}/functions/v1/push`, { method: 'OPTIONS', headers: { origin: 'https://evil.example' } })
   check('the push function answers only the Hub', cors.headers.get('access-control-allow-origin') === HUB, cors.headers.get('access-control-allow-origin') ?? '')
+
+  // The team form on aitclub.org/team: its function is the one way an application gets in.
+  const status = await get(`${api}/functions/v1/apply`, { headers: { origin: SITE } })
+  const round = await status.json().catch(() => null)
+  check('the team form says whether it is open', status.ok && typeof round?.open === 'boolean', String(status.status))
+  const applyCors = await get(`${api}/functions/v1/apply`, { method: 'OPTIONS', headers: { origin: 'https://evil.example' } })
+  check('the team form function answers only the club site', applyCors.headers.get('access-control-allow-origin') === SITE,
+    applyCors.headers.get('access-control-allow-origin') ?? '')
+  // Cloudflare's dummy token passes only a test secret: refused here means the real one is set.
+  const fake = await get(`${api}/functions/v1/apply`, {
+    method: 'POST',
+    headers: { 'content-type': 'application/json', origin: SITE },
+    body: JSON.stringify({ token: 'XXXX.DUMMY.TOKEN.XXXX', key: '00000000-0000-4000-8000-000000000000', form: {} }),
+  })
+  check('the team form checks Turnstile with the real secret', fake.status === 403, `${fake.status} ${(await fake.text()).slice(0, 80)}`)
 }
 
 const steps = [
@@ -173,7 +188,14 @@ const steps = [
     check('not for search engines', /noindex/.test(res.headers.get('x-robots-tag') ?? ''))
     check('Trusted Types are on', /require-trusted-types-for 'script'/.test(csp))
   }),
-  () => headers(SITE, SITE),
+  () => headers(SITE, SITE, async (res, csp) => {
+    check('the site lets Turnstile run in its own frame', /script-src[^;]*https:\/\/challenges\.cloudflare\.com/.test(csp)
+      && /frame-src https:\/\/challenges\.cloudflare\.com/.test(csp))
+    check('the site talks to one Supabase project only', /connect-src 'self' https:\/\/[a-z0-9]{20}\.supabase\.co;/.test(csp),
+      /connect-src[^;]*/.exec(csp)?.[0] ?? 'missing')
+    const team = await get(`${SITE}/team`)
+    check('the team page is published', team.status === 200 || team.status === 308, String(team.status))
+  }),
   () => tls('hub.aitclub.org'),
   () => tls(DOMAIN),
   dnsRecords,

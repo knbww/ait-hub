@@ -30,7 +30,11 @@ jobs:
       - run: npm run typecheck
       # Every migration + the access rules, on Postgres-in-WASM (no Docker needed).
       - run: npm run test:db
+      # The team form's edge function, with a stand-in database and Turnstile.
+      - run: npm run test:apply
       - run: npm run build
+      # The club site builds (with stand-in public values: the real ones come with the deploy).
+      - run: npm run build:site:check
 
   # Publishes main to Cloudflare Pages once the checks pass. Needs, in the `production` environment,
   # secrets CLOUDFLARE_API_TOKEN (Pages: Edit) and CLOUDFLARE_ACCOUNT_ID, and repository variables
@@ -91,7 +95,9 @@ jobs:
         run: npx --no-install wrangler pages deploy dist --project-name=ait-hub --branch=main --commit-dirty=true
 
   # Publishes the club site (site/ → Cloudflare Pages project ait-club, aitclub.org) from main.
-  # Needs only the two Cloudflare secrets; skipped with a warning while they are not set.
+  # Needs the two Cloudflare secrets (skipped with a warning while they are not set) and, for the team
+  # form on aitclub.org/team, the repository variables VITE_SUPABASE_URL, VITE_TURNSTILE_SITE_KEY
+  # (the Hub's widget serves the form too) and VITE_TEAM_CONTACT: the build refuses to run without them.
   deploy-site:
     needs: verify
     if: github.event_name == 'push' && github.ref == 'refs/heads/main'
@@ -101,6 +107,11 @@ jobs:
     concurrency:
       group: deploy-site
       cancel-in-progress: false
+    env:
+      VITE_SUPABASE_URL: ${{ vars.VITE_SUPABASE_URL }}
+      VITE_TURNSTILE_SITE_KEY: ${{ vars.VITE_TURNSTILE_SITE_KEY }}
+      VITE_TEAM_TURNSTILE_SITE_KEY: ${{ vars.VITE_TEAM_TURNSTILE_SITE_KEY }}
+      VITE_TEAM_CONTACT: ${{ vars.VITE_TEAM_CONTACT }}
     steps:
       - name: Check deploy settings
         id: check
@@ -111,6 +122,9 @@ jobs:
           if [ "$HAS_TOKEN" != "true" ] || [ "$HAS_ACCOUNT" != "true" ]; then
             echo "::warning::Cloudflare secrets are not set — site deploy skipped. Run npm run deploy:site locally."
             echo "ready=false" >> "$GITHUB_OUTPUT"
+          elif [ -z "$VITE_SUPABASE_URL" ] || [ -z "$VITE_TURNSTILE_SITE_KEY$VITE_TEAM_TURNSTILE_SITE_KEY" ] || [ -z "$VITE_TEAM_CONTACT" ]; then
+            echo "::error::Set the repository variables VITE_SUPABASE_URL, VITE_TURNSTILE_SITE_KEY and VITE_TEAM_CONTACT: the team form can't work without them."
+            exit 1
           else
             echo "ready=true" >> "$GITHUB_OUTPUT"
           fi
