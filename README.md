@@ -47,9 +47,10 @@
   не читая чаты. Сообщения приходят сразу (Supabase Realtime) и пушем.
 - **Управление.** Участники и роли, коды вступления, график недель, выгрузка в CSV (резерв на
   случай недоступности Hub), журнал действий, выгрузка и удаление данных участника по запросу.
-- **Набор в команду.** Страница [aitclub.org/team](site/team.html) с анкетой в пять шагов: общие
-  вопросы, департамент и роль, вопросы департамента, время и мотивация, проверка ответов. Регистрация
-  не нужна, ответы живут только во вкладке до отправки. Заявка проходит Cloudflare Turnstile и
+- **Набор в команду.** Страница [aitclub.org/team](site/team.html) о ролях и отборе и анкета
+  [aitclub.org/apply](site/apply.html) в пять шагов: о себе, департамент и роль, вопросы
+  департамента, время и мотивация, проверка ответов. Каждый вопрос задаётся один раз, регистрация не
+  нужна, ответы живут только во вкладке до отправки. Заявка проходит Cloudflare Turnstile и
   функцию [`apply`](supabase/functions/apply), база проверяет каждое поле сама. В Hub раздел
   **Набор** (`/recruitment`): таблица заявок, фильтры, статистика, этапы, ответственный, оценка,
   внутренние заметки, CSV, даты приёма и доступ для организаторов. Роли и вопросы —
@@ -154,7 +155,7 @@ update public.profiles set role = 'director', track_id = null where user_id = '<
 - **Адрес** — `https://hub.aitclub.org` (домен `aitclub.org`, DNS в Cloudflare). Переменная сборки
   `VITE_PUBLIC_ORIGIN` задаёт адрес для QR-кодов и перенаправляет со старого `ait-hub.pages.dev`.
 - **Сайт клуба** — `https://aitclub.org` (и `www`): статические страницы из [`site/`](site)
-  (главная, `/team`, `/privacy`), отдельный проект Cloudflare Pages `ait-club`. Сборка требует
+  (главная, `/team`, `/apply`, `/privacy`), отдельный проект Cloudflare Pages `ait-club`. Сборка требует
   `VITE_SUPABASE_URL`, `VITE_TURNSTILE_SITE_KEY` (виджет Hub, в нём же hostname `aitclub.org`) и
   `VITE_TEAM_CONTACT` (см. `.env.example`). Выкладывается задание `deploy-site` в CI после
   каждого push в `main` (те же секреты `CLOUDFLARE_API_TOKEN` и `CLOUDFLARE_ACCOUNT_ID`), вручную —

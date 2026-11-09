@@ -1416,6 +1416,14 @@ async function recruitmentScenario() {
   const mixed = form('education', { full_name: '  Али‮я​   Серикова ', email: ' Aliya@Example.KZ ', telegram: 'https://t.me/aliya_s',
     answers: { ...form('education').answers, idea: 'чужой вопрос', tools: ['figma'] } })
   const kept = await submit(mixed)
+  const askedOnce = await submit(form('education', { answers: { ...form('education').answers, preferred: 'both' } }))
+  await expectEqual('apply: the mentor role is asked once, in step 2: a second answer is not kept', db, pg,
+    `select answers ? 'preferred' from public.team_applications where public_id = $1`, [askedOnce.id], false)
+  const pr = await submit(form('pr', { answers: { ...form('pr').answers, pr_experience: 'Школьный медиацентр' } }))
+  await expectEqual('apply: PR & Creative asks about experience in its own words', db, pg,
+    `select answers ->> 'pr_experience' from public.team_applications where public_id = $1`, [pr.id], 'Школьный медиацентр')
+  await expectEqual('apply: the general question about experience is gone', db, pg,
+    `select experience is null from public.team_applications where public_id = $1`, [pr.id], true)
   await expectEqual('apply: other departments\' answers are not kept', db, pg,
     `select answers ? 'idea' or answers ? 'tools' from public.team_applications where public_id = $1`, [kept.id], false)
   await expectEqual('apply: names lose invisible and direction characters', db, pg,

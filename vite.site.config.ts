@@ -28,11 +28,11 @@ function positions(): string {
             <article class="reveal dept-card glass" id="dept-${d.id}">
               <canvas class="dept-cover" data-figure="${d.id}" aria-hidden="true"></canvas>
               <div class="dept-body">
-                <div class="dept-head"><h3>${esc(d.title)}</h3><span class="dept-count mono">${d.roles.length} ${roles(d.roles.length)}</span></div>
+                <div class="dept-head"><h3>${esc(d.title)}</h3><span class="dept-count">${d.roles.length} ${roles(d.roles.length)}</span></div>
                 <p>${esc(d.summary)}</p>${d.id === 'education' ? `
                 <ul class="dept-dirs" aria-label="Направления">${DIRECTIONS.map((x) => `<li>${esc(x.label)}</li>`).join('')}</ul>` : ''}
                 <ul class="role-list">${d.roles.map((r) => `
-                  <li><a class="role-pick" href="#apply" data-dept="${d.id}" data-role="${r.id}"><b>${esc(r.title)}</b><span>${esc(r.duty)}</span><i aria-hidden="true">Подать →</i></a></li>`).join('')}
+                  <li><a class="role-pick" href="/apply?role=${r.id}"><b>${esc(r.title)}</b><span>${esc(r.duty)}</span><i aria-hidden="true">Подать →</i></a></li>`).join('')}
                 </ul>
               </div>
             </article>`).join('')
@@ -96,7 +96,7 @@ export default defineConfig(({ mode }) => ({
     assetsInlineLimit: (file: string) => (file.endsWith('.woff2') ? false : undefined),
     rollupOptions: {
       // 404.html: Cloudflare Pages serves it for unknown paths (with a 404 status).
-      input: { main: 'site/index.html', team: 'site/team.html', privacy: 'site/privacy.html', notFound: 'site/404.html' },
+      input: { main: 'site/index.html', team: 'site/team.html', apply: 'site/apply.html', privacy: 'site/privacy.html', notFound: 'site/404.html' },
     },
   },
 }))

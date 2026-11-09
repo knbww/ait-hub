@@ -152,11 +152,6 @@ export const DEPARTMENT_QUESTIONS: Record<DepartmentId, Question[]> = {
   education: [
     { id: 'direction', kind: 'choice', label: 'Какое направление хочешь преподавать?', required: true, options: DIRECTIONS },
     {
-      id: 'preferred', kind: 'choice', label: 'Предпочитаемая роль', required: true,
-      hint: 'Lead и Co-Mentor — два полноценных преподавателя направления. Они сами договариваются, кто какие занятия ведёт.',
-      options: o([['lead', 'Lead Mentor'], ['co', 'Co-Mentor'], ['both', 'Подойдёт любая']]),
-    },
-    {
       id: 'skills', kind: 'longtext', label: 'Какими темами и технологиями владеешь?', required: true, max: 1500,
       placeholder: 'Например: Python, поиск и минимакс, основы ML; C++, графы, ДП; React, интервью с пользователями',
     },
@@ -199,6 +194,10 @@ export const DEPARTMENT_QUESTIONS: Record<DepartmentId, Question[]> = {
       options: o([['smm', 'Ведение Instagram / Telegram'], ['content_plan', 'Контент-план'], ['posters', 'Постеры и карусели'],
         ['reels', 'Reels / видео'], ['texts', 'Написание текстов'], ['interviews', 'Интервью'],
         ['community', 'Работа с подписчиками'], ['analytics', 'Аналитика публикаций']]),
+    },
+    {
+      id: 'pr_experience', kind: 'longtext', label: 'Опыт в медиа, проектах или мероприятиях', required: false, max: 1500,
+      hint: 'Необязательно. Например: школьный медиацентр, свой канал, оформление мероприятий.',
     },
     {
       id: 'links', kind: 'links', label: 'Портфолио или примеры работ', required: false,
@@ -310,7 +309,6 @@ export interface ApplicationForm {
   grade: string
   email: string
   telegram: string
-  experience: string
   department: DepartmentId | ''
   role: RoleId | ''
   extra_role: RoleId | ''
@@ -323,7 +321,7 @@ export interface ApplicationForm {
 }
 
 export const emptyForm = (): ApplicationForm => ({
-  full_name: '', applicant_status: '', nis_city: '', school_other: '', grade: '', email: '', telegram: '', experience: '',
+  full_name: '', applicant_status: '', nis_city: '', school_other: '', grade: '', email: '', telegram: '',
   department: '', role: '', extra_role: '', answers: {}, volunteer_ack: false, consent: false, is_adult: null, guardian_consent: false,
 })
 
@@ -407,7 +405,6 @@ export function validateStep(step: number, form: ApplicationForm): Errors {
     else if (email.length > 254 || !EMAIL.test(email)) errors.email = 'Проверь адрес: например, name@mail.kz'
     const telegram = normalizeTelegram(form.telegram)
     if (telegram && !TELEGRAM.test(telegram)) errors.telegram = 'От 5 до 32 латинских букв, цифр или _'
-    if (len(form.experience) > 1500) errors.experience = `Не больше 1500 символов, сейчас ${len(form.experience)}`
   } else if (step === 1) {
     const dept = department(form.department)
     if (!dept) errors.department = 'Выбери департамент'
@@ -460,7 +457,6 @@ export function buildPayload(form: ApplicationForm) {
     grade: form.grade,
     email: form.email.trim().toLowerCase(),
     telegram: normalizeTelegram(form.telegram) || null,
-    experience: form.experience.trim() || null,
     department: dept,
     role: form.role,
     extra_role: form.extra_role || null,

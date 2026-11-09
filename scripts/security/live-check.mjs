@@ -193,8 +193,10 @@ const steps = [
       && /frame-src https:\/\/challenges\.cloudflare\.com/.test(csp))
     check('the site talks to one Supabase project only', /connect-src 'self' https:\/\/[a-z0-9]{20}\.supabase\.co;/.test(csp),
       /connect-src[^;]*/.exec(csp)?.[0] ?? 'missing')
-    const team = await get(`${SITE}/team`)
-    check('the team page is published', team.status === 200 || team.status === 308, String(team.status))
+    for (const page of ['team', 'apply']) {
+      const res = await get(`${SITE}/${page}`)
+      check(`/${page} is published`, res.status === 200 || res.status === 308, String(res.status))
+    }
   }),
   () => tls('hub.aitclub.org'),
   () => tls(DOMAIN),
