@@ -36,6 +36,7 @@
       <div class="bar-in glass">
         <a href="#top" aria-label="AIT Club — в начало"><img src="/img/ait-black.png" alt="AIT Club" width="380" height="207" /></a>
         <nav aria-label="Разделы">
+          <a href="#team">Отбор</a>
           <a href="#tracks">Направления</a>
           <a href="#year">Как устроен год</a>
           <a href="#news">Новости</a>
@@ -65,7 +66,7 @@
               <p>Ищем организаторов и менторов из сети НИШ. Заявки до 16 ноября, онлайн-собеседования 17–23 ноября.</p>
               <div class="cta">
                 <a class="btn btn-accent" href="/apply">Подать заявку</a>
-                <a class="btn btn-ghost" href="/team">Роли и отбор</a>
+                <a class="btn btn-ghost" href="#team">Подробнее</a>
               </div>
             </section>
           </div>
@@ -79,6 +80,26 @@
           <div class="dots" id="dots"></div>
           <p class="hint">Наведите на фигуру, чтобы увидеть, из чего она сделана</p>
         </aside>
+      </section>
+
+      <!-- The team selection: departments and roles from src/lib/recruitment.ts (vite.site.config.ts) -->
+      <section class="sec" id="team">
+        <div class="wrap">
+          <div class="sec-head">
+            <h2 class="reveal">Отбор в команду клуба</h2>
+            <p class="reveal sec-lead">Клуб собирает межшкольную команду из сети НИШ: менторов направлений и организаторов. Работа онлайн, добровольная и без оплаты. Заявки до 16 ноября, онлайн-собеседования 17–23 ноября.</p>
+          </div>
+          <div class="team-depts">
+            <!-- team-roles -->
+          </div>
+          <div class="reveal team-cta">
+            <div class="cta">
+              <a class="btn btn-accent" href="/apply">Подать заявку</a>
+              <a class="btn btn-ghost" href="/team">Роли и отбор подробно</a>
+            </div>
+            <ul class="facts" aria-label="Даты отбора"><li>заявки 9–16 ноября</li><li>собеседования 17–23 ноября</li><li>затем подготовка AIT Week</li></ul>
+          </div>
+        </div>
       </section>
 
       <!-- News: plates you pull out of a stack (club.js) -->

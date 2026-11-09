@@ -319,7 +319,6 @@ export function mountForm(root: HTMLElement, reduce: boolean): FormHandle {
         hint: 'По нему мы свяжемся с тобой.', placeholder: 'name@mail.kz', onInput: (v) => { form.email = v } }),
       textField({ id: 'telegram', label: 'Telegram', value: form.telegram, max: 40, prefix: '@', placeholder: 'username',
         onInput: (v) => { form.telegram = v } }),
-      h('p', { class: 'f-note' }, 'Номер телефона, адрес и данные документов не нужны: не пиши их и в ответах.'),
     ]
   }
 
