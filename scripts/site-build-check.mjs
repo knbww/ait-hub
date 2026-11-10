@@ -5,7 +5,7 @@
 //   npm run build:site:check
 
 import { execFileSync } from 'node:child_process'
-import { mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs'
+import { existsSync, mkdtempSync, readFileSync, readdirSync, rmSync } from 'node:fs'
 import { tmpdir } from 'node:os'
 import { join } from 'node:path'
 import { ROLES } from '../src/lib/recruitment.ts'
@@ -36,6 +36,9 @@ try {
   check('the form has a page of its own', apply.includes('id="formRoot"') && !team.includes('id="formRoot"'))
   check('no placeholder is left on the pages', !/\{\{|<!-- positions -->|<!-- team-roles -->/.test(home + team + apply + read('privacy.html')))
   check('the contact is a link', team.includes('href="https://t.me/ait_club_team"') && read('privacy.html').includes('@ait_club_team'))
+  check('the home page shows the selection over the page, with an end date', home.includes('id="recruitPop"') && /data-until="\d{4}-\d\d-\d\dT[\d:]+Z"/.test(home))
+  const basement = home.slice(home.indexOf('id="basement"'))
+  check('the basement links the club channel and lists no chats', basement.includes('href="https://t.me/ait_club_team"') && !/WhatsApp|IT-сообщество/.test(home))
   // The rules, without the comments that explain them.
   const headers = read('_headers').split('\n').filter((line) => !line.startsWith('#')).join('\n')
   check('the content policy names the project, not every Supabase host',
@@ -43,6 +46,8 @@ try {
   check('Turnstile may run, in its own frame', /script-src[^;]*https:\/\/challenges\.cloudflare\.com/.test(headers) && /frame-src https:\/\/challenges\.cloudflare\.com/.test(headers))
   const text = readdirSync(out, { recursive: true }).filter((f) => /\.(js|html|css)$/.test(f)).map((f) => read(f)).join('\n')
   check('no secret key in the site', !/sb_secret_|service_role/.test(text))
+  const photos = [...new Set(text.match(/\/img\/news\/[\w-]+\.webp/g) ?? [])]
+  check('every news photo is in the site', photos.length >= 5 && photos.every((p) => existsSync(join(out, p))))
 } catch (e) {
   failed++
   console.error(e.message)

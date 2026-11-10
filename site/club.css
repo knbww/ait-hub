@@ -86,8 +86,8 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .plate { position: absolute; left: 0; top: 0; width: 280px; height: 370px; padding: 0; border: 0; background: none; cursor: pointer; transform-style: preserve-3d; transition: transform .7s cubic-bezier(.2,.7,.2,1), opacity .5s; }
 .stage.dragging .plate { transition: none; }
 .plate-in { position: absolute; inset: 0; border-radius: 22px; overflow: hidden; display: block; box-shadow: 0 24px 60px -24px rgb(30 20 20 / 0.45); transition: transform .45s cubic-bezier(.2,.7,.2,1); }
-.plate canvas { width: 100%; height: 100%; display: block; }
-.plate-date { position: absolute; left: 14px; top: 12px; font: 600 12px/1 var(--font); padding: 7px 10px; border-radius: 10px; }
+.plate img { width: 100%; height: 100%; display: block; object-fit: cover; background: #1b1a18; }
+.plate-date { position: absolute; left: 14px; top: 12px; font: 600 12px/1 var(--font); padding: 7px 10px; border-radius: 10px; background: rgb(20 20 20 / 0.55); color: #fff; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); }
 .plate-label { position: absolute; left: 10px; right: 10px; bottom: 10px; border-radius: 16px; padding: 12px 14px; display: flex; flex-direction: column; gap: 6px; text-align: left; color: var(--ink); opacity: 0; transform: translateY(12px); transition: opacity .3s, transform .35s; }
 .plate-label b { font-size: 15px; line-height: 1.25; }
 .meta { display: flex; gap: 14px; font: 500 12.5px/1 var(--font); color: var(--muted); align-items: center; }
@@ -103,12 +103,32 @@ body::before { content: ""; position: fixed; inset: 0 0 auto; height: env(safe-a
 .detail .when { margin: 0; font-size: 14px; color: var(--muted); }
 .detail h3 { margin: 0; font-size: clamp(24px, 2.6vw, 34px); font-weight: 600; letter-spacing: -0.02em; line-height: 1.12; text-wrap: balance; }
 .detail-text { margin: 4px 0 0; color: var(--body); font-size: 16px; line-height: 1.6; max-width: 36em; }
-.detail-thumb { display: none; width: 100%; height: 180px; border-radius: 16px; }
+.detail-thumb { display: none; width: 100%; height: 180px; border-radius: 16px; object-fit: cover; }
 .close { align-self: flex-start; }
 .detail-ctl { display: flex; flex-wrap: wrap; gap: 10px; margin-top: 8px; }
 .detail-ctl [hidden] { display: none; }
 
 /* The team recruitment, in the hero under its facts: a glass card like the figure's caption. */
+/* The team selection over the page (club.js) */
+.pop { width: min(440px, calc(100% - 32px)); max-height: calc(100% - 32px); margin: auto; padding: 0; border: 0; border-radius: 26px; background: var(--card); color: var(--ink); overflow: auto; box-shadow: 0 40px 100px -30px rgb(30 20 20 / 0.6); }
+.pop:focus-visible { outline: none; }
+.pop::backdrop { background: rgb(20 20 20 / 0.4); -webkit-backdrop-filter: blur(4px); backdrop-filter: blur(4px); }
+.pop-img { display: block; width: 100%; height: auto; aspect-ratio: 880 / 360; object-fit: cover; }
+.pop-x { position: absolute; top: 12px; right: 12px; width: 38px; height: 38px; border: 0; border-radius: 50%; background: rgb(20 20 20 / 0.5); color: #fff; font: 400 24px/1 var(--font); cursor: pointer; -webkit-backdrop-filter: blur(8px); backdrop-filter: blur(8px); transition: background-color .2s; }
+.pop-x:hover { background: rgb(20 20 20 / 0.72); }
+.pop-body { padding: 22px 24px 24px; display: flex; flex-direction: column; gap: 10px; }
+.pop h2 { margin: 0; font-size: 24px; font-weight: 700; letter-spacing: -0.015em; line-height: 1.15; }
+.pop p { margin: 0; font-size: 15.5px; line-height: 1.55; color: var(--body); }
+.pop .cta { margin-top: 8px; }
+.pop .btn { min-height: 46px; }
+html:has(.pop[open]) { overflow: hidden; }
+@media (prefers-reduced-motion: no-preference) {
+  .pop[open] { animation: pop-in .5s cubic-bezier(.2,.7,.2,1); }
+  .pop[open]::backdrop { animation: pop-fade .35s ease; }
+}
+@keyframes pop-in { from { opacity: 0; transform: translateY(18px) scale(.98); } }
+@keyframes pop-fade { from { opacity: 0; } }
+
 .hero-recruit { pointer-events: auto; align-self: stretch; max-width: 560px; border-radius: 22px; padding: 18px 20px; display: flex; flex-direction: column; gap: 8px; }
 .hero-recruit h2 { margin: 0; font-size: 20px; font-weight: 700; letter-spacing: -0.01em; }
 .hero-recruit p { margin: 0; font-size: 14.5px; line-height: 1.55; color: var(--body); }
