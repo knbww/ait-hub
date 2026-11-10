@@ -3,6 +3,7 @@
 import '@fontsource-variable/jetbrains-mono'
 import './club.css'
 import './basement.js'
+import { contactHref } from '../src/lib/recruitment'
 
 const reduce = matchMedia('(prefers-reduced-motion: reduce)').matches;
 const MONO = '"JetBrains Mono Variable", ui-monospace, Menlo, Consolas, monospace';
@@ -325,21 +326,23 @@ hero.addEventListener('pointermove', e => { const r = cv.getBoundingClientRect()
 hero.addEventListener('pointerleave', () => { mx = my = -1e5; });
 
 /* ---------- news plates ---------- */
+// The photos come from Unsplash under its license (unsplash.com/license), cropped for the plates in
+// site/public/img/news: team rtD_lcsN6_U (also team-wide, the pop-up's), ait-week 8gAbl776pc0,
+// contest FWoq_ldWlNQ, cs50 uL1TI7xyLHQ — unsplash.com/photos/<id>.
+const channel = contactHref(import.meta.env.VITE_TEAM_CONTACT ?? '');
 const POSTS = [
-  { date: '9–13 ноября', title: 'Неделя AIT Club', shape: 4, tone: 'ink',
-    text: 'Пять дней открытых событий в школе. На каждом висит QR: по нему AIT Hub открывается всем, а не только участникам. В те же дни к открытым событиям присоединяется IT-сообщество.' },
-  { date: '9 ноября', title: 'Набор организаторов в сети НИШ', shape: 0, tone: 'red', link: { href: '/apply', label: 'Подать заявку' },
+  { date: '9 ноября', title: 'Набор организаторов в сети НИШ', img: '/img/news/team.webp', link: { href: '/apply', label: 'Подать заявку' },
     text: 'Строим организацию, и нам нужны организаторы и менторы из разных НИШ. Это отбор, а не открытый набор: после анкеты будет онлайн-собеседование, для некоторых ролей небольшое задание, а кандидат в менторы проводит пробное занятие. Заявки принимаются с 9 по 16 ноября, собеседования и отбор с 17 по 23 ноября.' },
-  { date: 'Неделя 8', title: 'Первый рейтинговый контест алгоритмов', shape: 2, tone: 'paper',
+  { date: '30 ноября – 6 декабря', title: 'AIT Week: открытые онлайн-занятия', img: '/img/news/ait-week.webp', link: channel && { href: channel, label: 'Канал клуба' },
+    text: 'С неё начинается новый сезон клуба, теперь для учеников всех НИШ. В каждом направлении пройдёт открытое первое занятие: искусственный интеллект, олимпиадное программирование и стартапы. Можно прийти на все три, выбрать своё и записаться прямо после занятия. Расписание появится в Telegram-канале клуба.' },
+  { date: 'Неделя 8', title: 'Первый рейтинговый контест алгоритмов', img: '/img/news/contest.webp',
     text: 'Контест по правилам, объявленным заранее, в группе клуба на Codeforces. По нему впервые меняется рейтинг направления: разрыв между «знаю тему» и «решил под таймером» лучше увидеть рано.' },
-  { date: 'Каждую неделю', title: 'Проекты CS50 AI проходят check50', shape: 1, tone: 'ink',
+  { date: 'Каждую неделю', title: 'Проекты CS50 AI проходят check50', img: '/img/news/cs50.webp',
     text: 'Двенадцать официальных проектов курса Гарварда с той же автоматической проверкой, что у его студентов. Работа принимается, когда её автор может объяснить, как она устроена.' },
-  { date: 'Конец ноября', title: 'Demo Day', shape: 3, tone: 'red',
-    text: 'Промежуточный показ: команды стартап-инженерии показывают продукты и первых пользователей, участники ИИ и алгоритмов показывают, что успели сделать за осень.' },
 ];
-const TONES = { ink: { bg: '#1b1a18', fg: '#f3f2ee', acc: '#e0465c', date: 'rgb(243 242 238 / .14)', dateFg: '#f3f2ee' },
-                red: { bg: '#750014', fg: '#f3d9dd', acc: '#ffffff', date: 'rgb(255 255 255 / .16)', dateFg: '#ffffff' },
-                paper: { bg: '#e9e6df', fg: '#141414', acc: '#750014', date: 'rgb(20 20 20 / .07)', dateFg: '#141414' } };
+const TONES = { ink: { bg: '#1b1a18', fg: '#f3f2ee', acc: '#e0465c' },
+                red: { bg: '#750014', fg: '#f3d9dd', acc: '#ffffff' },
+                paper: { bg: '#e9e6df', fg: '#141414', acc: '#750014' } };
 
 function drawThumb(canvas, shape, tone, rot) {
   const r = canvas.getBoundingClientRect(), w = Math.max(10, r.width), h = Math.max(10, r.height), k = Math.min(2, devicePixelRatio || 1);
@@ -368,7 +371,7 @@ function drawThumb(canvas, shape, tone, rot) {
 }
 
 const stage = document.getElementById('stage'), stack = document.getElementById('stack'), detail = document.getElementById('detail');
-let thumbShapes = [], plates = [], focus = 0, open = false, sel = -1;
+let plates = [], focus = 0, open = false, sel = -1;
 let drag = null, moved = false, dragging = false, snapT = 0;
 const pipEls = POSTS.map(() => { const i = document.createElement('i'); document.getElementById('pips').appendChild(i); return i; });
 const isMob = () => stage.clientWidth < 700;
@@ -376,13 +379,13 @@ const steps = () => (isMob() ? { x: 64, y: 16, z: 90 } : { x: 150, y: 26, z: 120
 
 POSTS.forEach((p, i) => {
   const b = document.createElement('button'); b.type = 'button'; b.className = 'plate'; b.setAttribute('aria-label', p.title + ', ' + p.date);
-  const t = TONES[p.tone];
-  b.innerHTML = '<span class="plate-in"><canvas></canvas><span class="plate-date" style="background:' + t.date + ';color:' + t.dateFg + '">' + p.date + '</span>' +
+  b.innerHTML = '<span class="plate-in"><img src="' + p.img + '" alt="" loading="lazy" decoding="async" width="600" height="800"><span class="plate-date">' + p.date + '</span>' +
     '<span class="plate-label glass"><b>' + p.title + '</b><span class="meta">' + p.date + '</span></span></span>';
   b.addEventListener('click', () => { if (moved) { moved = false; return; } if (open) return; if (Math.round(focus) !== i) { focus = i; layout(); } openPost(i); });
   b.addEventListener('focus', () => { if (!open && !dragging) { focus = i; layout(); } });
   stack.appendChild(b); plates.push(b);
 });
+layout(); // photos need no figures: the stack stands in place from the start
 
 function layout() {
   const st = steps(), n = plates.length;
@@ -412,8 +415,9 @@ function openPost(i) {
   const link = document.getElementById('dLink');
   link.hidden = !p.link;
   if (p.link) { link.href = p.link.href; link.textContent = p.link.label; }
+  document.getElementById('detailThumb').src = p.img;
   detail.hidden = false;
-  requestAnimationFrame(() => { detail.classList.add('show'); if (isMob()) drawThumb(document.getElementById('detailThumb'), thumbShapes[i], p.tone, 0.4); });
+  requestAnimationFrame(() => detail.classList.add('show'));
   layout();
   setTimeout(() => document.getElementById('dClose').focus({ preventScroll: true }), 50);
 }
@@ -449,7 +453,6 @@ stage.addEventListener('wheel', e => {
   focus = clamp(focus + e.deltaX / steps().x / 1.5, -0.3, plates.length - 0.7); layout();
   clearTimeout(snapT); snapT = setTimeout(() => { stage.classList.remove('dragging'); focus = Math.round(clamp(focus, 0, plates.length - 1)); layout(); }, 140);
 }, { passive: false });
-const drawPlates = () => plates.forEach((el, i) => drawThumb(el.querySelector('canvas'), thumbShapes[i], POSTS[i].tone, 0.45 + i * 0.06));
 // The direction cards wear the hero's figures as covers.
 let coverShapes = [];
 const drawCovers = () => document.querySelectorAll('canvas[data-cover]').forEach(c => { if (coverShapes.length) drawThumb(c, coverShapes[+c.dataset.cover], c.dataset.tone, 0.5); });
@@ -460,10 +463,9 @@ function start() {
   const imgs = [img, IMG_HANDS, IMG_PARROT, IMG_STATUE, IMG_SELFIE];
   const go = () => {
     shapes = [hands(N), neural(N), tree(N), bars(N), logo(img, N), ...GUESTS.map(gs => gs.make(N))];
-    const small = [hands(3200), neural(3200), tree(3200), bars(3200), logo(img, 3200)];
-    thumbShapes = POSTS.map(p => small[p.shape]); coverShapes = small;
+    coverShapes = [hands(3200), neural(3200), tree(3200), bars(3200), logo(img, 3200)];
     ready = true; holdStart = performance.now();
-    resize(); layout(); drawPlates(); drawCovers();
+    resize(); layout(); drawCovers();
     const parrot = META.find(m => m.frames), all = [];
     let k = 1; all[0] = shapes[META.indexOf(parrot)];
     const more = () => { all[k] = parrotFrame(k, N); if (++k < 10) setTimeout(more, 60); else parrot.frames = all; };
@@ -473,13 +475,32 @@ function start() {
   imgs.forEach(im => { if (im.complete && im.naturalWidth) { if (--left === 0) go(); } else im.addEventListener('load', () => { if (--left === 0) go(); }, { once: true }); });
 }
 let rT = 0;
-const refit = () => { clearTimeout(rT); rT = setTimeout(() => { resize(); layout(); if (thumbShapes.length) { drawPlates(); drawCovers(); } }, 120); };
+const refit = () => { clearTimeout(rT); rT = setTimeout(() => { resize(); layout(); if (coverShapes.length) drawCovers(); }, 120); };
 window.addEventListener('resize', refit);
 // A window moved between a MacBook's Retina screen and an ordinary monitor keeps its size, so no resize
 // comes, but the pixel density changes: redraw the canvases for it, or they stay blurry.
 const watchDensity = () => matchMedia('(resolution: ' + devicePixelRatio + 'dppx)').addEventListener('change', () => { refit(); watchDensity(); }, { once: true });
 watchDensity();
 (document.fonts && document.fonts.load ? document.fonts.load('9px "JetBrains Mono Variable"').catch(() => {}) : Promise.resolve()).then(start, start);
+
+/* ---------- the team selection over the page: once a session, until the date on the dialog ---------- */
+const pop = document.getElementById('recruitPop');
+const popSeen = () => { try { return sessionStorage.getItem('ait-recruit-pop') === '1'; } catch { return false; } };
+if (pop && typeof pop.showModal === 'function' && Date.now() < Date.parse(pop.dataset.until) && !popSeen() && !location.hash) {
+  pop.querySelector('.pop-x').addEventListener('click', () => pop.close());
+  pop.querySelector('[data-close]').addEventListener('click', () => pop.close()); // «Подробнее» still scrolls to #team
+  pop.addEventListener('click', e => { // a click on the dimmed page around it
+    if (e.target !== pop) return;
+    const r = pop.getBoundingClientRect();
+    if (e.clientX < r.left || e.clientX > r.right || e.clientY < r.top || e.clientY > r.bottom) pop.close();
+  });
+  setTimeout(() => {
+    if (pop.open) return;
+    pop.showModal();
+    pop.focus({ preventScroll: true }); // the dialog itself, not the close button with a ring around it
+    try { sessionStorage.setItem('ait-recruit-pop', '1'); } catch { /* private mode: it shows again next time */ }
+  }, reduce ? 0 : 700);
+}
 
 // dev only: lets a test script show any figure or guest
 if (import.meta.env.DEV) window.__ait = { goTo, guest: i => { after = 1; goTo(MAIN + i, 600, false); } }

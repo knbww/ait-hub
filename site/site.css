@@ -216,7 +216,19 @@
 .shot img { display: block; width: 100%; height: auto; }
 .shot-desktop { transform: perspective(1400px) rotateY(-6deg) rotateX(2deg); transition: transform 0.6s; }
 .shots:hover .shot-desktop { transform: none; }
-.shot-phone { position: absolute; right: -0.5rem; bottom: 0; width: 30%; border-radius: 1.6rem; border-width: 4px; border-color: #111827; }
+/* A phone the way it looks in the hand: a black bezel around the screen, a Dynamic Island in the status
+   bar, side buttons. Sizes are in cqw, shares of the phone's own width, so it scales as one piece. */
+.shot-phone { position: absolute; right: -0.5rem; bottom: 0; width: 30%; border: 0; border-radius: 0; background: none; box-shadow: none; overflow: visible; container-type: inline-size; }
+.phone { position: relative; padding: 4.2cqw; border-radius: 16cqw; background: #0c0c0d;
+  box-shadow: inset 0 0 0 0.7cqw #3a3a3f, inset 0 0 0 1.3cqw #0c0c0d, 0 30px 70px -28px rgb(30 20 20 / 0.6); }
+.phone::before, .phone::after { content: ""; position: absolute; width: 1.1cqw; border-radius: 1cqw; background: #2b2b30; }
+.phone::before { right: -0.9cqw; top: 25%; height: 13%; }
+.phone::after { left: -0.9cqw; top: 19%; height: 8%; box-shadow: 0 11cqw 0 #2b2b30; }
+.phone-screen { position: relative; overflow: hidden; border-radius: 11.8cqw; background: #eeede9; }
+.phone-status { position: relative; height: 13cqw; display: flex; align-items: center; justify-content: space-between; padding: 1.2cqw 7.5cqw 0 9cqw; color: #141414; }
+.phone-time { font: 600 4.3cqw/1 var(--font, system-ui), system-ui; letter-spacing: -0.01em; }
+.phone-island { position: absolute; left: 50%; top: 2.8cqw; width: 30cqw; height: 8.8cqw; transform: translateX(-50%); border-radius: 99px; background: #000; }
+.phone-icons { width: 17cqw; height: auto; display: block; }
 @media (max-width: 640px) { .shot-phone { width: 36%; right: -0.25rem; } }
 
 /* ── Join & FAQ ─────────────────────────────────────────────────────────────── */

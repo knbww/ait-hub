@@ -47,6 +47,20 @@
       </div>
     </header>
 
+    <!-- The team selection over the page while it is open, once a session (club.js). After data-until it stays closed. -->
+    <dialog class="pop" id="recruitPop" aria-labelledby="popTitle" data-until="2026-11-16T19:00:00Z" tabindex="-1">
+      <img class="pop-img" src="/img/news/team-wide.webp" alt="" width="880" height="360" />
+      <button class="pop-x" type="button" aria-label="Закрыть">×</button>
+      <div class="pop-body">
+        <h2 id="popTitle">AIT Club набирает команду</h2>
+        <p>Ищем менторов и организаторов из разных НИШ. Мест немного, заявки — до 16 ноября включительно.</p>
+        <div class="cta">
+          <a class="btn btn-accent" href="/apply">Подать заявку</a>
+          <a class="btn btn-ghost" href="#team" data-close>Подробнее</a>
+        </div>
+      </div>
+    </dialog>
+
     <main id="top">
       <!-- Hero: an ASCII field that draws what each direction teaches (club.js) -->
       <section class="hero" id="hero" aria-label="AIT Club">
@@ -87,7 +101,7 @@
         <div class="wrap">
           <div class="sec-head">
             <h2 class="reveal">Отбор в команду клуба</h2>
-            <p class="reveal sec-lead">Клуб собирает межшкольную команду из сети НИШ: менторов направлений и организаторов. Работа онлайн, добровольная и без оплаты. Заявки до 16 ноября, онлайн-собеседования 17–23 ноября.</p>
+            <p class="reveal sec-lead">Клуб выходит на всю сеть НИШ и собирает команду: менторов направлений и организаторов. Мест немного, всё онлайн, так что присоединиться можно из любого города. Заявки до 16 ноября, онлайн-собеседования 17–23 ноября.</p>
           </div>
           <div class="team-depts">
             <!-- team-roles -->
@@ -97,7 +111,7 @@
               <a class="btn btn-accent" href="/apply">Подать заявку</a>
               <a class="btn btn-ghost" href="/team">Роли и отбор подробно</a>
             </div>
-            <ul class="facts" aria-label="Даты отбора"><li>заявки 9–16 ноября</li><li>собеседования 17–23 ноября</li><li>затем подготовка AIT Week</li></ul>
+            <ul class="facts" aria-label="Даты отбора"><li>заявки до 16 ноября</li><li>собеседования 17–23 ноября</li><li>места ограничены</li></ul>
           </div>
         </div>
       </section>
@@ -112,7 +126,7 @@
           <div class="stage" id="stage" tabindex="0" aria-label="Лента новостей">
             <div class="stack" id="stack"></div>
             <div class="detail glass" id="detail" hidden aria-live="polite">
-              <canvas class="detail-thumb" id="detailThumb" aria-hidden="true"></canvas>
+              <img class="detail-thumb" id="detailThumb" alt="" width="600" height="800" />
               <p class="when" id="dDate"></p>
               <h3 id="dTitle"></h3>
               <p class="detail-text" id="dText"></p>
@@ -219,7 +233,23 @@
                 <img src="/shots/catalog.jpg" alt="Каталог конкурсов в AIT Hub" loading="lazy" width="1280" height="800" />
               </figure>
               <figure class="shot shot-phone">
-                <img src="/shots/progress-phone.jpg" alt="Мой прогресс в AIT Hub на телефоне" loading="lazy" width="390" height="780" />
+                <div class="phone">
+                  <div class="phone-screen">
+                    <div class="phone-status" aria-hidden="true">
+                      <span class="phone-time">9:41</span>
+                      <span class="phone-island"></span>
+                      <svg class="phone-icons" viewBox="0 0 68 12">
+                        <g fill="currentColor"><rect x="0" y="8" width="3" height="4" rx=".8" /><rect x="4.6" y="6" width="3" height="6" rx=".8" /><rect x="9.2" y="3.5" width="3" height="8.5" rx=".8" /><rect x="13.8" y="1" width="3" height="11" rx=".8" /></g>
+                        <g fill="none" stroke="currentColor" stroke-width="1.7" stroke-linecap="round"><path d="M24.4 4.7a9.4 9.4 0 0 1 13.2 0" /><path d="M27.1 7.4a5.5 5.5 0 0 1 7.8 0" /></g>
+                        <circle cx="31" cy="10.3" r="1.5" fill="currentColor" />
+                        <rect x="44.5" y="1.5" width="20" height="9.5" rx="2.7" fill="none" stroke="currentColor" stroke-opacity=".45" />
+                        <rect x="46.4" y="3.4" width="16.2" height="5.7" rx="1.4" fill="currentColor" />
+                        <path d="M66.2 4.6v3.3a1.8 1.8 0 0 0 0-3.3z" fill="currentColor" fill-opacity=".45" />
+                      </svg>
+                    </div>
+                    <img src="/shots/progress-phone.jpg" alt="Мой прогресс в AIT Hub на телефоне" loading="lazy" width="390" height="780" />
+                  </div>
+                </div>
               </figure>
             </div>
           </div>
@@ -273,10 +303,7 @@
         <div>
           <h3>Сообщества</h3>
           <ul class="b-list">
-            <li><b>Telegram-канал клуба</b></li>
-            <li><b>Чат клуба в WhatsApp</b></li>
-            <li><b>Алгоритмы в WhatsApp</b></li>
-            <li><b>IT-сообщество</b><span>открытые события</span></li>
+            <li><b>Telegram-канал клуба</b><span><a href="{{contact_href}}">{{contact}}</a></span></li>
           </ul>
         </div>
         <div>
